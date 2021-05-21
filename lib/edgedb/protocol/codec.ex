@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Codec do
+  # credo:disable-for-this-file Credo.Check.Design.AliasUsage
+
   defstruct [
     :type_id,
     :type_name,
@@ -9,14 +11,17 @@ defmodule EdgeDB.Protocol.Codec do
     scalar?: false
   ]
 
+  @type t() :: %__MODULE__{}
+
   defmacro __using__(_opts \\ []) do
     quote do
       import EdgeDB.Protocol.Converters
 
       import unquote(__MODULE__)
 
+      alias unquote(__MODULE__)
+
       alias EdgeDB.Protocol.DataTypes.UUID
-      alias EdgeDB.Protocol.Codec
     end
   end
 
@@ -26,6 +31,7 @@ defmodule EdgeDB.Protocol.Codec do
     quote do
       @type t() :: unquote(Keyword.fetch!(opts, :type))
 
+      @spec create_encoder((t() -> iodata())) :: (t() -> iodata())
       def create_encoder(main_encoder) do
         fn instance ->
           encoded_data = main_encoder.(instance)
@@ -43,6 +49,7 @@ defmodule EdgeDB.Protocol.Codec do
         end
       end
 
+      @spec create_decoder((bitstring() -> t())) :: (bitstring() -> t())
       def create_decoder(main_decoder) do
         if unquote(calculate_size?) do
           fn <<size::uint32, data::binary(size)>> ->
@@ -63,7 +70,8 @@ defmodule EdgeDB.Protocol.Codec do
     quote do
       @type t() :: unquote(Keyword.fetch!(opts, :type))
 
-      def new() do
+      @spec new() :: Codec.t()
+      def new do
         %unquote(__MODULE__){
           type_id: unquote(Keyword.get(opts, :type_id)),
           type_name: unquote(Keyword.get(opts, :type_name)),
@@ -74,6 +82,7 @@ defmodule EdgeDB.Protocol.Codec do
         }
       end
 
+      @spec encode(t()) :: iodata()
       def encode(instance) do
         encoded_data = encode_instance(instance)
 
@@ -90,22 +99,28 @@ defmodule EdgeDB.Protocol.Codec do
           end
       rescue
         _exc in FunctionClauseError ->
-          raise EdgeDB.Protocol.Errors.InvalidArgumentError, "unable to encode: #{instance}"
+          reraise EdgeDB.Protocol.Errors.InvalidArgumentError,
+                  "unable to encode: #{instance}",
+                  __STACKTRACE__
       end
+
+      @spec decode(bitstring()) :: t()
 
       if unquote(calculate_size?) do
         def decode(<<instance_size::uint32, data::binary(instance_size)>>) do
           decode_instance(data)
         rescue
           _exc in FunctionClauseError ->
-            raise EdgeDB.Protocol.Errors.InputDataError, message: "unable to decode instance"
+            reraise EdgeDB.Protocol.Errors.InputDataError,
+                    "unable to decode instance",
+                    __STACKTRACE__
         end
       else
         def decode(data) when is_bitstring(data) do
           decode_instance(data)
         rescue
           _exc in FunctionClauseError ->
-            raise EdgeDB.Protocol.Errors.InputDataError, message: "unable to decode instance"
+            reraise EdgeDB.Protocol.Errors.InputDataError, "unable to decode instance", __MODULE__
         end
       end
     end

@@ -1,12 +1,16 @@
 defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   defmessage(
+    name: :describe_statement,
     client: true,
     mtype: 0x44,
-    name: :describe_statement,
     fields: [
       headers: [Types.Header.t()],
       aspect: Enums.DescribeAspect.t(),
@@ -14,7 +18,7 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
     ]
   )
 
-  @spec encode_message(t()) :: bitstring()
+  @spec encode_message(t()) :: iodata()
   defp encode_message(
          describe_statement(
            headers: headers,

@@ -9,7 +9,7 @@ defmodule EdgeDB.Protocol.Codecs.Int32 do
     type: integer()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(integer) when is_integer(integer) do
     DataTypes.Int32.encode(integer)
   end

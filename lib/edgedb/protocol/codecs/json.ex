@@ -14,18 +14,19 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
 
   # TODO: allow custom JSON libraries, but for now Jason is hardcoded
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(instanfce) do
-    with {:ok, encoded_data} <- Jason.encode(instanfce) do
-      data_length = byte_size(encoded_data)
-      data = :binary.bin_to_list(encoded_data)
+    case Jason.encode(instanfce) do
+      {:ok, encoded_data} ->
+        data_length = byte_size(encoded_data)
+        data = :binary.bin_to_list(encoded_data)
 
-      [
-        DataTypes.UInt32.encode(data_length + 1),
-        DataTypes.Int8.encode(@format),
-        DataTypes.Int8.encode(data, :raw)
-      ]
-    else
+        [
+          DataTypes.UInt32.encode(data_length + 1),
+          DataTypes.Int8.encode(@format),
+          DataTypes.Int8.encode(data, :raw)
+        ]
+
       {:error, error} ->
         raise EdgeDB.Protocol.Errors.InvalidArgumentError,
               "unable to encode argument as JSON: #{inspect(error)}"

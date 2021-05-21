@@ -1,12 +1,15 @@
 defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defmessage(
+    name: :command_complete,
     server: true,
     mtype: 0x43,
-    name: :command_complete,
     fields: [
       headers: [Types.Header.t()],
       status: DataTypes.String.t()

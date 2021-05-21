@@ -10,7 +10,7 @@ defmodule EdgeDB.Protocol.Codecs.Bytes do
     type: DataTypes.Bytes.t()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(bytes) when is_binary(bytes) do
     DataTypes.Bytes.encode(bytes)
   end

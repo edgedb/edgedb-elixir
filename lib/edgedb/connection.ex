@@ -3,15 +3,19 @@ defmodule EdgeDB.Connection do
 
   use EdgeDB.Protocol.Messages
 
-  alias EdgeDB.Protocol.Codecs
   alias EdgeDB.Connection.QueriesCache
+
+  alias EdgeDB.Protocol.{
+    Codecs,
+    Errors
+  }
 
   @default_hostname "127.0.0.1"
   @default_port 5656
   @default_username "edgedb"
   @default_database "edgedb"
 
-  @default_timeout 1_000
+  @default_timeout 15_000
   @max_packet_size 64 * 1024 * 1024
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
 
@@ -26,17 +30,17 @@ defmodule EdgeDB.Connection do
               queries_cache: nil
   end
 
-  @impl true
+  @impl DBConnection
   def checkin(state) do
     {:ok, state}
   end
 
-  @impl true
+  @impl DBConnection
   def checkout(state) do
     {:ok, state}
   end
 
-  @impl true
+  @impl DBConnection
   def connect(opts \\ []) do
     host = Keyword.get(opts, :host, @default_hostname)
     port = Keyword.get(opts, :port, @default_port)
@@ -59,49 +63,49 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @impl true
+  @impl DBConnection
   def disconnect(_err, %State{socket: socket} = state) do
     with :ok <- send_message(state, terminate()) do
       :gen_tcp.close(socket)
     end
   end
 
-  @impl true
+  @impl DBConnection
   def handle_begin(_opts, state) do
     {:disconnect, {:not_implemented, :handle_begin}, state}
   end
 
-  @impl true
+  @impl DBConnection
   def handle_close(%EdgeDB.Query{cached?: true} = query, _opts, state) do
     close_prepared_query(query, state)
   end
 
-  @impl true
+  @impl DBConnection
   def handle_commit(_opts, state) do
     {:disconnect, {:not_implemented, :handle_commit}, state}
   end
 
-  @impl true
+  @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
     {:disconnect, {:not_implemented, :handle_deallocate}, state}
   end
 
-  @impl true
+  @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
     {:disconnect, {:not_implemented, :handle_declare}, state}
   end
 
-  @impl true
+  @impl DBConnection
   def handle_execute(%EdgeDB.Query{} = query, params, _opts, state) do
     execute_query(query, params, state)
   end
 
-  @impl true
+  @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
     {:disconnect, {:not_implemented, :handle_fetch}, state}
   end
 
-  @impl true
+  @impl DBConnection
   def handle_prepare(%EdgeDB.Query{} = query, opts, %State{queries_cache: qc} = state) do
     case QueriesCache.get(qc, query.statement, query.cardinality, query.io_format) do
       %EdgeDB.Query{cached?: true} = cached_query ->
@@ -112,17 +116,17 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @impl true
+  @impl DBConnection
   def handle_rollback(_opts, state) do
     {:disconnect, {:not_implemented, :handle_rollback}, state}
   end
 
-  @impl true
+  @impl DBConnection
   def handle_status(_opts, state) do
     {status(state), state}
   end
 
-  @impl true
+  @impl DBConnection
   def ping(state) do
     {:ok, state}
   end
@@ -150,6 +154,12 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_authentication(state, password) do
+    with {:ok, {message, buffer}} <- receive_message(state) do
+      handle_authentication_flow(message, password, %State{state | buffer: buffer})
+    end
+  end
+
+  defp handle_authentication_flow(server_handshake(), password, state) do
     with {:ok, {message, buffer}} <- receive_message(state) do
       handle_authentication_flow(message, password, %State{state | buffer: buffer})
     end
@@ -223,7 +233,7 @@ defmodule EdgeDB.Connection do
     {:ok, %State{state | server_state: transaction_state}}
   end
 
-  def prepare_query(%EdgeDB.Query{} = query, opts, state) do
+  defp prepare_query(%EdgeDB.Query{} = query, opts, state) do
     allowed_headers = %{
       implicit_limit: 0xFF01,
       implicit_typenames: 0xFF02,
@@ -260,7 +270,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      EdgeDB.Protocol.Errors.CardinalityViolationError.exception(
+      Errors.CardinalityViolationError.exception(
         "cann't execute query since expected single result and query doesn't return any data"
       )
 
@@ -293,7 +303,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      EdgeDB.Protocol.Errors.CardinalityViolationError.exception(
+      Errors.CardinalityViolationError.exception(
         "cann't execute query since expected single result and query doesn't return any data"
       )
 

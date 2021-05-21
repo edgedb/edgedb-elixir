@@ -1,12 +1,16 @@
 defmodule EdgeDB.Protocol.Messages.Server.PrepareComplete do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Enums, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   defmessage(
+    name: :prepare_complete,
     server: true,
     mtype: 0x31,
-    name: :prepare_complete,
     fields: [
       headers: [Types.Header.t()],
       cardinality: Enums.Cardinality.t(),

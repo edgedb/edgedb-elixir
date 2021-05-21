@@ -12,7 +12,7 @@ defmodule EdgeDB.Protocol.Codecs.Bool do
     type: boolean()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
 
   def encode_instance(true) do
     DataTypes.Int8.encode(@true_code)

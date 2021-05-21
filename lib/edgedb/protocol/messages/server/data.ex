@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.Data do
   alias EdgeDB.Protocol.Types
 
   defmessage(
+    name: :data,
     server: true,
     mtype: 0x44,
-    name: :data,
     fields: [
       data: Types.DataElement.t()
     ]

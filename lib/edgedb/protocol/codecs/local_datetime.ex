@@ -9,7 +9,7 @@ defmodule EdgeDB.Protocol.Codecs.LocalDateTime do
     type: NaiveDateTime.t() | non_neg_integer()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
 
   def encode_instance(unix_ts) when is_integer(unix_ts) do
     Codecs.DateTime.encode(unix_ts)

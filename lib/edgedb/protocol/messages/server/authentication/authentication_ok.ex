@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationOK do
   alias EdgeDB.Protocol.DataTypes
 
   defmessage(
+    name: :authentication_ok,
     server: true,
     mtype: 0x52,
-    name: :authentication_ok,
     fields: [
       auth_status: DataTypes.UInt32.t()
     ]

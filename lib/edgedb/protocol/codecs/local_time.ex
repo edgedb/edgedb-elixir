@@ -9,7 +9,7 @@ defmodule EdgeDB.Protocol.Codecs.LocalTime do
     type: Time.t()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(%Time{} = t) do
     t
     |> Time.to_seconds_after_midnight()

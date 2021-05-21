@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Codecs.LocalDate do
     type: Date.t()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(%Date{} = d) do
     days =
       @base_date

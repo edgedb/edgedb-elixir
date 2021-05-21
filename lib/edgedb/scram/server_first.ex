@@ -1,4 +1,6 @@
 defmodule EdgeDB.SCRAM.ServerFirst do
+  alias EdgeDB.SCRAM.ServerFinal
+
   @sha256_output_length 32
 
   defstruct [
@@ -26,7 +28,7 @@ defmodule EdgeDB.SCRAM.ServerFirst do
   end
 
   @spec server_first(t(), binary()) ::
-          {:ok, {EdgeDB.SCRAM.ServerFinal.t(), binary()}}
+          {:ok, {ServerFinal.t(), binary()}}
           | {:error,
              :wrong_server_first_data
              | :mismatched_nonces}
@@ -48,7 +50,7 @@ defmodule EdgeDB.SCRAM.ServerFirst do
       encoded_proof = Base.encode64(client_proof)
       client_final_message = "c=#{encoded_gs2header},r=#{nonce},p=#{encoded_proof}"
 
-      sf = EdgeDB.SCRAM.ServerFinal.new(server_signature)
+      sf = ServerFinal.new(server_signature)
 
       {:ok, {sf, client_final_message}}
     end

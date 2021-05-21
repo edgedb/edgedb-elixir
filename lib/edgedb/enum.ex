@@ -5,7 +5,8 @@ defmodule EdgeDB.Enum do
 
   @type t() :: %__MODULE__{}
 
-  def _new(members, value) do
+  @spec new(list(String.t()), String.t()) :: t()
+  def new(members, value) do
     %__MODULE__{__members__: members, value: value}
   end
 end

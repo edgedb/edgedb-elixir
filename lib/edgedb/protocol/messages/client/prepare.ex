@@ -1,12 +1,16 @@
 defmodule EdgeDB.Protocol.Messages.Client.Prepare do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   defmessage(
+    name: :prepare,
     client: true,
     mtype: 0x50,
-    name: :prepare,
     fields: [
       headers: [Types.Header.t()],
       io_format: Enums.IOFormat.t(),
@@ -16,7 +20,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
     ]
   )
 
-  @spec encode_message(t()) :: bitstring()
+  @spec encode_message(t()) :: iodata()
   defp encode_message(
          prepare(
            headers: headers,

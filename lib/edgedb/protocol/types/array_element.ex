@@ -6,10 +6,11 @@ defmodule EdgeDB.Protocol.Types.ArrayElement do
   deftype(
     name: :array_element,
     fields: [
-      data: [DataTypes.UInt8.t()]
+      data: iodata()
     ]
   )
 
+  @spec encode(t()) :: iodata()
   def encode(array_element(data: data)) do
     data =
       data
@@ -19,6 +20,7 @@ defmodule EdgeDB.Protocol.Types.ArrayElement do
     DataTypes.UInt8.encode(data, :raw)
   end
 
+  @spec decode(bitstring()) :: {t(), bitstring()}
   def decode(<<len::int32, rest::binary>>) do
     {data, rest} = DataTypes.UInt8.decode(len, rest)
 

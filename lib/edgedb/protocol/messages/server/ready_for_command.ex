@@ -1,12 +1,16 @@
 defmodule EdgeDB.Protocol.Messages.Server.ReadyForCommand do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   defmessage(
+    name: :ready_for_command,
     server: true,
     mtype: 0x5A,
-    name: :ready_for_command,
     fields: [
       headers: [Types.Header.t()],
       transaction_state: Enums.TransactionState.t()

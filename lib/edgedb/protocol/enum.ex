@@ -25,6 +25,8 @@ defmodule EdgeDB.Protocol.Enum do
         defguard unquote(guard)(code) when code in unquote(codes)
       end
 
+      @spec to_atom(integer() | atom()) :: atom()
+
       def to_atom(code) when is_integer(code) and code in unquote(codes) do
         {atom, ^code} = List.keyfind(unquote(values), code, 1)
         atom
@@ -33,6 +35,8 @@ defmodule EdgeDB.Protocol.Enum do
       def to_atom(atom) when is_atom(atom) and atom in unquote(atoms) do
         atom
       end
+
+      @spec to_code(integer() | atom()) :: integer()
 
       def to_code(atom) when is_atom(atom) and atom in unquote(atoms) do
         {^atom, code} = List.keyfind(unquote(values), atom, 0)

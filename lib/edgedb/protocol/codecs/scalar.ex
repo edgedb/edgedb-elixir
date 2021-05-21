@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.Codecs.Scalar do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.Codecs
+  alias EdgeDB.Protocol.{
+    Codecs,
+    DataTypes
+  }
 
   defcodec(
     type:
@@ -23,6 +26,7 @@ defmodule EdgeDB.Protocol.Codecs.Scalar do
       | Codecs.JSON.t()
   )
 
+  @spec new(DataTypes.UUID.t(), Codec.t()) :: Codec.t()
   def new(type_id, %Codec{scalar?: true} = codec) do
     %Codec{
       type_id: <<type_id::uuid>>,

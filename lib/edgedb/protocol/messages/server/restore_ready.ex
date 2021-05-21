@@ -1,12 +1,15 @@
 defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defmessage(
+    name: :restore_ready,
     server: true,
     mtype: 0x2B,
-    name: :restore_ready,
     fields: [
       headers: [Types.Header.t()],
       jobs: DataTypes.UInt16.t()

@@ -10,7 +10,7 @@ defmodule EdgeDB.Protocol.Codecs.Str do
     type: binary()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(string) when is_binary(string) do
     DataTypes.String.encode(string)
   end

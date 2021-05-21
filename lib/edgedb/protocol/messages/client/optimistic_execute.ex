@@ -1,12 +1,16 @@
 defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   defmessage(
+    name: :optimistic_execute,
     client: true,
     mtype: 0x4F,
-    name: :optimistic_execute,
     fields: [
       headers: [Types.Header.t()],
       io_format: Enums.IOFormat.t(),
@@ -14,11 +18,11 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
       command_text: DataTypes.String.t(),
       input_typedesc_id: DataTypes.UUID.t(),
       output_typedesc_id: DataTypes.UUID.t(),
-      arguments: DataTypes.Bytes.t()
+      arguments: iodata()
     ]
   )
 
-  @spec encode_message(t()) :: bitstring()
+  @spec encode_message(t()) :: iodata()
   defp encode_message(
          optimistic_execute(
            headers: headers,
@@ -37,7 +41,7 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
       DataTypes.String.encode(command_text),
       DataTypes.UUID.encode(input_typedesc_id),
       DataTypes.UUID.encode(output_typedesc_id),
-      DataTypes.Bytes.encode(arguments)
+      arguments
     ]
   end
 end

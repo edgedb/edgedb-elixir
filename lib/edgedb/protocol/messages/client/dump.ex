@@ -4,15 +4,15 @@ defmodule EdgeDB.Protocol.Messages.Client.Dump do
   alias EdgeDB.Protocol.Types
 
   defmessage(
+    name: :dump,
     client: true,
     mtype: 0x3E,
-    name: :dump,
     fields: [
       headers: [Types.Header.t()]
     ]
   )
 
-  @spec encode_message(t()) :: bitstring()
+  @spec encode_message(t()) :: iodata()
   defp encode_message(dump(headers: headers)) do
     [Types.Header.encode(headers)]
   end

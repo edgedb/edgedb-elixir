@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.ParameterStatus do
   alias EdgeDB.Protocol.DataTypes
 
   defmessage(
+    name: :parameter_status,
     server: true,
     mtype: 0x53,
-    name: :parameter_status,
     fields: [
       name: DataTypes.Bytes.t(),
       value: DataTypes.Bytes.t()

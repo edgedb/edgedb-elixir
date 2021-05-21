@@ -3,10 +3,14 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
 
   import EdgeDB.Protocol.Types.TupleElement
 
-  alias EdgeDB.Protocol.{Types, DataTypes}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defcodec(type: tuple())
 
+  @spec new(DataTypes.UUID.t(), list(Codec.t())) :: Codec.t()
   def new(type_id, codecs) do
     encoder =
       create_encoder(fn

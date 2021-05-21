@@ -12,7 +12,8 @@ defmodule EdgeDB.Protocol.Types.NamedTupleDescriptorElement do
     ]
   )
 
-  def decode(data) do
+  @spec decode(bitstring()) :: {t(), bitstring()}
+  def decode(<<data::binary>>) do
     {name, rest} = DataTypes.String.decode(data)
     {type_pos, rest} = DataTypes.Int16.decode(rest)
 

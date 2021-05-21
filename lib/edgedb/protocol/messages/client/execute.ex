@@ -1,12 +1,15 @@
 defmodule EdgeDB.Protocol.Messages.Client.Execute do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defmessage(
+    name: :execute,
     client: true,
     mtype: 0x45,
-    name: :execute,
     fields: [
       headers: [Types.Header.t()],
       statement_name: DataTypes.Bytes.t(),
@@ -14,7 +17,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
     ]
   )
 
-  @spec encode_message(t()) :: bitstring()
+  @spec encode_message(t()) :: iodata()
   defp encode_message(
          execute(
            headers: headers,

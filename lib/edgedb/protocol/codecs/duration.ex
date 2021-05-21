@@ -12,7 +12,7 @@ defmodule EdgeDB.Protocol.Codecs.Duration do
     type: pos_integer()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(duration) when is_integer(duration) do
     [
       DataTypes.Int64.encode(duration),

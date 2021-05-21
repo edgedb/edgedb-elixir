@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Message do
+  # credo:disable-for-this-file Credo.Check.Design.AliasUsage
+
   defmacro __using__(_opts \\ []) do
     quote do
       import Record
@@ -74,7 +76,7 @@ defmodule EdgeDB.Protocol.Message do
             <<message_payload::binary(payload_length), rest::binary>> ->
               {:ok, {decode_message(message_payload), rest}}
 
-            _ ->
+            _payload ->
               {:error, {:not_enough_size, payload_length - byte_size(rest)}}
           end
         end

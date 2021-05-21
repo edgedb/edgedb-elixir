@@ -6,7 +6,7 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
     type: any()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(_instance) do
     raise EdgeDB.Protocol.Errors.InvalidArgumentError, "empty result can't be encoded by client"
   end

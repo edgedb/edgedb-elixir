@@ -1,14 +1,20 @@
 defmodule EdgeDB.Protocol.Codecs.Set do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.Dimension
-  import EdgeDB.Protocol.Types.ArrayElement
-  import EdgeDB.Protocol.Types.Envelope
+  import EdgeDB.Protocol.Types.{
+    Dimension,
+    Envelope,
+    ArrayElement
+  }
 
-  alias EdgeDB.Protocol.Types
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defcodec(type: EdgeDB.Set.t())
 
+  @spec new(DataTypes.UUID.t(), Codec.t()) :: Codec.t()
   def new(type_id, codec) do
     encoder =
       create_encoder(fn %EdgeDB.Set{} ->
@@ -18,7 +24,7 @@ defmodule EdgeDB.Protocol.Codecs.Set do
     decoder =
       create_decoder(fn
         <<0::int32, _reserved0::int32, _reserved1::int32, _rest::binary>> ->
-          EdgeDB.Set._new()
+          EdgeDB.Set.new()
 
         <<ndims::int32, _reserved0::int32, _reserved1::int32, rest::binary>> ->
           {dimensions, rest} = Types.Dimension.decode(ndims, rest)
@@ -33,11 +39,11 @@ defmodule EdgeDB.Protocol.Codecs.Set do
               %Codec{module: EdgeDB.Protocol.Codecs.Array} ->
                 decode_envelopes(codec, elements_count, rest)
 
-              _ ->
+              _other_codec ->
                 decode_elements(codec, elements_count, rest)
             end
 
-          EdgeDB.Set._new(elements)
+          EdgeDB.Set.new(elements)
       end)
 
     %Codec{

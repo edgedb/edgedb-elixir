@@ -1,40 +1,45 @@
 defmodule EdgeDB.Protocol do
   import EdgeDB.Protocol.Converters
 
+  alias EdgeDB.Protocol.Messages.{
+    Client,
+    Server
+  }
+
   @client_modules [
-    EdgeDB.Protocol.Messages.Client.AuthenticationSASLInitialResponse,
-    EdgeDB.Protocol.Messages.Client.AuthenticationSASLInitialResponse,
-    EdgeDB.Protocol.Messages.Client.AuthenticationSASLResponse,
-    EdgeDB.Protocol.Messages.Client.ClientHandshake,
-    EdgeDB.Protocol.Messages.Client.DescribeStatement,
-    EdgeDB.Protocol.Messages.Client.Dump,
-    EdgeDB.Protocol.Messages.Client.ExecuteScript,
-    EdgeDB.Protocol.Messages.Client.Execute,
-    EdgeDB.Protocol.Messages.Client.Flush,
-    EdgeDB.Protocol.Messages.Client.OptimisticExecute,
-    EdgeDB.Protocol.Messages.Client.Prepare,
-    EdgeDB.Protocol.Messages.Client.RestoreBlock,
-    EdgeDB.Protocol.Messages.Client.RestoreEOF,
-    EdgeDB.Protocol.Messages.Client.Restore,
-    EdgeDB.Protocol.Messages.Client.Sync,
-    EdgeDB.Protocol.Messages.Client.Terminate
+    Client.AuthenticationSASLInitialResponse,
+    Client.AuthenticationSASLInitialResponse,
+    Client.AuthenticationSASLResponse,
+    Client.ClientHandshake,
+    Client.DescribeStatement,
+    Client.Dump,
+    Client.ExecuteScript,
+    Client.Execute,
+    Client.Flush,
+    Client.OptimisticExecute,
+    Client.Prepare,
+    Client.RestoreBlock,
+    Client.RestoreEOF,
+    Client.Restore,
+    Client.Sync,
+    Client.Terminate
   ]
 
   @server_modules [
-    EdgeDB.Protocol.Messages.Server.Authentication,
-    EdgeDB.Protocol.Messages.Server.CommandComplete,
-    EdgeDB.Protocol.Messages.Server.CommandDataDescription,
-    EdgeDB.Protocol.Messages.Server.Data,
-    EdgeDB.Protocol.Messages.Server.DumpBlock,
-    EdgeDB.Protocol.Messages.Server.DumpHeader,
-    EdgeDB.Protocol.Messages.Server.ErrorResponse,
-    EdgeDB.Protocol.Messages.Server.LogMessage,
-    EdgeDB.Protocol.Messages.Server.ParameterStatus,
-    EdgeDB.Protocol.Messages.Server.PrepareComplete,
-    EdgeDB.Protocol.Messages.Server.ReadyForCommand,
-    EdgeDB.Protocol.Messages.Server.RestoreReady,
-    EdgeDB.Protocol.Messages.Server.ServerHandshake,
-    EdgeDB.Protocol.Messages.Server.ServerKeyData
+    Server.Authentication,
+    Server.CommandComplete,
+    Server.CommandDataDescription,
+    Server.Data,
+    Server.DumpBlock,
+    Server.DumpHeader,
+    Server.ErrorResponse,
+    Server.LogMessage,
+    Server.ParameterStatus,
+    Server.PrepareComplete,
+    Server.ReadyForCommand,
+    Server.RestoreReady,
+    Server.ServerHandshake,
+    Server.ServerKeyData
   ]
 
   @spec encode(term()) :: binary()

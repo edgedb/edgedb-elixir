@@ -1,13 +1,20 @@
 defmodule EdgeDB.Protocol.Codecs.NamedTuple do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.TupleElement
-  import EdgeDB.Protocol.Types.NamedTupleDescriptorElement
+  import EdgeDB.Protocol.Types.{
+    TupleElement,
+    NamedTupleDescriptorElement
+  }
 
-  alias EdgeDB.Protocol.{Types, DataTypes}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defcodec(type: EdgeDB.NamedTuple.t())
 
+  @spec new(DataTypes.UUID.t(), list(Types.NamedTupleDescriptorElement.t()), list(Codec.t())) ::
+          Codec.t()
   def new(type_id, elements, codecs) do
     encoder =
       create_encoder(fn instance when is_map(instance) or is_list(instance) ->

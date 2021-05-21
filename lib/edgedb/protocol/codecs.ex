@@ -1,15 +1,24 @@
 defmodule EdgeDB.Protocol.Codecs do
   import EdgeDB.Protocol.Converters
 
-  alias EdgeDB.Protocol.{Codecs, TypeDescriptors}
+  alias EdgeDB.Protocol.{
+    Codec,
+    Codecs,
+    TypeDescriptors
+  }
 
+  @spec from_type_description(Codecs.Storage.t(), bitstring()) :: Codec.t()
   def from_type_description(storage, type_description) do
     create_codec_from_type_description(storage, type_description)
   end
 
+  @spec create_codec_from_type_description(Codecs.Storage.t(), bitstring()) :: Codec.t()
   def create_codec_from_type_description(storage, data) do
     create_codec_from_type_description(storage, data, [])
   end
+
+  @spec create_codec_from_type_description(Codecs.Storage.t(), bitstring(), list(Codec.t())) ::
+          Codec.t()
 
   def create_codec_from_type_description(_storage, <<>>, [codec | _codecs]) do
     codec

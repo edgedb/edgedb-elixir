@@ -1,12 +1,12 @@
 defmodule EdgeDB.Protocol.Messages.Server.Authentication do
+  import EdgeDB.Protocol.Converters
+
   alias EdgeDB.Protocol.Messages.Server.Authentication.{
     AuthenticationOK,
     AuthenticationSASL,
     AuthenticationSASLContinue,
     AuthenticationSASLFinal
   }
-
-  import EdgeDB.Protocol.Converters
 
   @mtype 0x52
   @sasl_code 0xA
@@ -38,7 +38,7 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication do
       <<message_payload::binary(payload_length), _rest::binary>> ->
         decode_authentication_message(message_payload, payload)
 
-      _ ->
+      _payload ->
         {:error, {:not_enougth_size, payload_length - byte_size(rest)}}
     end
   end

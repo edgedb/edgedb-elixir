@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpBlock do
   alias EdgeDB.Protocol.Types
 
   defmessage(
+    name: :dump_block,
     server: true,
     mtype: 0x3D,
-    name: :dump_block,
     fields: [
       headers: [Types.Header.t()]
     ]

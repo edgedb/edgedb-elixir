@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.ServerHandshake do
   alias EdgeDB.Protocol.Types
 
   defmessage(
+    name: :server_handshake,
     server: true,
     mtype: 0x76,
-    name: :server_handshake,
     fields: [
       extensions: [Types.ProtocolExtension.t()]
     ]

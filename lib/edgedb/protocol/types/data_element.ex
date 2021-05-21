@@ -4,10 +4,10 @@ defmodule EdgeDB.Protocol.Types.DataElement do
   alias EdgeDB.Protocol.DataTypes
 
   deftype(
-    encode?: false,
     name: :data_element,
+    encode?: false,
     fields: [
-      data: [DataTypes.UInt8.t()]
+      data: binary()
     ]
   )
 

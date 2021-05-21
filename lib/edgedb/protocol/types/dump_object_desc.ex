@@ -4,8 +4,8 @@ defmodule EdgeDB.Protocol.Types.DumpObjectDesc do
   alias EdgeDB.Protocol.DataTypes
 
   deftype(
-    encode?: false,
     name: :dump_object_desc,
+    encode?: false,
     fields: [
       object_id: DataTypes.UUID.t(),
       description: DataTypes.Bytes.t(),

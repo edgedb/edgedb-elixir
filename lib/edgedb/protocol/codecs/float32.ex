@@ -9,7 +9,7 @@ defmodule EdgeDB.Protocol.Codecs.Float32 do
     type: DataTypes.Float32.t()
   )
 
-  @spec encode_instance(t()) :: bitstring()
+  @spec encode_instance(t()) :: iodata()
   def encode_instance(float) do
     DataTypes.Float32.encode(float)
   end

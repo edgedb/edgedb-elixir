@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.DataType do
+  # credo:disable-for-this-file Credo.Check.Design.AliasUsage
+
   defmacro __using__(_opts \\ []) do
     quote do
       import EdgeDB.Protocol.Converters
@@ -28,7 +30,7 @@ defmodule EdgeDB.Protocol.DataType do
 
       def decode(num_types_to_decode, <<value_to_decode::binary>>) do
         {types, rest} =
-          Enum.reduce(1..num_types_to_decode, {[], value_to_decode}, fn _, {types, rest} ->
+          Enum.reduce(1..num_types_to_decode, {[], value_to_decode}, fn _idx, {types, rest} ->
             {decoded_type, rest} = decode(rest)
             {[decoded_type | types], rest}
           end)

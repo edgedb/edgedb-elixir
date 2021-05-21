@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationSASLConti
   alias EdgeDB.Protocol.DataTypes
 
   defmessage(
+    name: :authentication_sasl_continue,
     server: true,
     mtype: 0x52,
-    name: :authentication_sasl_continue,
     fields: [
       auth_status: 0xB,
       sasl_data: DataTypes.Bytes.t()

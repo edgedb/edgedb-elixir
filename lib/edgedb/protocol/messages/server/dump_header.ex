@@ -1,12 +1,15 @@
 defmodule EdgeDB.Protocol.Messages.Server.DumpHeader do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defmessage(
+    name: :dump_header,
     server: true,
     mtype: 0x40,
-    name: :dump_header,
     fields: [
       headers: [Types.Header.t()],
       major_ver: DataTypes.UInt16.t(),

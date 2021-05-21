@@ -7,9 +7,12 @@ defmodule EdgeDB.Object do
 
   defmodule Field do
     defstruct [:name, :value, :link?, :link_property?, :implicit?]
+
+    @type t() :: %__MODULE__{}
   end
 
-  def _from_fields(fields) do
+  @spec from_fields(list(Field.t())) :: t()
+  def from_fields(fields) do
     id = Enum.find(fields, fn %{name: name} -> name == "id" end)
     type_id = Enum.find(fields, fn %{name: name} -> name == "__tid__" end)
 

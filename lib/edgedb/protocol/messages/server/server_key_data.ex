@@ -6,9 +6,9 @@ defmodule EdgeDB.Protocol.Messages.Server.ServerKeyData do
   @key_data_length 32
 
   defmessage(
+    name: :server_key_data,
     server: true,
     mtype: 0x4B,
-    name: :server_key_data,
     fields: [
       data: [DataTypes.UInt8]
     ]

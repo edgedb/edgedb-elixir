@@ -1,0 +1,48 @@
+name: Tests
+
+on: push
+
+jobs:
+  tests:
+    name: Run tests (OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }})
+
+    runs-on: ubuntu-18.04
+
+    strategy:
+      matrix:
+        otp: [23.2.1]
+        elixir: [1.11]
+        edgedb: [1-beta2]
+
+    services:
+      edgedb:
+        image: edgedb/edgedb:${{ matrix.edgedb }}
+        env:
+          EDGEDB_USER: edgedb
+          EDGEDB_PASSWORD: edgedb
+        ports:
+          - 10700:5656
+        options: --health-cmd="edgedb -c 'SELECT 1;'" --health-interval=10s --health-timeout=5s --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      # TODO: make this properly
+      - run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.edgedb.com | bash -s -- -y
+          export PATH="$HOME/.edgedb/bin:$PATH"
+
+          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb create-superuser-role edgedb_scram
+          echo "edgedb" | edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb alter-role --password-from-stdin edgedb_scram
+          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb configure insert Auth --user=edgedb_scram --user=edgedb --method=SCRAM --priority=0
+
+          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb create-superuser-role edgedb_trust
+          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb configure insert Auth --user=edgedb_trust --method=Trust --priority=1
+
+      - run: mix deps.get --only test
+      - run: mix coveralls

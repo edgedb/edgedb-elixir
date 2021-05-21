@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.TypeAnnotationDescriptor do
   use EdgeDB.Protocol.TypeDescriptor
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.{
+    Codecs,
+    DataTypes
+  }
 
   @start_code 0x80
   @end_code 0xFE
@@ -16,7 +19,9 @@ defmodule EdgeDB.Protocol.TypeDescriptors.TypeAnnotationDescriptor do
     consume?: false
   )
 
-  # ignore annotation since right now driver doesn't know any annotation
+  # ignore annotation since right now driver doesn't understand any annotation
+
+  @spec consume(Codecs.Storage.t(), bitstring()) :: bitstring()
   def consume(_storage, <<type::uint8, _type_id::uuid, rest::binary>>)
       when supported_type?(type) do
     {_annotation, rest} = DataTypes.String.decode(rest)

@@ -1,7 +1,11 @@
 defmodule EdgeDB.Protocol.TypeDescriptors do
   import EdgeDB.Protocol.Converters
 
-  alias EdgeDB.Protocol.TypeDescriptors
+  alias EdgeDB.Protocol.{
+    Codec,
+    Codecs,
+    TypeDescriptors
+  }
 
   require TypeDescriptors.TypeAnnotationDescriptor
 
@@ -16,6 +20,8 @@ defmodule EdgeDB.Protocol.TypeDescriptors do
     TypeDescriptors.EnumerationTypeDescriptor
   ]
 
+  @spec parse_type_description_into_codec(list(Codec.t()), bitstring()) :: Codec.t()
+
   for descriptor_module <- @type_descriptors, descriptor_module.support_parsing?() do
     def parse_type_description_into_codec(
           codecs,
@@ -24,6 +30,8 @@ defmodule EdgeDB.Protocol.TypeDescriptors do
       unquote(descriptor_module).parse(codecs, type_description)
     end
   end
+
+  @spec consume_description(Codecs.Storage.t(), bitstring()) :: Codec.t()
 
   for descriptor_module <- @type_descriptors, descriptor_module.support_consuming?() do
     def consume_description(

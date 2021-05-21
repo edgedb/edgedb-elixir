@@ -16,17 +16,17 @@ defmodule EdgeDB.Protocol.Errors do
                 code: pos_integer()
               }
 
-        @impl true
+        @impl Exception
         def exception(value) do
           %__MODULE__{message: value, code: code_hex()}
         end
 
         @spec code() :: integer()
-
         def code do
           @code
         end
 
+        @spec code_hex() :: String.t()
         def code_hex do
           Integer.to_string(@code, 16)
         end
@@ -59,20 +59,20 @@ defmodule EdgeDB.Protocol.Errors do
     code_hex = Integer.to_string(code, 16)
 
     [{error_module, _}] =
-      Code.compile_quoted(
-        {:defmodule, [context: Elixir, import: Kernel],
+      Code.compile_quoted({:defmodule, [context: Elixir, import: Kernel],
+       [
+         # we can disable check here, since it's compile time
+         # credo:disable-for-next-line
+         {:__aliases__, [alias: false], [:EdgeDB, :Protocol, :Errors, String.to_atom(error)]},
          [
-           {:__aliases__, [alias: false], [:EdgeDB, :Protocol, :Errors, String.to_atom(error)]},
-           [
-             do:
-               {:use, [context: Elixir, import: Kernel],
-                [
-                  {:__aliases__, [alias: false], [:EdgeDB, :Protocol, :Errors, :Error]},
-                  [code: code]
-                ]}
-           ]
-         ]}
-      )
+           do:
+             {:use, [context: Elixir, import: Kernel],
+              [
+                {:__aliases__, [alias: false], [:EdgeDB, :Protocol, :Errors, :Error]},
+                [code: code]
+              ]}
+         ]
+       ]})
 
     @spec module_from_code(integer() | binary()) :: atom()
 

@@ -1,13 +1,20 @@
 defmodule EdgeDB.Protocol.Codecs.Object do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.TupleElement
-  import EdgeDB.Protocol.Types.ShapeElement
+  import EdgeDB.Protocol.Types.{
+    TupleElement,
+    ShapeElement
+  }
 
-  alias EdgeDB.Protocol.Types
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Errors,
+    Types
+  }
 
   defcodec(type: EdgeDB.Object.t())
 
+  @spec new(DataTypes.UUID.t(), list(Types.ShapeElement.t()), list(Codec.t())) :: Codec.t()
   def new(type_id, shape_elements, elements_codecs) do
     codecs = Enum.reverse(elements_codecs)
 
@@ -24,7 +31,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
 
     encoder =
       create_encoder(fn _term ->
-        raise EdgeDB.Protocol.Errors.InvalidArgumentError, "objects can't be encoded"
+        raise Errors.InvalidArgumentError, "objects can't be encoded"
       end)
 
     decoder =
@@ -38,7 +45,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
             {tuple_element(data: :empty_set), shape_element(name: name) = se, _codec} ->
               %EdgeDB.Object.Field{
                 name: name,
-                value: EdgeDB.Set._new(),
+                value: EdgeDB.Set.new(),
                 link?: link?(se),
                 link_property?: link_property?(se),
                 implicit?: implicit?(se)
@@ -56,7 +63,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
               }
           end)
 
-        EdgeDB.Object._from_fields(fields)
+        EdgeDB.Object.from_fields(fields)
       end)
 
     %Codec{

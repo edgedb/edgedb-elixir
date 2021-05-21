@@ -1,12 +1,15 @@
 defmodule EdgeDB.Protocol.Messages.Server.LogMessage do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defmessage(
+    name: :log_message,
     server: true,
     mtype: 0x4C,
-    name: :log_message,
     fields: [
       code: DataTypes.UInt32,
       text: DataTypes.String,

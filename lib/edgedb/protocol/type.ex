@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Type do
+  # credo:disable-for-this-file Credo.Check.Design.AliasUsage
+
   defmacro __using__(_opts \\ []) do
     quote do
       import Record
@@ -31,12 +33,12 @@ defmodule EdgeDB.Protocol.Type do
       @type t() :: record(unquote(record_name), unquote(Keyword.get(opts, :fields, [])))
 
       if unquote(add_encode?) do
-        @spec encode([t()]) :: bitstring()
+        @spec encode([t()]) :: iodata()
         def encode(types) when is_list(types) do
           [EdgeDB.Protocol.DataTypes.UInt16.encode(length(types)), encode(types, :raw)]
         end
 
-        @spec encode([t()], :raw) :: bitstring()
+        @spec encode([t()], :raw) :: iodata()
         def encode(types, :raw) when is_list(types) do
           Enum.map(types, &encode(&1))
         end
@@ -51,7 +53,7 @@ defmodule EdgeDB.Protocol.Type do
 
         def decode(num_types_to_decode, <<value_to_decode::binary>>) do
           {types, rest} =
-            Enum.reduce(1..num_types_to_decode, {[], value_to_decode}, fn _, {types, rest} ->
+            Enum.reduce(1..num_types_to_decode, {[], value_to_decode}, fn _idx, {types, rest} ->
               {decoded_type, rest} = decode(rest)
               {[decoded_type | types], rest}
             end)

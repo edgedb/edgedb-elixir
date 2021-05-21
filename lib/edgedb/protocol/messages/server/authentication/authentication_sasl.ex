@@ -4,9 +4,9 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationSASL do
   alias EdgeDB.Protocol.DataTypes
 
   defmessage(
+    name: :authentication_sasl,
     server: true,
     mtype: 0x52,
-    name: :authentication_sasl,
     fields: [
       auth_status: 0xA,
       methods: [DataTypes.String.t()]

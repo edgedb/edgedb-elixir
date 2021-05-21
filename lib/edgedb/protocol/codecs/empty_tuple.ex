@@ -5,9 +5,10 @@ defmodule EdgeDB.Protocol.Codecs.EmptyTuple do
 
   defcodec(type: {})
 
+  @spec new() :: Codec.t()
   def new do
     encoder =
-      create_encoder(fn _ ->
+      create_encoder(fn _any_term ->
         <<0::int32>>
       end)
 

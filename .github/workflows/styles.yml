@@ -1,0 +1,25 @@
+name: Styles
+
+on: push
+
+jobs:
+  styles:
+    name: Run style checks (OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }})
+
+    runs-on: ubuntu-18.04
+
+    strategy:
+      matrix:
+        otp: [23.2.1]
+        elixir: [1.11]
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp }}
+          elixir-version: ${{ matrix.elixir }}
+
+      - run: mix deps.get
+      - run: mix credo --strict

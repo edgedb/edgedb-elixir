@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.Types.ProtocolExtension do
   use EdgeDB.Protocol.Type
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   deftype(
     name: :protocol_extension,
@@ -11,7 +14,7 @@ defmodule EdgeDB.Protocol.Types.ProtocolExtension do
     ]
   )
 
-  @spec encode(t()) :: bitstring()
+  @spec encode(t()) :: iodata()
   def encode(protocol_extension(name: name, headers: headers)) do
     [
       DataTypes.String.encode(name),
@@ -21,8 +24,8 @@ defmodule EdgeDB.Protocol.Types.ProtocolExtension do
   end
 
   @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(value_to_decode) do
-    {name, rest} = DataTypes.String.decode(value_to_decode)
+  def decode(<<data::binary>>) do
+    {name, rest} = DataTypes.String.decode(data)
     {num_headers, rest} = DataTypes.UInt64.decode(rest)
     {headers, rest} = Types.Header.decode(num_headers, rest)
 

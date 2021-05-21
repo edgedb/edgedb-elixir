@@ -1,12 +1,15 @@
 defmodule EdgeDB.Protocol.Messages.Client.Restore do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Types
+  }
 
   defmessage(
+    name: :restore,
     client: true,
     mtype: 0x3C,
-    name: :restore,
     fields: [
       headers: [Types.Header.t()],
       jobs: DataTypes.UInt16.t(),
@@ -14,7 +17,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Restore do
     ]
   )
 
-  @spec encode_message(t()) :: bitstring()
+  @spec encode_message(t()) :: iodata()
   defp encode_message(
          restore(
            headers: headers,

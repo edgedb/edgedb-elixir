@@ -16,6 +16,7 @@ defmodule EdgeDB.Protocol.Types.Dimension do
     ]
   )
 
+  @spec encode(t()) :: iodata()
   def encode(dimension(upper: upper, lower: @lower)) do
     [
       DataTypes.Int32.encode(upper),
@@ -23,6 +24,7 @@ defmodule EdgeDB.Protocol.Types.Dimension do
     ]
   end
 
+  @spec decode(bitstring()) :: {t(), bitstring()}
   def decode(<<upper::int32, @lower::int32, rest::binary>>) do
     {dimension(upper: upper), rest}
   end

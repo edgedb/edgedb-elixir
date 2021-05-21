@@ -1,14 +1,18 @@
 defmodule EdgeDB.Protocol.Messages.Server.ErrorResponse do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   require Enums.ErrorSeverity
 
   defmessage(
+    name: :error_response,
     server: true,
     mtype: 0x45,
-    name: :error_response,
     fields: [
       severity: Enums.ErrorSeverity.t(),
       error_code: DataTypes.UInt32.t(),

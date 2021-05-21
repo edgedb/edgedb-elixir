@@ -1,4 +1,6 @@
 defmodule EdgeDB.SCRAM.ClientFirst do
+  alias EdgeDB.SCRAM.ServerFirst
+
   @base_gs2header "n,,"
   @nonce_length 24
 
@@ -26,13 +28,13 @@ defmodule EdgeDB.SCRAM.ClientFirst do
     }
   end
 
-  @spec client_first(t()) :: {EdgeDB.SCRAM.ServerFirst.t(), binary()}
+  @spec client_first(t()) :: {ServerFirst.t(), binary()}
   def client_first(%__MODULE__{} = cf) do
     client_first_message_bare = "n=#{cf.username},r=#{cf.nonce}"
     client_first_message = "#{cf.gs2header}#{client_first_message_bare}"
 
     sf =
-      EdgeDB.SCRAM.ServerFirst.new(
+      ServerFirst.new(
         cf.gs2header,
         cf.password,
         cf.nonce,

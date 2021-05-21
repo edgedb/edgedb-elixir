@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.Codecs.Decimal do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.{DataTypes, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums
+  }
 
   require Enums.DecimalSign
 
@@ -13,7 +16,7 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
     type: Decimal.t()
   )
 
-  @spec encode_instance(t() | integer() | float()) :: bitstring()
+  @spec encode_instance(t() | integer() | float()) :: iodata()
 
   def encode_instance(%Decimal{coef: coef} = decimal) when not is_number(coef) do
     raise EdgeDB.Protocol.Errors.InvalidArgumentError, "unable to encode #{inspect(decimal)}"
@@ -121,12 +124,10 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
     power = (weight + 1 - digits_count) * 4 + scale
 
     number =
-      cond do
-        decimals_stored == 0 and power > 0 ->
-          number * :math.pow(10, power)
-
-        true ->
-          number
+      if decimals_stored == 0 and power > 0 do
+        number * :math.pow(10, power)
+      else
+        number
       end
 
     {scale, trunc(number)}

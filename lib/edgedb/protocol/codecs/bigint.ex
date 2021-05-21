@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.Codecs.BigInt do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.{Codecs, DataTypes}
+  alias EdgeDB.Protocol.{
+    Codecs,
+    DataTypes
+  }
 
   @reserved 0
 
@@ -11,7 +14,7 @@ defmodule EdgeDB.Protocol.Codecs.BigInt do
     type: Decimal.t()
   )
 
-  @spec encode_instance(t() | integer() | float()) :: bitstring()
+  @spec encode_instance(t() | integer() | float()) :: iodata()
 
   def encode_instance(%Decimal{exp: exp}) when exp != 0 do
     raise EdgeDB.Protocol.Errors.InvalidArgumentError, "bigint numbers cannot contain exponent"

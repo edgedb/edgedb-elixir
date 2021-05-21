@@ -1,12 +1,16 @@
 defmodule EdgeDB.Protocol.Messages.Server.CommandDataDescription do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.{DataTypes, Types, Enums}
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Enums,
+    Types
+  }
 
   defmessage(
+    name: :command_data_description,
     server: true,
     mtype: 0x54,
-    name: :command_data_description,
     fields: [
       headers: [Types.Header.t()],
       result_cardinality: Enums.Cardinality.t(),

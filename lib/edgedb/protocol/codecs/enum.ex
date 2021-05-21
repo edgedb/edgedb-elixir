@@ -1,7 +1,7 @@
 defmodule EdgeDB.Protocol.Codecs.Enum do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.Codecs
+  alias EdgeDB.Protocol.{Codecs, DataTypes}
 
   # internally enum values are just strings
   # so we don't need to add byte size of encoded/decoded instance here
@@ -11,6 +11,7 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
     type: EdgeDB.Enum.t()
   )
 
+  @spec new(DataTypes.UUID.t(), list(String.t())) :: Codec.t()
   def new(type_id, members) do
     encoder =
       create_encoder(fn %EdgeDB.Enum{value: data} ->
@@ -21,7 +22,7 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
       create_decoder(fn data ->
         {member, <<>>} = Codecs.Str.decode(data)
 
-        EdgeDB.Enum._new(members, member)
+        EdgeDB.Enum.new(members, member)
       end)
 
     %Codec{

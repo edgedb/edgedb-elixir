@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Types.Header do
     ]
   )
 
-  @spec encode(t()) :: bitstring()
+  @spec encode(t()) :: iodata()
   def encode(header(code: code, value: value)) do
     [DataTypes.UInt16.encode(code), DataTypes.Bytes.encode(value)]
   end

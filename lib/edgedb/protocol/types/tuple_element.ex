@@ -13,6 +13,7 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
     ]
   )
 
+  @spec encode(t()) :: iodata()
   def encode(tuple_element(data: data)) do
     data =
       data
@@ -24,6 +25,8 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
       DataTypes.UInt8.encode(data, :raw)
     ]
   end
+
+  @spec decode(bitstring()) :: {t(), bitstring()}
 
   def decode(<<_reserved::int32, @empty_set_element_length::int32, rest::binary>>) do
     {tuple_element(data: :empty_set), rest}
