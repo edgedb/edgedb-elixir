@@ -7,6 +7,7 @@ defmodule EdgeDB.Protocol.Enums.MessageSeverity do
       info: 0x28,
       notice: 0x3C,
       warning: 0x50
-    ]
+    ],
+    guard: :is_message_severity
   )
 end

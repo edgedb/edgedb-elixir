@@ -53,7 +53,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
 
         [encoded_elements, elements, codecs]
         |> Enum.zip()
-        |> Enum.into([], fn {tuple_element(data: data),
+        |> Enum.into(%{}, fn {tuple_element(data: data),
                              named_tuple_descriptor_element(name: name), codec} ->
           {name, codec.decoder.(data)}
         end)

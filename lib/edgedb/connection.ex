@@ -10,6 +10,8 @@ defmodule EdgeDB.Connection do
     Errors
   }
 
+  require Logger
+
   @default_hostname "127.0.0.1"
   @default_port 5656
   @default_username "edgedb"
@@ -513,6 +515,11 @@ defmodule EdgeDB.Connection do
     {:disconnect, err, state}
   end
 
+  defp handle_log_message(log_message(severity: severity, text: text), state) do
+    Logger.log(severity, text)
+    state
+  end
+
   defp save_query_with_codecs_in_cache(
          queries_cache,
          query,
@@ -545,6 +552,10 @@ defmodule EdgeDB.Connection do
 
   defp receive_message(state) do
     case EdgeDB.Protocol.decode(state.buffer) do
+      {:ok, {log_message() = message, buffer}} ->
+        state = handle_log_message(message, %State{state | buffer: buffer})
+        receive_message(state)
+
       {:ok, _res} = result ->
         result
 
