@@ -2,6 +2,13 @@ name: Tests
 
 on: push
 
+# TODO:
+# 1. install EdgeDB CLI with normal action
+# 2. create users in the right way, not like in the current nightmare
+
+env:
+  EDGEDB_DSN: edgedb://edgedb:edgedb@localhost:10700/edgedb
+
 jobs:
   tests:
     name: Run tests (OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }})
@@ -33,16 +40,25 @@ jobs:
           elixir-version: ${{ matrix.elixir }}
 
       # TODO: make this properly
-      - run: |
+      - name: Install EdgeDB CLI
+        run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.edgedb.com | bash -s -- -y
+
+      - name: Create requried users and apply migrations
+        run: |
           export PATH="$HOME/.edgedb/bin:$PATH"
 
-          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb create-superuser-role edgedb_scram
-          echo "edgedb" | edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb alter-role --password-from-stdin edgedb_scram
-          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb configure insert Auth --user=edgedb_scram --user=edgedb --method=SCRAM --priority=0
+          edgedb --dsn=$EDGEDB_DSN create-superuser-role edgedb_scram
+          echo "edgedb" | edgedb --dsn=$EDGEDB_DSN alter-role --password-from-stdin edgedb_scram
+          edgedb --dsn=$EDGEDB_DSN configure insert Auth --user=edgedb_scram --user=edgedb --method=SCRAM --priority=0
 
-          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb create-superuser-role edgedb_trust
-          edgedb --dsn=edgedb://edgedb:edgedb@localhost:10700/edgedb configure insert Auth --user=edgedb_trust --method=Trust --priority=1
+          edgedb --dsn=$EDGEDB_DSN create-superuser-role edgedb_trust
+          edgedb --dsn=$EDGEDB_DSN configure insert Auth --user=edgedb_trust --method=Trust --priority=1
 
-      - run: mix deps.get --only test
-      - run: mix coveralls
+          edgedb --dsn=$EDGEDB_DSN migrate --quiet
+
+      - name: Install dependencies
+        run: mix deps.get --only test
+
+      - name: Run tests
+        run: mix coveralls

@@ -1,31 +1,31 @@
 defmodule EdgeDB.Protocol.DataTypes.UUID do
   use EdgeDB.Protocol.DataType
 
-  defdatatype(type: [byte()])
+  defdatatype(type: bitstring())
 
-  @spec encode(t()) :: bitstring()
-  def encode(uuid) do
-    <<uuid::uuid>>
+  @spec encode(t() | String.t()) :: bitstring()
+
+  def encode(<<_content::uuid>> = bin_uuid) do
+    bin_uuid
+  end
+
+  def encode(uuid) when is_binary(uuid) do
+    UUID.string_to_binary!(uuid)
   end
 
   @spec decode(bitstring()) :: {t(), bitstring()}
   def decode(<<uuid::uuid, rest::binary>>) do
-    {uuid, rest}
-  end
-
-  @spec from_string(binary()) :: bitstring()
-  def from_string(str_uuid) do
-    UUID.string_to_binary!(str_uuid)
-  end
-
-  @spec from_binary(bitstring()) :: bitstring()
-  def from_binary(<<bin_uuid::uuid>>) do
-    bin_uuid
+    {<<uuid::uuid>>, rest}
   end
 
   @spec from_integer(integer()) :: bitstring()
-  def from_integer(int_uuid) do
+  def from_integer(int_uuid) when is_integer(int_uuid) do
     <<int_uuid::uuid>>
+  end
+
+  @spec from_string(binary()) :: bitstring()
+  def from_string(str_uuid) when is_binary(str_uuid) do
+    UUID.string_to_binary!(str_uuid)
   end
 
   @spec to_string(bitstring()) :: binary()

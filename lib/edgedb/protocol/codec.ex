@@ -20,8 +20,6 @@ defmodule EdgeDB.Protocol.Codec do
       import unquote(__MODULE__)
 
       alias unquote(__MODULE__)
-
-      alias EdgeDB.Protocol.DataTypes.UUID
     end
   end
 
@@ -68,13 +66,16 @@ defmodule EdgeDB.Protocol.Codec do
     calculate_size? = Keyword.get(opts, :calculate_size?, true)
 
     quote do
+      @type_name unquote(Keyword.get(opts, :type_name))
+      @type_id unquote(Keyword.get(opts, :type_id))
+
       @type t() :: unquote(Keyword.fetch!(opts, :type))
 
       @spec new() :: Codec.t()
       def new do
         %unquote(__MODULE__){
-          type_id: unquote(Keyword.get(opts, :type_id)),
-          type_name: unquote(Keyword.get(opts, :type_name)),
+          type_id: @type_id,
+          type_name: @type_name,
           encoder: &encode/1,
           decoder: &decode/1,
           module: __MODULE__,
@@ -100,7 +101,7 @@ defmodule EdgeDB.Protocol.Codec do
       rescue
         _exc in FunctionClauseError ->
           reraise EdgeDB.Protocol.Errors.InvalidArgumentError,
-                  "unable to encode: #{instance}",
+                  "unable to encode #{inspect(instance)} as #{@type_name}",
                   __STACKTRACE__
       end
 

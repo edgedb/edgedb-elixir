@@ -44,12 +44,12 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
     GenServer.start_link(__MODULE__, [])
   end
 
-  @spec get(t(), integer()) :: Codec.t() | nil
+  @spec get(t(), DataTypes.UUID.t() | integer()) :: Codec.t() | nil
+
   def get(storage, codec_id) when is_number(codec_id) do
     get(storage, DataTypes.UUID.from_integer(codec_id))
   end
 
-  @spec get(t(), DataTypes.UUID.t()) :: Codec.t() | nil
   def get(storage, codec_id) do
     GenServer.call(storage, {:get, codec_id})
   end

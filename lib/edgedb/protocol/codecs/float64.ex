@@ -4,19 +4,19 @@ defmodule EdgeDB.Protocol.Codecs.Float64 do
   alias EdgeDB.Protocol.DataTypes
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-000000000107"),
     type_name: "std::float64",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000107"),
     type: DataTypes.Float64.t()
   )
 
   @spec encode_instance(t()) :: iodata()
-  def encode_instance(float) do
-    DataTypes.Float64.encode(float)
+  def encode_instance(number) do
+    DataTypes.Float64.encode(number)
   end
 
   @spec decode_instance(bitstring()) :: t()
-  def decode_instance(data) when is_bitstring(data) do
-    {float, <<>>} = DataTypes.Float64.decode(data)
-    float
+  def decode_instance(data) do
+    {number, <<>>} = DataTypes.Float64.decode(data)
+    number
   end
 end

@@ -7,8 +7,8 @@ defmodule EdgeDB.Protocol.Codecs.Bool do
   @false_code 0
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-000000000109"),
     type_name: "std::bool",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000109"),
     type: boolean()
   )
 

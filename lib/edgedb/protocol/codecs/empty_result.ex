@@ -1,8 +1,10 @@
 defmodule EdgeDB.Protocol.Codecs.EmptyResult do
   use EdgeDB.Protocol.Codec
 
+  alias EdgeDB.Protocol.DataTypes
+
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-000000000000"),
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000000"),
     type: any()
   )
 

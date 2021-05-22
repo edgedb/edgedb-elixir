@@ -6,8 +6,8 @@ defmodule EdgeDB.Protocol.Codecs.LocalDate do
   @base_date elem(Date.new(2000, 1, 1), 1)
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-00000000010C"),
     type_name: "cal::local_date",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010C"),
     type: Date.t()
   )
 

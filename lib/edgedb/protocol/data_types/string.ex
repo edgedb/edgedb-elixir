@@ -4,7 +4,7 @@ defmodule EdgeDB.Protocol.DataTypes.String do
   defdatatype(type: String.t())
 
   @spec encode(t()) :: bitstring()
-  def encode(string) do
+  def encode(string) when is_binary(string) do
     [<<byte_size(string)::uint32>>, <<string::binary>>]
   end
 

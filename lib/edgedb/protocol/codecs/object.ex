@@ -16,12 +16,10 @@ defmodule EdgeDB.Protocol.Codecs.Object do
 
   @spec new(DataTypes.UUID.t(), list(Types.ShapeElement.t()), list(Codec.t())) :: Codec.t()
   def new(type_id, shape_elements, elements_codecs) do
-    codecs = Enum.reverse(elements_codecs)
+    codecs = elements_codecs
 
     shape_elements =
-      shape_elements
-      |> Enum.reverse()
-      |> Enum.map(fn shape_element(name: name) = e ->
+      Enum.map(shape_elements, fn shape_element(name: name) = e ->
         if link_property?(e) do
           shape_element(e, name: "@#{name}")
         else

@@ -4,17 +4,17 @@ defmodule EdgeDB.Protocol.Codecs.LocalTime do
   alias EdgeDB.Protocol.DataTypes
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-00000000010D"),
     type_name: "cal::local_time",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010D"),
     type: Time.t()
   )
 
   @spec encode_instance(t()) :: iodata()
-  def encode_instance(%Time{} = t) do
-    t
-    |> Time.to_seconds_after_midnight()
-    |> System.convert_time_unit(:second, :microsecond)
-    |> DataTypes.Int64.encode()
+  def encode_instance(%Time{} = time) do
+    {seconds, microseconds} = Time.to_seconds_after_midnight(time)
+    microseconds = microseconds + System.convert_time_unit(seconds, :second, :microsecond)
+
+    DataTypes.Int64.encode(microseconds)
   end
 
   @spec decode_instance(bitstring()) :: t()

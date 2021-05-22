@@ -4,18 +4,18 @@ defmodule EdgeDB.Protocol.Codecs.Int64 do
   alias EdgeDB.Protocol.DataTypes
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-000000000105"),
     type_name: "std::int64",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000105"),
     type: integer()
   )
 
   @spec encode_instance(t()) :: iodata()
-  def encode_instance(integer) when is_integer(integer) do
-    DataTypes.Int64.encode(integer)
+  def encode_instance(number) do
+    DataTypes.Int64.encode(number)
   end
 
   @spec decode_instance(bitstring()) :: t()
-  def decode_instance(<<integer::int64>>) do
-    integer
+  def decode_instance(<<number::int64>>) do
+    number
   end
 end

@@ -47,7 +47,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors do
   end
 
   def consume_description(storage, <<type::uint8, _rest::binary>> = type_description)
-      when TypeDescriptors.TypeAnnotationDescriptor.supported_type?(type) do
+      when TypeDescriptors.TypeAnnotationDescriptor.is_supported_type(type) do
     TypeDescriptors.TypeAnnotationDescriptor.consume(storage, type_description)
   end
 end

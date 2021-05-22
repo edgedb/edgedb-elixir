@@ -83,6 +83,10 @@ module default {
 
     scalar type TicketNo extending sequence;
 
+    scalar type short_str extending str {
+        constraint max_len_value(5);
+    };
+
     type Ticket {
         property number -> TicketNo {
             constraint exclusive;

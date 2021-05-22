@@ -1,5 +1,5 @@
-defmodule EdgeDB.Tests.Connection.AuthenticationTest do
-  use ExUnit.Case
+defmodule Tests.EdgeDB.Connection.AuthenticationTest do
+  use EdgeDB.Case
 
   @trust_params [
     username: "edgedb_trust"

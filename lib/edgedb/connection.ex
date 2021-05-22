@@ -19,6 +19,10 @@ defmodule EdgeDB.Connection do
   @max_packet_size 64 * 1024 * 1024
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
 
+  @start_transaction_statement "START TRANSACTION"
+  @commit_statement "COMMIT"
+  @rollback_statement "ROLLBACK"
+
   defmodule State do
     defstruct socket: nil,
               username: nil,
@@ -71,8 +75,14 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_begin(_opts, state) do
-    {:disconnect, {:not_implemented, :handle_begin}, state}
+
+  def handle_begin(_opts, %State{server_state: server_state} = state)
+      when server_state in [:in_transaction, :in_failed_transaction] do
+    {status(server_state), state}
+  end
+
+  def handle_begin(opts, %State{} = state) do
+    start_transaction(opts, state)
   end
 
   @impl DBConnection
@@ -81,8 +91,14 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
+
+  def handle_commit(_opts, %State{server_state: server_state} = state)
+      when server_state in [:not_in_transaction, :in_failed_transaction] do
+    {status(server_state), state}
+  end
+
   def handle_commit(_opts, state) do
-    {:disconnect, {:not_implemented, :handle_commit}, state}
+    commit_transaction(state)
   end
 
   @impl DBConnection
@@ -117,8 +133,14 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
+
+  def handle_rollback(_opts, %State{server_state: server_state} = state)
+      when server_state == :not_in_transaction do
+    {server_state, state}
+  end
+
   def handle_rollback(_opts, state) do
-    {:disconnect, {:not_implemented, :handle_rollback}, state}
+    rollback_transaction(state)
   end
 
   @impl DBConnection
@@ -396,6 +418,48 @@ defmodule EdgeDB.Connection do
     {:ok, EdgeDB.Result.query_closed(), state}
   end
 
+  defp start_transaction(opts, state) do
+    transaction_statement = create_start_transaction_statement(opts)
+
+    execute_script(
+      transaction_statement,
+      [allow_capabilities: :all],
+      state
+    )
+  end
+
+  defp commit_transaction(state) do
+    execute_script(@commit_statement, [allow_capabilities: :all], state)
+  end
+
+  defp rollback_transaction(state) do
+    execute_script(@rollback_statement, [allow_capabilities: :all], state)
+  end
+
+  defp execute_script(statement, headers, state) do
+    message =
+      execute_script(
+        headers: headers,
+        script: statement
+      )
+
+    with :ok <- send_message(state, message),
+         {:ok, {message, buffer}} <- receive_message(state) do
+      handle_execute_script_flow(message, %State{state | buffer: buffer})
+    end
+  end
+
+  defp handle_execute_script_flow(command_complete(status: status), state) do
+    result = %EdgeDB.Result{
+      cardinality: :no_result,
+      statement: status
+    }
+
+    with {:ok, state} <- wait_for_server_ready(state) do
+      {:ok, result, state}
+    end
+  end
+
   defp save_query_with_codecs_in_cache(
          queries_cache,
          query,
@@ -457,5 +521,35 @@ defmodule EdgeDB.Connection do
 
   defp status(%State{server_state: :in_failed_transaction}) do
     :error
+  end
+
+  defp create_start_transaction_statement(opts) do
+    isolation =
+      case Keyword.get(opts, :isolation, :repeatable_read) do
+        :serializable ->
+          "ISOLATION SERIALIZABLE"
+
+        :repeatable_read ->
+          "ISOLATION REPEATABLE READ"
+      end
+
+    read =
+      if Keyword.get(opts, :readonly, false) do
+        "READ ONLY"
+      end
+
+    deferrable =
+      case Keyword.get(opts, :deferrable) do
+        true ->
+          "DEFERRABLE"
+
+        false ->
+          "NOT DEFERRABLE"
+
+        nil ->
+          ""
+      end
+
+    "#{@start_transaction_statement} #{isolation} #{read} #{deferrable}"
   end
 end

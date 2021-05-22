@@ -27,6 +27,10 @@ defmodule EdgeDB.Protocol.DataTypes.Float64 do
 
   @spec decode(bitstring()) :: {t(), bitstring()}
 
+  def decode(<<@nan_literal, rest::binary>>) do
+    {:nan, rest}
+  end
+
   def decode(<<@infinity_literal, rest::binary>>) do
     {:infinity, rest}
   end

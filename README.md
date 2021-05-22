@@ -11,15 +11,8 @@ How to use (this will change to be more friendly):
     port: 10700
   )
 
-query = %EdgeDB.Query{
-  statement: "SELECT <array<int64>>$arg",
-  io_format: :binary,
-  cardinality: :one
-}
-
 arg = [16, 13, 2, 42]
-{:ok, _q, r} = DBConnection.prepare_execute(conn, query, arg: arg)
-^arg = EdgeDB.Result.extract(r)
+^arg = EdgeDB.query_one!(conn, "SELECT <array<int64>>$arg", arg: arg)
 ```
 
 # TODO:

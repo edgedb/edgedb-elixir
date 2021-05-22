@@ -1,7 +1,9 @@
 defmodule EdgeDB.Protocol.Codecs.EmptyTuple do
   use EdgeDB.Protocol.Codec
 
-  @empty_tuple_type_id UUID.from_string("00000000-0000-0000-0000-0000000000FF")
+  alias EdgeDB.Protocol.DataTypes
+
+  @empty_tuple_type_id DataTypes.UUID.from_string("00000000-0000-0000-0000-0000000000FF")
 
   defcodec(type: {})
 

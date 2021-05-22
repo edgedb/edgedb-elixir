@@ -7,8 +7,8 @@ defmodule EdgeDB.Protocol.Codecs.Duration do
   @months 0
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-00000000010E"),
     type_name: "std::duration",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010E"),
     type: pos_integer()
   )
 

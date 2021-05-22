@@ -1,4 +1,4 @@
-CREATE MIGRATION m1gk4lvusa3iqjfgw4l4ayvlkpcxd4r4tjg75rvwfir6f7mneximsa
+CREATE MIGRATION m1rahkluhmslej6r43e7hazzj6wc6vpr6besi2cb7a4iqjdgtjoxia
     ONTO initial
 {
   CREATE ABSTRACT LINK default::crew {
@@ -72,4 +72,7 @@ CREATE MIGRATION m1gk4lvusa3iqjfgw4l4ayvlkpcxd4r4tjg75rvwfir6f7mneximsa
       };
   };
   CREATE FINAL SCALAR TYPE default::Color EXTENDING enum<Red, Green, Blue>;
+  CREATE SCALAR TYPE default::short_str EXTENDING std::str {
+      CREATE CONSTRAINT std::max_len_value(5);
+  };
 };

@@ -23,7 +23,7 @@ defmodule EdgeDB.Protocol.Messages.Server.ErrorResponse do
 
   @spec decode_message(bitstring()) :: t()
   defp decode_message(<<severity::uint8, error_code::uint32, rest::binary>>)
-       when Enums.ErrorSeverity.error_severity?(severity) do
+       when Enums.ErrorSeverity.is_error_severity(severity) do
     {message, rest} = DataTypes.String.decode(rest)
     {num_attributes, rest} = DataTypes.UInt16.decode(rest)
     {attributes, <<>>} = Types.Header.decode(num_attributes, rest)

@@ -4,12 +4,12 @@ defmodule EdgeDB.Protocol.DataTypes.Bytes do
   defdatatype(type: bitstring())
 
   @spec encode(t()) :: bitstring()
-  def encode(string) do
-    [<<byte_size(string)::uint32>>, <<string::binary>>]
+  def encode(bytes) when is_bitstring(bytes) do
+    [<<byte_size(bytes)::uint32>>, <<bytes::binary>>]
   end
 
   @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(<<string_size::uint32, string::binary(string_size), rest::binary>>) do
-    {string, rest}
+  def decode(<<bytes_size::uint32, bytes::binary(bytes_size), rest::binary>>) do
+    {bytes, rest}
   end
 end

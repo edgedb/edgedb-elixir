@@ -21,5 +21,8 @@ jobs:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
 
-      - run: mix deps.get
-      - run: mix credo --strict
+      - name: Install dependencies
+        run: mix deps.get --only test
+
+      - name: Run linters
+        run: mix credo --strict

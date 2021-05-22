@@ -7,6 +7,6 @@ defmodule EdgeDB.Protocol.Enums.ErrorSeverity do
       fatal: 0xC8,
       panic: 0xFF
     ],
-    guard: :error_severity?
+    guard: :is_error_severity
   )
 end

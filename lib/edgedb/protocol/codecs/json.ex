@@ -6,17 +6,17 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
   @format 1
 
   defbasescalarcodec(
-    calculate_size?: false,
-    type_id: UUID.from_string("00000000-0000-0000-0000-00000000010F"),
     type_name: "std::json",
-    type: any()
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010F"),
+    type: any(),
+    calculate_size?: false
   )
 
   # TODO: allow custom JSON libraries, but for now Jason is hardcoded
 
   @spec encode_instance(t()) :: iodata()
-  def encode_instance(instanfce) do
-    case Jason.encode(instanfce) do
+  def encode_instance(instance) do
+    case Jason.encode(instance) do
       {:ok, encoded_data} ->
         data_length = byte_size(encoded_data)
         data = :binary.bin_to_list(encoded_data)
@@ -38,8 +38,8 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
     json_content_length = json_type_length - 1
 
     with <<json_content::binary(json_content_length)>> <- rest,
-         {:ok, data} <- Jason.decode(json_content) do
-      data
+         {:ok, instance} <- Jason.decode(json_content) do
+      instance
     else
       {:error, error} ->
         raise EdgeDB.Protocol.Errors.InvalidValueError,

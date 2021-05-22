@@ -47,6 +47,11 @@ defmodule EdgeDB.Result do
   end
 
   @spec decode(t(), Codec.t()) :: t()
+
+  def decode(%__MODULE__{cardinality: :no_result} = result, _codec) do
+    %__MODULE__{result | decoded?: true}
+  end
+
   def decode(%__MODULE__{} = result, codec) do
     result.encoded_data
     |> Enum.reverse()

@@ -9,15 +9,21 @@ defmodule EdgeDB.Protocol.Codecs.BigInt do
   @reserved 0
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-000000000110"),
     type_name: "std::bigint",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000110"),
     type: Decimal.t()
   )
 
-  @spec encode_instance(t() | integer() | float()) :: iodata()
+  @spec encode_instance(t() | integer()) :: iodata()
 
-  def encode_instance(%Decimal{exp: exp}) when exp != 0 do
-    raise EdgeDB.Protocol.Errors.InvalidArgumentError, "bigint numbers cannot contain exponent"
+  def encode_instance(%Decimal{exp: exp} = number) when exp != 0 do
+    raise EdgeDB.Protocol.Errors.InvalidArgumentError,
+          "unable to encode #{inspect(number)} as #{@type_name}: bigint numbers can't contain exponent"
+  end
+
+  def encode_instance(number) when is_float(number) do
+    raise EdgeDB.Protocol.Errors.InvalidArgumentError,
+          "unable to encode #{inspect(number)} as #{@type_name}: floats can't be encoded"
   end
 
   def encode_instance(decimal) do

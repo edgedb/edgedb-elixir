@@ -11,15 +11,28 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
   @base 10_000
 
   defbasescalarcodec(
-    type_id: UUID.from_string("00000000-0000-0000-0000-000000000108"),
     type_name: "std::decimal",
+    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000108"),
     type: Decimal.t()
   )
 
   @spec encode_instance(t() | integer() | float()) :: iodata()
 
+  def encode_instance(number) when is_integer(number) do
+    number
+    |> Decimal.new()
+    |> encode_instance()
+  end
+
+  def encode_instance(number) when is_float(number) do
+    number
+    |> Decimal.from_float()
+    |> encode_instance()
+  end
+
   def encode_instance(%Decimal{coef: coef} = decimal) when not is_number(coef) do
-    raise EdgeDB.Protocol.Errors.InvalidArgumentError, "unable to encode #{inspect(decimal)}"
+    raise EdgeDB.Protocol.Errors.InvalidArgumentError,
+          "unable to encode #{inspect(decimal)} as #{@type_name}: coef #{coef} is not a number"
   end
 
   def encode_instance(%Decimal{} = decimal) do
@@ -61,23 +74,11 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
     ]
   end
 
-  def encode_instance(number) when is_integer(number) do
-    number
-    |> Decimal.new()
-    |> encode_instance()
-  end
-
-  def encode_instance(number) when is_float(number) do
-    number
-    |> Decimal.from_float()
-    |> encode_instance()
-  end
-
   @spec decode_instance(bitstring()) :: t()
   def decode_instance(
         <<ndigits::uint16, weight::int16, sign::uint16, dscale::uint16, rest::binary>>
       )
-      when Enums.DecimalSign.decimal_sign?(sign) do
+      when Enums.DecimalSign.is_decimal_sign(sign) do
     {digits, <<>>} = DataTypes.UInt16.decode(ndigits, rest)
 
     number = Integer.undigits(digits, @base)
