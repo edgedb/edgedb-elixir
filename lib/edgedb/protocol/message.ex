@@ -6,6 +6,7 @@ defmodule EdgeDB.Protocol.Message do
       import Record
 
       import EdgeDB.Protocol.Converters
+      import EdgeDB.Protocol.Types.Header
 
       import unquote(__MODULE__)
     end
@@ -17,13 +18,27 @@ defmodule EdgeDB.Protocol.Message do
 
     record_fields = Keyword.get(opts, :fields, [])
     has_fields? = length(record_fields) != 0
-    field_names = Keyword.keys(record_fields)
+
+    known_headers = Keyword.get(opts, :known_headers)
 
     declare_client? = Keyword.get(opts, :client, false)
     declare_server? = Keyword.get(opts, :server, false)
 
+    defaults = Keyword.get(opts, :defaults, [])
+    default_keys = Keyword.keys(defaults)
+
     quote do
-      defrecord unquote(record_name), unquote(field_names)
+      if unquote(known_headers) do
+        @known_headers unquote(known_headers)
+        @known_headers_keys Map.keys(@known_headers)
+      end
+
+      defrecord unquote(record_name),
+                unquote(
+                  record_fields
+                  |> Keyword.drop(default_keys)
+                  |> Keyword.keys()
+                ) ++ unquote(defaults)
 
       @type t() :: record(unquote(record_name), unquote(record_fields))
 
@@ -64,6 +79,40 @@ defmodule EdgeDB.Protocol.Message do
         end
       end
 
+      if unquote(declare_client?) and unquote(known_headers) do
+        defp process_headers(headers) do
+          Enum.reduce(headers, [], &process_header/2)
+        end
+
+        defp process_header({name, value}, headers) when name in @known_headers_keys do
+          {code, encoder} = encoder_by_name(name)
+          value = encode_header_value(value, encoder)
+          [header(code: code, value: value) | headers]
+        end
+
+        defp process_header(_header, headers) do
+          headers
+        end
+
+        defp encode_header_value(value, :raw) do
+          value
+        end
+
+        defp encode_header_value(value, encoder) do
+          encoder.(value)
+        end
+
+        defp encoder_by_name(name) do
+          case @known_headers[name] do
+            {name, encoder} ->
+              {name, encoder}
+
+            name ->
+              {name, :raw}
+          end
+        end
+      end
+
       if unquote(declare_server?) do
         def decode(<<rest::binary>>) when byte_size(rest) < 5 do
           {:error, {:not_enough_size, 0}}
@@ -78,6 +127,41 @@ defmodule EdgeDB.Protocol.Message do
 
             _payload ->
               {:error, {:not_enough_size, payload_length - byte_size(rest)}}
+          end
+        end
+      end
+
+      if unquote(declare_server?) and unquote(known_headers) do
+        defp process_headers(headers) do
+          headers
+          |> Enum.filter(&filter_header/1)
+          |> Enum.into([], &transform_header/1)
+        end
+
+        defp filter_header(header(code: code)) do
+          code in @known_headers_keys
+        end
+
+        defp transform_header(header(code: code, value: value)) do
+          {name, decoder} = decoder_by_code(code)
+          {name, decode_header_value(value, decoder)}
+        end
+
+        defp decode_header_value(value, :raw) do
+          value
+        end
+
+        defp decode_header_value(header(code: code, value: value), decoder) do
+          decoder.(value)
+        end
+
+        defp decoder_by_code(code) do
+          case @known_headers[code] do
+            {code, decoder} ->
+              {code, decoder}
+
+            code ->
+              {code, :raw}
           end
         end
       end

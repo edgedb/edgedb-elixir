@@ -94,7 +94,12 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_close(%EdgeDB.Query{cached?: true} = query, _opts, state) do
+  def handle_close(
+        %EdgeDB.Query{input_codec: in_codec, output_codec: out_codec} = query,
+        _opts,
+        state
+      )
+      when not is_nil(in_codec) and not is_nil(out_codec) do
     close_prepared_query(query, state)
   end
 
@@ -120,6 +125,11 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
+
+  def handle_execute(%EdgeDB.Query{cached?: true} = query, params, opts, state) do
+    optimistic_execute_query(query, params, opts, state)
+  end
+
   def handle_execute(%EdgeDB.Query{} = query, params, _opts, state) do
     execute_query(query, params, state)
   end
@@ -287,27 +297,11 @@ defmodule EdgeDB.Connection do
   end
 
   defp prepare_query(%EdgeDB.Query{} = query, opts, state) do
-    allowed_headers = %{
-      implicit_limit: 0xFF01,
-      implicit_typenames: 0xFF02,
-      implicit_typeids: 0xFF03,
-      allow_capabilities: 0xFF04,
-      explicit_objectids: 0xFF05
-    }
-
-    passed_headers = Keyword.take(opts, Map.keys(allowed_headers))
-
-    encoded_headers =
-      Enum.map(passed_headers, fn {header_atom, value} ->
-        header(code: allowed_headers[header_atom], value: value)
-      end)
-
     message =
       prepare(
-        headers: encoded_headers,
+        headers: opts,
         io_format: query.io_format,
         expected_cardinality: query.cardinality,
-        statement_name: "",
         command: query.statement
       )
 
@@ -336,10 +330,10 @@ defmodule EdgeDB.Connection do
            input_typedesc_id: in_id,
            output_typedesc_id: out_id
          ),
-         %State{queries_cache: qc, codecs_storage: cc} = state
+         %State{queries_cache: qc, codecs_storage: cs} = state
        ) do
-    input_codec = Codecs.Storage.get(cc, in_id)
-    output_codec = Codecs.Storage.get(cc, out_id)
+    input_codec = Codecs.Storage.get(cs, in_id)
+    output_codec = Codecs.Storage.get(cs, out_id)
 
     if is_nil(input_codec) or is_nil(output_codec) do
       describe_codecs_from_query(query, state)
@@ -366,9 +360,9 @@ defmodule EdgeDB.Connection do
   defp handle_prepare_query_flow(
          query,
          command_data_description() = message,
-         %State{codecs_storage: cc, queries_cache: qc} = state
+         %State{codecs_storage: cs, queries_cache: qc} = state
        ) do
-    {input_codec, output_codec} = parse_description_message(message, cc)
+    {input_codec, output_codec} = parse_description_message(message, cs)
 
     query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
 
@@ -379,8 +373,65 @@ defmodule EdgeDB.Connection do
     handle_error_response(message, state)
   end
 
+  defp optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
+    message =
+      optimistic_execute(
+        headers: opts,
+        io_format: query.io_format,
+        expected_cardinality: query.cardinality,
+        command_text: query.statement,
+        input_typedesc_id: query.input_codec.type_id,
+        output_typedesc_id: query.output_codec.type_id,
+        arguments: params
+      )
+
+    with :ok <- send_messages(state, [message, sync()]),
+         {:ok, {message, buffer}} <- receive_message(state) do
+      handle_optimistic_execute_flow(
+        query,
+        EdgeDB.Result.new(query.cardinality),
+        message,
+        %State{state | buffer: buffer}
+      )
+    end
+  end
+
+  defp handle_optimistic_execute_flow(
+         %EdgeDB.Query{cardinality: :one},
+         _result,
+         command_data_description(result_cardinality: :no_result),
+         state
+       ) do
+    exc =
+      Errors.CardinalityViolationError.exception(
+        "cann't execute query since expected single result and query doesn't return any data"
+      )
+
+    {:disconnect, exc, state}
+  end
+
+  defp handle_optimistic_execute_flow(
+         query,
+         _result,
+         command_data_description() = message,
+         %State{codecs_storage: cs, queries_cache: qc} = state
+       ) do
+    {input_codec, output_codec} = parse_description_message(message, cs)
+    query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
+    reencoded_params = DBConnection.Query.encode(query, query.params, [])
+    execute_query(query, reencoded_params, state)
+  end
+
+  defp handle_optimistic_execute_flow(query, result, data() = message, state) do
+    handle_execute_flow(query, result, message, state)
+  end
+
+  defp handle_optimistic_execute_flow(_query, _result, error_response() = message, state) do
+    handle_error_response(message, state)
+  end
+
   defp execute_query(%EdgeDB.Query{} = query, params, state) do
-    message = execute(headers: [], statement_name: "", arguments: params)
+    message = execute(arguments: params)
 
     with :ok <- send_messages(state, [message, sync()]),
          {:ok, {message, buffer}} <- receive_message(state) do
@@ -417,12 +468,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp describe_codecs_from_query(query, state) do
-    message =
-      describe_statement(
-        headers: [],
-        aspect: :data_description,
-        statement_name: ""
-      )
+    message = describe_statement(aspect: :data_description)
 
     with :ok <- send_messages(state, [message, flush()]),
          {:ok, {message, buffer}} <- receive_message(state) do
@@ -534,7 +580,7 @@ defmodule EdgeDB.Connection do
 
     QueriesCache.add(queries_cache, query)
 
-    %EdgeDB.Query{query | cached?: true}
+    query
   end
 
   defp send_message(state, message) do

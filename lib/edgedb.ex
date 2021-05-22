@@ -15,11 +15,8 @@ defmodule EdgeDB do
   @spec query(connection(), String.t(), params(), query_opts()) ::
           {:ok, result()} | {:error, Exception.t()}
   def query(conn, statement, params \\ [], opts \\ []) do
-    q = %EdgeDB.Query{
-      statement: statement
-    }
-
-    prepare_execute_query(conn, q, params, opts)
+    q = EdgeDB.Query.new(statement, params, opts)
+    prepare_execute_query(conn, q, q.params, opts)
   end
 
   @spec query!(connection(), String.t(), params(), query_opts()) :: result()
@@ -36,12 +33,7 @@ defmodule EdgeDB do
   @spec query_one(connection(), String.t(), params(), query_opts()) ::
           {:ok, result()} | {:error, Exception.t()}
   def query_one(conn, statement, params \\ [], opts \\ []) do
-    q = %EdgeDB.Query{
-      statement: statement,
-      cardinality: :one
-    }
-
-    prepare_execute_query(conn, q, params, opts)
+    query(conn, statement, params, Keyword.merge(opts, cardinality: :one))
   end
 
   @spec query_one!(connection(), String.t(), params(), query_opts()) :: result()

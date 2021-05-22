@@ -14,6 +14,10 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
       headers: [Types.Header.t()],
       statement_name: DataTypes.Bytes.t(),
       arguments: iodata()
+    ],
+    defaults: [
+      headers: [],
+      statement_name: ""
     ]
   )
 

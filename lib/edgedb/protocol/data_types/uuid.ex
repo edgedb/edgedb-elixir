@@ -3,10 +3,14 @@ defmodule EdgeDB.Protocol.DataTypes.UUID do
 
   defdatatype(type: bitstring())
 
-  @spec encode(t() | String.t()) :: bitstring()
+  @spec encode(t() | String.t() | integer()) :: bitstring()
 
   def encode(<<_content::uuid>> = bin_uuid) do
     bin_uuid
+  end
+
+  def encode(int_uuid) when is_integer(int_uuid) do
+    <<int_uuid::uuid>>
   end
 
   def encode(uuid) when is_binary(uuid) do

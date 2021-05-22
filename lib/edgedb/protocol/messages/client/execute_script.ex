@@ -9,11 +9,6 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
     Types
   }
 
-  @known_headers %{
-    allow_capabilities: {0xFF04, &Enums.Capability.encode/1}
-  }
-  @known_headers_keys Map.keys(@known_headers)
-
   defmessage(
     name: :execute_script,
     client: true,
@@ -21,28 +16,15 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
     fields: [
       headers: [Types.Header.t()] | Keyword.t(),
       script: DataTypes.String.t()
-    ]
+    ],
+    known_headers: %{
+      allow_capabilities: {0xFF04, &Enums.Capability.encode/1}
+    }
   )
 
   @spec encode_message(t()) :: iodata()
   defp encode_message(execute_script(headers: headers, script: script)) do
-    encoded_headers =
-      headers
-      |> process_headers()
-      |> Types.Header.encode()
-
-    [encoded_headers, DataTypes.String.encode(script)]
-  end
-
-  @spec process_headers(Keyword.t()) :: list(Types.Header.t())
-  defp process_headers(headers) do
-    Enum.reduce(headers, [], fn
-      {name, value}, headers when name in @known_headers_keys ->
-        {code, encoder} = @known_headers[name]
-        [header(code: code, value: encoder.(value)) | headers]
-
-      _unknown_header, headers ->
-        headers
-    end)
+    processed_headers = process_headers(headers)
+    [Types.Header.encode(processed_headers), DataTypes.String.encode(script)]
   end
 end

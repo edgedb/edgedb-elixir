@@ -15,6 +15,10 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
       headers: [Types.Header.t()],
       aspect: Enums.DescribeAspect.t(),
       statement_name: DataTypes.Bytes.t()
+    ],
+    defaults: [
+      headers: [],
+      statement_name: ""
     ]
   )
 

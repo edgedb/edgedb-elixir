@@ -5,10 +5,23 @@ defmodule EdgeDB.Query do
     io_format: :binary,
     input_codec: nil,
     output_codec: nil,
-    cached?: false
+    cached?: false,
+    params: []
   ]
 
   @type t() :: %__MODULE__{}
+  @type params() :: list()
+  @type query_opts :: list()
+
+  @spec new(String.t(), params(), query_opts()) :: t()
+  def new(statement, params, opts \\ []) do
+    %__MODULE__{
+      statement: statement,
+      cardinality: Keyword.get(opts, :cardinality, :many),
+      io_format: Keyword.get(opts, :io_format, :binary),
+      params: params
+    }
+  end
 end
 
 defimpl DBConnection.Query, for: EdgeDB.Query do

@@ -19,7 +19,17 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
       input_typedesc_id: DataTypes.UUID.t(),
       output_typedesc_id: DataTypes.UUID.t(),
       arguments: iodata()
-    ]
+    ],
+    defaults: [
+      headers: []
+    ],
+    known_headers: %{
+      implicit_limit: 0xFF01,
+      implicit_typenames: 0xFF02,
+      implicit_typeids: 0xFF03,
+      allow_capabilities: {0xFF04, &Enums.Capability.encode/1},
+      explicit_objectids: 0xFF05
+    }
   )
 
   @spec encode_message(t()) :: iodata()
@@ -34,8 +44,10 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
            arguments: arguments
          )
        ) do
+    processed_headers = process_headers(headers)
+
     [
-      Types.Header.encode(headers),
+      Types.Header.encode(processed_headers),
       Enums.IOFormat.encode(io_format),
       Enums.Cardinality.encode(expected_cardinality),
       DataTypes.String.encode(command_text),
