@@ -6,8 +6,8 @@ defmodule EdgeDB.Protocol.Types.Header do
   deftype(
     name: :header,
     fields: [
-      code: DataTypes.UInt16.t(),
-      value: DataTypes.Bytes.t()
+      code: DataTypes.UInt16.t() | atom(),
+      value: DataTypes.Bytes.t() | term()
     ]
   )
 

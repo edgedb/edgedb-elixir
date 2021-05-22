@@ -8,17 +8,20 @@ defmodule EdgeDB.Protocol.Errors do
 
         defexception [
           :message,
-          :code
+          :code,
+          meta: %{}
         ]
 
         @type t() :: %__MODULE__{
                 message: String.t(),
-                code: pos_integer()
+                code: pos_integer(),
+                meta: map()
               }
 
         @impl Exception
-        def exception(value) do
-          %__MODULE__{message: value, code: code_hex()}
+        def exception(value, opts \\ []) do
+          meta = Keyword.get(opts, :meta, %{})
+          %__MODULE__{message: value, code: code_hex(), meta: meta}
         end
 
         @spec code() :: integer()

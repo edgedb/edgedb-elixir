@@ -19,6 +19,8 @@ defmodule EdgeDB.Connection do
   @max_packet_size 64 * 1024 * 1024
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
 
+  @scram_sha_256 "SCRAM-SHA-256"
+
   @start_transaction_statement "START TRANSACTION"
   @commit_statement "COMMIT"
   @rollback_statement "ROLLBACK"
@@ -64,6 +66,10 @@ defmodule EdgeDB.Connection do
          {:ok, state} <- handshake(state, username, password, database),
          {:ok, state} <- wait_for_server_ready(state) do
       {:ok, state}
+    else
+      {:disconnect, err, state} ->
+        disconnect(err, state)
+        {:error, err}
     end
   end
 
@@ -191,21 +197,32 @@ defmodule EdgeDB.Connection do
     {:ok, state}
   end
 
+  defp handle_authentication_flow(authentication_sasl(), nil, %State{} = state) do
+    err =
+      Errors.AuthenticationError.exception(
+        "password should be provided for #{inspect(state.username)} authentication authentication"
+      )
+
+    {:disconnect, err, state}
+  end
+
   defp handle_authentication_flow(
-         authentication_sasl(methods: ["SCRAM-SHA-256"]),
+         authentication_sasl(methods: [@scram_sha_256]),
          password,
          %State{} = state
-       )
-       when is_binary(password) do
-    {server_first, client_first_data} = EdgeDB.SCRAM.handle_client_first(state.username, password)
+       ) do
+    {server_first, cf_data} = EdgeDB.SCRAM.handle_client_first(state.username, password)
 
-    message =
-      authentication_sasl_initial_response(method: "SCRAM-SHA-256", sasl_data: client_first_data)
+    message = authentication_sasl_initial_response(method: @scram_sha_256, sasl_data: cf_data)
 
     with :ok <- send_message(state, message),
          {:ok, {message, buffer}} <- receive_message(state) do
       handle_sasl_authentication_flow(message, server_first, %State{state | buffer: buffer})
     end
+  end
+
+  defp handle_authentication_flow(error_response() = message, _password, state) do
+    handle_error_response(message, state)
   end
 
   defp handle_sasl_authentication_flow(
@@ -232,8 +249,16 @@ defmodule EdgeDB.Connection do
     end
   end
 
+  defp handle_sasl_authentication_flow(error_response() = message, _scram_data, state) do
+    handle_error_response(message, state)
+  end
+
   defp handle_sasl_authentication_flow(authentication_ok(), state) do
     {:ok, state}
+  end
+
+  defp handle_sasl_authentication_flow(error_response() = message, state) do
+    handle_error_response(message, state)
   end
 
   defp wait_for_server_ready(state) do
@@ -253,6 +278,10 @@ defmodule EdgeDB.Connection do
 
   defp handle_server_ready_flow(ready_for_command(transaction_state: transaction_state), state) do
     {:ok, %State{state | server_state: transaction_state}}
+  end
+
+  defp handle_server_ready_flow(error_response() = message, state) do
+    handle_error_response(message, state)
   end
 
   defp prepare_query(%EdgeDB.Query{} = query, opts, state) do
@@ -344,6 +373,10 @@ defmodule EdgeDB.Connection do
     {:ok, query, state}
   end
 
+  defp handle_prepare_query_flow(_query, error_response() = message, state) do
+    handle_error_response(message, state)
+  end
+
   defp execute_query(%EdgeDB.Query{} = query, params, state) do
     message = execute(headers: [], statement_name: "", arguments: params)
 
@@ -375,6 +408,10 @@ defmodule EdgeDB.Connection do
     with {:ok, state} <- wait_for_server_ready(state) do
       {:ok, query, %EdgeDB.Result{result | statement: status}, state}
     end
+  end
+
+  defp handle_execute_flow(_query, _result, error_response() = message, state) do
+    handle_error_response(message, state)
   end
 
   defp describe_codecs_from_query(query, state) do
@@ -458,6 +495,22 @@ defmodule EdgeDB.Connection do
     with {:ok, state} <- wait_for_server_ready(state) do
       {:ok, result, state}
     end
+  end
+
+  defp handle_execute_script_flow(error_response() = message, state) do
+    handle_error_response(message, state)
+  end
+
+  defp handle_error_response(
+         error_response(
+           error_code: code,
+           message: message,
+           attributes: attributes
+         ),
+         state
+       ) do
+    err = Errors.module_from_code(code).exception(message, meta: Enum.into(attributes, %{}))
+    {:disconnect, err, state}
   end
 
   defp save_query_with_codecs_in_cache(

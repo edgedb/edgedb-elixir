@@ -28,9 +28,8 @@ defmodule EdgeDB do
       {:ok, result} ->
         result
 
-      {:error, _error} ->
-        # use normal error here
-        raise RuntimeError
+      {:error, exc} ->
+        raise exc
     end
   end
 
@@ -51,9 +50,8 @@ defmodule EdgeDB do
       {:ok, result} ->
         result
 
-      {:error, _error} ->
-        # use normal error here
-        raise RuntimeError
+      {:error, exc} ->
+        raise exc
     end
   end
 

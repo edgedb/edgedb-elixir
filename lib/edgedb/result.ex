@@ -1,5 +1,8 @@
 defmodule EdgeDB.Result do
-  alias EdgeDB.Protocol.{Codec, Enums}
+  alias EdgeDB.Protocol.{
+    Codec,
+    Enums
+  }
 
   defstruct [
     :statement,

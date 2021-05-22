@@ -19,7 +19,7 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
     client: true,
     mtype: 0x51,
     fields: [
-      headers: [Types.Header.t()],
+      headers: [Types.Header.t()] | Keyword.t(),
       script: DataTypes.String.t()
     ]
   )
@@ -34,11 +34,11 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
     [encoded_headers, DataTypes.String.encode(script)]
   end
 
-  @spec process_headers(list(Types.Header.t())) :: list(Types.Header.t())
+  @spec process_headers(Keyword.t()) :: list(Types.Header.t())
   defp process_headers(headers) do
     Enum.reduce(headers, [], fn
-      header(code: code, value: value), headers when code in @known_headers_keys ->
-        {code, encoder} = @known_headers[code]
+      {name, value}, headers when name in @known_headers_keys ->
+        {code, encoder} = @known_headers[name]
         [header(code: code, value: encoder.(value)) | headers]
 
       _unknown_header, headers ->

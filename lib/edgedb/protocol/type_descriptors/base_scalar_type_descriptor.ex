@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.BaseScalarTypeDescriptor do
   use EdgeDB.Protocol.TypeDescriptor
 
-  alias EdgeDB.Protocol.{Codecs, DataTypes}
+  alias EdgeDB.Protocol.{
+    Codecs,
+    DataTypes
+  }
 
   # base scalar codecs always exist in storage
   # so we don't need parsing
