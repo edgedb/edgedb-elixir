@@ -37,7 +37,7 @@ defmodule EdgeDB.Protocol.Errors do
     end
   end
 
-  @error_definition_regex ~r/^(?<error_code>0x(_[0-9A-Fa-f]{2}){4})\s*(?<error_name>\w+)$/
+  @error_definition_regex ~r/^(?<error_code>0x(_[0-9A-Fa-f]{2}){4})\s*(?<error_name>\w+)/
   @edgedb_errors_file Path.join(
                         :code.priv_dir(:edgedb),
                         Path.join(["edgedb", "api", "errors.txt"])

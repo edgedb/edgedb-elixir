@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.Codecs.JSON do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Errors
+  }
 
   @format 1
 
@@ -28,8 +31,8 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
         ]
 
       {:error, error} ->
-        raise EdgeDB.Protocol.Errors.InvalidArgumentError,
-              "unable to encode argument as JSON: #{inspect(error)}"
+        raise Errors.InvalidArgumentError,
+              "unable to encode #{inspect(instance)} as #{@type_name}: #{inspect(error)}"
     end
   end
 
@@ -42,8 +45,8 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
       instance
     else
       {:error, error} ->
-        raise EdgeDB.Protocol.Errors.InvalidValueError,
-              "unable to decode JSON: #{inspect(error)}"
+        raise Errors.InvalidArgumentError,
+              "unable to decode binary data as #{@format}: #{inspect(error)}"
     end
   end
 end

@@ -22,6 +22,9 @@ defmodule EdgeDB.Connection do
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
 
   @scram_sha_256 "SCRAM-SHA-256"
+  @major_ver 0
+  @minor_ver 10
+  @minor_ver_min 9
 
   @start_transaction_statement "START TRANSACTION"
   @commit_statement "COMMIT"
@@ -181,6 +184,8 @@ defmodule EdgeDB.Connection do
   defp handshake(%State{} = state, username, password, database) do
     message =
       client_handshake(
+        major_ver: @major_ver,
+        minor_ver: @minor_ver,
         params: [
           connection_param(name: "user", value: username),
           connection_param(name: "database", value: database)
@@ -199,7 +204,26 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_authentication_flow(server_handshake(), password, state) do
+  defp handle_authentication_flow(
+         server_handshake(major_ver: major_ver, minor_ver: minor_ver),
+         _password,
+         state
+       )
+       when major_ver != @major_ver or
+              (major_ver == 0 and (minor_ver < @minor_ver_min or minor_ver > @minor_ver)) do
+    err =
+      Errors.ClientConnectionError.exception(
+        "the server requested an unsupported version of the protocol #{major_ver}.#{minor_ver}"
+      )
+
+    {:disconnect, err, state}
+  end
+
+  defp handle_authentication_flow(
+         server_handshake(),
+         password,
+         state
+       ) do
     with {:ok, {message, buffer}} <- receive_message(state) do
       handle_authentication_flow(message, password, %State{state | buffer: buffer})
     end

@@ -58,7 +58,7 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   def get!(storage, codec_id) do
     case get(storage, codec_id) do
       nil ->
-        raise RuntimeError, "no codec for #{codec_id}"
+        raise RuntimeError, "no codec for #{DataTypes.UUID.to_string(codec_id)}"
 
       codec ->
         codec

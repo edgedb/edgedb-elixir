@@ -1,7 +1,10 @@
 defmodule EdgeDB.Protocol.Codecs.EmptyResult do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.{
+    DataTypes,
+    Errors
+  }
 
   defbasescalarcodec(
     type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000000"),
@@ -10,11 +13,11 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
 
   @spec encode_instance(t()) :: iodata()
   def encode_instance(_instance) do
-    raise EdgeDB.Protocol.Errors.InvalidArgumentError, "empty result can't be encoded by client"
+    raise Errors.InvalidArgumentError, "empty result can't be encoded by client"
   end
 
   @spec decode_instance(bitstring()) :: t()
   def decode_instance(_data) do
-    raise EdgeDB.Protocol.Errors.InvalidArgumentError, "empty result can't be decoded by client"
+    raise Errors.InvalidArgumentError, "empty result can't be decoded by client"
   end
 end

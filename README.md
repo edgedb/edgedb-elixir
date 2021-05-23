@@ -8,7 +8,7 @@ How to use (this will change to be more friendly):
     password: "edgedb",
     database: "edgedb",
     host: "localhost",
-    port: 10700
+    port: 10_700
   )
 
 arg = [16, 13, 2, 42]

@@ -8,6 +8,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
 
   alias EdgeDB.Protocol.{
     DataTypes,
+    Errors,
     Types
   }
 
@@ -19,7 +20,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     encoder =
       create_encoder(fn instance when is_map(instance) or is_list(instance) ->
         if is_list(instance) and not Keyword.keyword?(instance) do
-          raise EdgeDB.Protocol.Errors.InvalidArgumentError,
+          raise Errors.InvalidArgumentError,
                 "named tuples encoding is supported only for maps, and keyword lists"
         end
 
@@ -54,7 +55,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
         [encoded_elements, elements, codecs]
         |> Enum.zip()
         |> Enum.into(%{}, fn {tuple_element(data: data),
-                             named_tuple_descriptor_element(name: name), codec} ->
+                              named_tuple_descriptor_element(name: name), codec} ->
           {name, codec.decoder.(data)}
         end)
         |> EdgeDB.NamedTuple.new()

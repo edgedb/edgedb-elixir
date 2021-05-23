@@ -112,8 +112,8 @@ defmodule EdgeDB.Protocol.Codec do
           decode_instance(data)
         rescue
           _exc in FunctionClauseError ->
-            reraise EdgeDB.Protocol.Errors.InputDataError,
-                    "unable to decode instance",
+            reraise EdgeDB.Protocol.Errors.InvalidArgumentError,
+                    "unable to decode binary data as #{@type_name}",
                     __STACKTRACE__
         end
       else
@@ -121,7 +121,9 @@ defmodule EdgeDB.Protocol.Codec do
           decode_instance(data)
         rescue
           _exc in FunctionClauseError ->
-            reraise EdgeDB.Protocol.Errors.InputDataError, "unable to decode instance", __MODULE__
+            reraise EdgeDB.Protocol.Errors.InvalidArgumentError,
+                    "unable to decode binary data as #{@type_name}",
+                    __MODULE__
         end
       end
     end

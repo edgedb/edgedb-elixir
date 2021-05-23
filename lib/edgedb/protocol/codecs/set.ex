@@ -8,7 +8,9 @@ defmodule EdgeDB.Protocol.Codecs.Set do
   }
 
   alias EdgeDB.Protocol.{
+    Codecs,
     DataTypes,
+    Errors,
     Types
   }
 
@@ -18,7 +20,7 @@ defmodule EdgeDB.Protocol.Codecs.Set do
   def new(type_id, codec) do
     encoder =
       create_encoder(fn %EdgeDB.Set{} ->
-        raise EdgeDB.Protocol.Errors.InvalidArgumentError, "set cann't be encoded"
+        raise Errors.InvalidArgumentError, "set cann't be encoded"
       end)
 
     decoder =
@@ -36,7 +38,7 @@ defmodule EdgeDB.Protocol.Codecs.Set do
 
           elements =
             case codec do
-              %Codec{module: EdgeDB.Protocol.Codecs.Array} ->
+              %Codec{module: Codecs.Array} ->
                 decode_envelopes(codec, elements_count, rest)
 
               _other_codec ->
