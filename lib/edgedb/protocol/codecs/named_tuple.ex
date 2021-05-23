@@ -16,50 +16,10 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
 
   @spec new(DataTypes.UUID.t(), list(Types.NamedTupleDescriptorElement.t()), list(Codec.t())) ::
           Codec.t()
-  def new(type_id, elements, codecs) do
-    encoder =
-      create_encoder(fn instance when is_map(instance) or is_list(instance) ->
-        if is_list(instance) and not Keyword.keyword?(instance) do
-          raise Errors.InvalidArgumentError,
-                "named tuples encoding is supported only for maps, and keyword lists"
-        end
+  def new(type_id, named_tuple_elements, codecs) do
+    encoder = create_encoder(&encode_named_tuple(&1, named_tuple_elements, codecs))
 
-        instance =
-          Enum.into(instance, %{}, fn
-            {key, value} when is_atom(key) ->
-              {to_string(key), value}
-
-            {key, value} when is_binary(key) ->
-              {key, value}
-          end)
-
-        encoded_elements =
-          elements
-          |> Enum.zip(codecs)
-          |> Enum.map(fn {named_tuple_descriptor_element(name: name), codec} ->
-            value = instance[name]
-            codec.encoder.(value)
-          end)
-          |> Enum.map(fn element_data ->
-            tuple_element(data: element_data)
-          end)
-          |> Types.TupleElement.encode(:raw)
-
-        [DataTypes.Int32.encode(length(encoded_elements)), encoded_elements]
-      end)
-
-    decoder =
-      create_decoder(fn <<nelems::int32, data::binary>> ->
-        {encoded_elements, <<>>} = Types.TupleElement.decode(nelems, data)
-
-        [encoded_elements, elements, codecs]
-        |> Enum.zip()
-        |> Enum.into(%{}, fn {tuple_element(data: data),
-                              named_tuple_descriptor_element(name: name), codec} ->
-          {name, codec.decoder.(data)}
-        end)
-        |> EdgeDB.NamedTuple.new()
-      end)
+    decoder = create_decoder(&decode_named_tuple(&1, named_tuple_elements, codecs))
 
     %Codec{
       type_id: <<type_id::uuid>>,
@@ -67,5 +27,95 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
       decoder: decoder,
       module: __MODULE__
     }
+  end
+
+  defp encode_named_tuple(instance, named_tuple_elements, codecs)
+       when is_map(instance) or is_list(instance) do
+    if is_list(instance) and not Keyword.keyword?(instance) do
+      raise Errors.InvalidArgumentError,
+            "named tuples encoding is supported only for maps, and keyword lists"
+    end
+
+    instance = transform_into_string_map(instance)
+    verify_all_members_passed!(instance, named_tuple_elements)
+    encoded_elements = encode_elements(instance, named_tuple_elements, codecs)
+
+    [DataTypes.Int32.encode(length(encoded_elements)), encoded_elements]
+  end
+
+  defp decode_named_tuple(<<nelems::int32, data::binary>>, named_tuple_elements, codecs) do
+    {encoded_elements, <<>>} = Types.TupleElement.decode(nelems, data)
+    decode_elements(encoded_elements, named_tuple_elements, codecs)
+  end
+
+  defp transform_into_string_map(instance) do
+    Enum.into(instance, %{}, fn
+      {key, value} when is_atom(key) ->
+        {to_string(key), value}
+
+      {key, value} when is_binary(key) ->
+        {key, value}
+    end)
+  end
+
+  defp encode_elements(instance, descriptor_elements, codecs) do
+    descriptor_elements
+    |> Enum.zip(codecs)
+    |> Enum.map(fn {named_tuple_descriptor_element(name: name), codec} ->
+      value = instance[name]
+      codec.encoder.(value)
+    end)
+    |> Enum.map(fn element_data ->
+      tuple_element(data: element_data)
+    end)
+    |> Types.TupleElement.encode(raw: true)
+  end
+
+  defp decode_elements(tuple_elements, descriptor_elements, codecs) do
+    [tuple_elements, descriptor_elements, codecs]
+    |> Enum.zip()
+    |> Enum.into(%{}, fn {tuple_element(data: data), named_tuple_descriptor_element(name: name),
+                          codec} ->
+      {name, codec.decoder.(data)}
+    end)
+    |> EdgeDB.NamedTuple.new()
+  end
+
+  defp verify_all_members_passed!(instance, elements) do
+    passed_keys =
+      instance
+      |> Map.keys()
+      |> MapSet.new()
+
+    required_keys =
+      Enum.into(elements, MapSet.new(), fn named_tuple_descriptor_element(name: name) ->
+        name
+      end)
+
+    missed_keys = MapSet.difference(required_keys, passed_keys)
+    extra_keys = MapSet.difference(passed_keys, required_keys)
+
+    if MapSet.size(missed_keys) != 0 or MapSet.size(extra_keys) != 0 do
+      raise Errors.QueryArgumentError,
+            make_missing_args_error_message(required_keys, passed_keys, missed_keys, extra_keys)
+    end
+  end
+
+  defp make_missing_args_error_message(required_args, passed_args, missed_args, extra_args) do
+    error_message = "exptected #{MapSet.to_list(required_args)} keyword arguments"
+    error_message = "#{error_message}, got #{MapSet.to_list(passed_args)}"
+
+    error_message =
+      if MapSet.size(missed_args) != 0 do
+        "#{error_message}, missed #{MapSet.to_list(missed_args)}"
+      else
+        error_message
+      end
+
+    if MapSet.size(extra_args) != 0 do
+      "#{error_message}, missed #{MapSet.to_list(extra_args)}"
+    else
+      error_message
+    end
   end
 end

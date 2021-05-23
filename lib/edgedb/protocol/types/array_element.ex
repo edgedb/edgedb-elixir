@@ -17,17 +17,14 @@ defmodule EdgeDB.Protocol.Types.ArrayElement do
       |> IO.iodata_to_binary()
       |> :binary.bin_to_list()
 
-    DataTypes.UInt8.encode(data, :raw)
+    DataTypes.UInt8.encode(data, raw: true)
   end
 
   @spec decode(bitstring()) :: {t(), bitstring()}
   def decode(<<len::int32, rest::binary>>) do
     {data, rest} = DataTypes.UInt8.decode(len, rest)
 
-    data = [
-      DataTypes.UInt32.encode(len),
-      DataTypes.UInt8.encode(data, :raw)
-    ]
+    data = DataTypes.UInt8.encode(data, data_type: DataTypes.UInt32)
 
     {array_element(data: IO.iodata_to_binary(data)), rest}
   end

@@ -27,7 +27,7 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
         [
           DataTypes.UInt32.encode(data_length + 1),
           DataTypes.Int8.encode(@format),
-          DataTypes.Int8.encode(data, :raw)
+          DataTypes.Int8.encode(data, raw: true)
         ]
 
       {:error, error} ->

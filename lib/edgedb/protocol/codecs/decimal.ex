@@ -71,7 +71,7 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
       DataTypes.Int16.encode(weight),
       Enums.DecimalSign.encode(sign),
       DataTypes.UInt16.encode(dscale),
-      DataTypes.UInt16.encode(digits, :raw)
+      DataTypes.UInt16.encode(digits, raw: true)
     ]
   end
 

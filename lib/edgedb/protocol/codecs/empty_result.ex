@@ -8,7 +8,8 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
 
   defbasescalarcodec(
     type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000000"),
-    type: any()
+    type: nil,
+    calculate_size?: false
   )
 
   @spec encode_instance(t()) :: iodata()

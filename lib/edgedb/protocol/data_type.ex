@@ -15,12 +15,19 @@ defmodule EdgeDB.Protocol.DataType do
 
       @spec encode([t()]) :: bitstring()
       def encode(types) when is_list(types) do
-        [EdgeDB.Protocol.DataTypes.UInt16.encode(length(types)), encode(types, :raw)]
+        encode(types, [])
       end
 
-      @spec encode([t()], :raw) :: bitstring()
-      def encode(types, :raw) when is_list(types) do
-        Enum.map(types, &encode(&1))
+      @spec encode([t()], list()) :: bitstring()
+      def encode(types, opts) when is_list(types) do
+        length_data_type = Keyword.get(opts, :data_type, EdgeDB.Protocol.DataTypes.UInt16)
+        encoded_data = Enum.map(types, &encode(&1))
+
+        if Keyword.get(opts, :raw) do
+          encoded_data
+        else
+          [length_data_type.encode(length(types)), encoded_data]
+        end
       end
 
       @spec decode(non_neg_integer(), bitstring()) :: {[t()], bitstring()}

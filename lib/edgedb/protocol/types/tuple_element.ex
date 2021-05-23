@@ -22,7 +22,7 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
 
     [
       DataTypes.Int32.encode(@reserved),
-      DataTypes.UInt8.encode(data, :raw)
+      DataTypes.UInt8.encode(data, raw: true)
     ]
   end
 
@@ -37,7 +37,7 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
 
     data = [
       DataTypes.UInt32.encode(len),
-      DataTypes.UInt8.encode(data, :raw)
+      DataTypes.UInt8.encode(data, raw: true)
     ]
 
     {tuple_element(data: IO.iodata_to_binary(data)), rest}
