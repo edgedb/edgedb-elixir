@@ -670,20 +670,18 @@ defmodule EdgeDB.Connection do
     read =
       if Keyword.get(opts, :readonly, false) do
         "READ ONLY"
+      else
+        "READ WRITE"
       end
 
     deferrable =
-      case Keyword.get(opts, :deferrable) do
-        true ->
-          "DEFERRABLE"
-
-        false ->
-          "NOT DEFERRABLE"
-
-        nil ->
-          ""
+      if Keyword.get(opts, :deferrable, false) do
+        "DEFERRABLE"
+      else
+        "NOT DEFERRABLE"
       end
 
-    "#{@start_transaction_statement} #{isolation} #{read} #{deferrable}"
+    mode = Enum.join([isolation, read, deferrable], ", ")
+    "#{@start_transaction_statement} #{mode}"
   end
 end
