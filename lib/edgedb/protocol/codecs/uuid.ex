@@ -2,20 +2,19 @@ defmodule EdgeDB.Protocol.Codecs.UUID do
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Errors
   }
 
   defbasescalarcodec(
     type_name: "std::uuid",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000100"),
-    type: binary()
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000100"),
+    type: Datatypes.UUID.t()
   )
 
-  @spec encode_instance(t()) :: bitstring()
-
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(uuid) do
-    DataTypes.UUID.encode(uuid)
+    Datatypes.UUID.encode(uuid)
   rescue
     _exc in ArgumentError ->
       reraise Errors.InvalidArgumentError,
@@ -23,8 +22,8 @@ defmodule EdgeDB.Protocol.Codecs.UUID do
               __STACKTRACE__
   end
 
-  @spec decode_instance(bitstring()) :: t()
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(<<_content::uuid>> = data) do
-    DataTypes.UUID.to_string(data)
+    Datatypes.UUID.to_string(data)
   end
 end

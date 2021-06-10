@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Enums,
     Types
   }
@@ -12,9 +12,9 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
     client: true,
     mtype: 0x44,
     fields: [
-      headers: [Types.Header.t()],
+      headers: Keyword.t(),
       aspect: Enums.DescribeAspect.t(),
-      statement_name: DataTypes.Bytes.t()
+      statement_name: Datatypes.Bytes.t()
     ],
     defaults: [
       headers: [],
@@ -22,18 +22,20 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
     ]
   )
 
-  @spec encode_message(t()) :: iodata()
-  defp encode_message(
-         describe_statement(
-           headers: headers,
-           aspect: aspect,
-           statement_name: statement_name
-         )
-       ) do
+  @impl EdgeDB.Protocol.Message
+  def encode_message(
+        describe_statement(
+          headers: headers,
+          aspect: aspect,
+          statement_name: statement_name
+        )
+      ) do
+    headers = process_passed_headers(headers)
+
     [
       Types.Header.encode(headers),
       Enums.DescribeAspect.encode(aspect),
-      DataTypes.Bytes.encode(statement_name)
+      Datatypes.Bytes.encode(statement_name)
     ]
   end
 end

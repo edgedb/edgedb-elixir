@@ -1,65 +1,73 @@
 defmodule EdgeDB.Protocol do
-  import EdgeDB.Protocol.Converters
+  alias EdgeDB.Protocol.Datatypes
 
-  alias EdgeDB.Protocol.Messages.{
-    Client,
-    Server
-  }
+  @type list_encoding_option() ::
+          {:raw, boolean()}
+          | {:datatype, atom()}
 
-  @client_modules [
-    Client.AuthenticationSASLInitialResponse,
-    Client.AuthenticationSASLInitialResponse,
-    Client.AuthenticationSASLResponse,
-    Client.ClientHandshake,
-    Client.DescribeStatement,
-    Client.Dump,
-    Client.ExecuteScript,
-    Client.Execute,
-    Client.Flush,
-    Client.OptimisticExecute,
-    Client.Prepare,
-    Client.RestoreBlock,
-    Client.RestoreEOF,
-    Client.Restore,
-    Client.Sync,
-    Client.Terminate
-  ]
+  @type list_encoding_options() :: list(list_encoding_option())
 
-  @server_modules [
-    Server.Authentication,
-    Server.CommandComplete,
-    Server.CommandDataDescription,
-    Server.Data,
-    Server.DumpBlock,
-    Server.DumpHeader,
-    Server.ErrorResponse,
-    Server.LogMessage,
-    Server.ParameterStatus,
-    Server.PrepareComplete,
-    Server.ReadyForCommand,
-    Server.RestoreReady,
-    Server.ServerHandshake,
-    Server.ServerKeyData
-  ]
+  defdelegate encode_message(message), to: EdgeDB.Protocol.Messages
+  defdelegate decode_message(data), to: EdgeDB.Protocol.Messages
 
-  @spec encode(term()) :: binary()
+  @spec encode_list(
+          (term() -> iodata()),
+          list(term()),
+          list_encoding_options()
+        ) :: iodata()
+  def encode_list(encoder, entities, opts) do
+    size_datatype = Keyword.get(opts, :datatype, Datatypes.UInt16)
+    encoded_data = Enum.map(entities, &encoder.(&1))
 
-  for client_module <- @client_modules do
-    def encode(record) when elem(record, 0) == unquote(client_module.record_name()) do
-      unquote(client_module).encode(record)
+    if Keyword.get(opts, :raw) do
+      encoded_data
+    else
+      encoded_size =
+        entities
+        |> length()
+        |> size_datatype.encode()
+
+      [encoded_size, encoded_data]
     end
   end
 
-  @spec decode(binary()) ::
-          {:ok, {term(), pos_integer()}} | {:error, {:not_enough_size, pos_integer()}}
+  @spec decode_list(
+          (bitstring() -> term()),
+          non_neg_integer(),
+          bitstring()
+        ) :: {list(term()), bitstring()}
 
-  def decode(data) when byte_size(data) < 5 do
-    {:error, {:not_enough_size, 0}}
+  def decode_list(_decoder, 0, data) do
+    {[], data}
   end
 
-  for server_module <- @server_modules do
-    def decode(<<unquote(server_module.mtype())::uint8, _rest::binary>> = data) do
-      unquote(server_module).decode(data)
+  def decode_list(decoder, count, <<data::binary>>) do
+    {entities, rest} =
+      Enum.reduce(1..count, {[], data}, fn _idx, {entities, rest} ->
+        {decoded_entity, rest} = decoder.(rest)
+        {[decoded_entity | entities], rest}
+      end)
+
+    entities = Enum.reverse(entities)
+
+    {entities, rest}
+  end
+
+  @spec define_edgedb_record(atom(), Keyword.t(), Keyword.t()) :: Macro.t()
+  def define_edgedb_record(record_name, fields, defaults) do
+    default_fields_names = Keyword.keys(defaults)
+
+    record_fields_names =
+      fields
+      |> Keyword.drop(default_fields_names)
+      |> Keyword.keys()
+
+    record_fields = record_fields_names ++ defaults
+
+    quote do
+      @type t() :: record(unquote(record_name), unquote(fields))
+
+      defrecord unquote(record_name), unquote(record_fields)
     end
   end
 end

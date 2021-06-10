@@ -21,8 +21,25 @@ jobs:
           otp-version: ${{ matrix.otp }}
           elixir-version: ${{ matrix.elixir }}
 
+      - name: Set up cache
+        uses: actions/cache@v2
+        id: cache
+        with:
+          path: |
+            deps
+            _build
+            priv/plts
+          key: styles-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
+
       - name: Install dependencies
+        if: steps.mix-cache.outputs.cache-hit != 'true'
         run: mix deps.get --only test
 
-      - name: Run linters
+      - name: Check format
+        run: mix format --check-formatted
+
+      - name: Run credo
         run: mix credo --strict
+
+      - name: Run dialyzer
+        run: mix dialyzer

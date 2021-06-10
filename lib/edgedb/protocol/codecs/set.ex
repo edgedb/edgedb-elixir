@@ -9,35 +9,38 @@ defmodule EdgeDB.Protocol.Codecs.Set do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    DataTypes,
+    Datatypes,
     Errors,
     Types
   }
 
   defcodec(type: EdgeDB.Set.t())
 
-  @spec new(DataTypes.UUID.t(), Codec.t()) :: Codec.t()
+  @spec new(Datatypes.UUID.t(), Codec.t()) :: Codec.t()
   def new(type_id, codec) do
     encoder = create_encoder(&encode_set(&1))
     decoder = create_decoder(&decode_set(&1, codec))
 
     %Codec{
-      type_id: <<type_id::uuid>>,
+      type_id: type_id,
       encoder: encoder,
       decoder: decoder,
       module: __MODULE__
     }
   end
 
-  defp encode_set(%EdgeDB.Set{}) do
+  @spec encode_set(t()) :: no_return()
+  def encode_set(%EdgeDB.Set{}) do
     raise Errors.InvalidArgumentError, "set cann't be encoded"
   end
 
-  defp decode_set(<<0::int32, _reserved0::int32, _reserved1::int32, _rest::binary>>, _codec) do
+  @spec decode_set(bitstring(), Codec.t()) :: t()
+
+  def decode_set(<<0::int32, _reserved0::int32, _reserved1::int32, _rest::binary>>, _codec) do
     EdgeDB.Set.new()
   end
 
-  defp decode_set(<<ndims::int32, _reserved0::int32, _reserved1::int32, rest::binary>>, codec) do
+  def decode_set(<<ndims::int32, _reserved0::int32, _reserved1::int32, rest::binary>>, codec) do
     {dimensions, rest} = Types.Dimension.decode(ndims, rest)
 
     elements_count =
@@ -57,21 +60,23 @@ defmodule EdgeDB.Protocol.Codecs.Set do
     EdgeDB.Set.new(elements)
   end
 
+  @spec decode_envelopes(Codec.t(), non_neg_integer(), bitstring()) :: list(list(any()))
   defp decode_envelopes(codec, elements_count, data) do
     {envelopes, <<>>} = Types.Envelope.decode(elements_count, data)
 
     Enum.into(envelopes, [], fn envelope(elements: elements) ->
       Enum.into(elements, [], fn array_element(data: data) ->
-        codec.decoder.(data)
+        Codec.decode(codec, data)
       end)
     end)
   end
 
+  @spec decode_elements(Codec.t(), non_neg_integer(), bitstring()) :: list(any())
   defp decode_elements(codec, elements_count, data) do
     {raw_elements, <<>>} = Types.ArrayElement.decode(elements_count, data)
 
     Enum.into(raw_elements, [], fn array_element(data: data) ->
-      codec.decoder.(data)
+      Codec.decode(codec, data)
     end)
   end
 end

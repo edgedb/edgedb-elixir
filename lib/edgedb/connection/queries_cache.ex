@@ -4,17 +4,23 @@ defmodule EdgeDB.Connection.QueriesCache do
   alias EdgeDB.Protocol.Enums
 
   defmodule State do
-    defstruct [:cache]
+    defstruct [
+      :cache
+    ]
+
+    @type t() :: %__MODULE__{
+            cache: :ets.tab()
+          }
   end
 
-  @type t() :: pid()
+  @type t() :: GenServer.server()
 
   @spec start_link(list()) :: GenServer.on_start()
   def start_link(_opts \\ []) do
     GenServer.start_link(__MODULE__, [])
   end
 
-  @spec get(t(), String.t(), Enums.Cardinality.t(), Enums.IOFormat.t()) :: EdgeDB.Query.t()
+  @spec get(t(), String.t(), Enums.Cardinality.t(), Enums.IOFormat.t()) :: EdgeDB.Query.t() | nil
   def get(cache, statement, cardinality, io_format) do
     GenServer.call(cache, {:get, statement, cardinality, io_format})
   end

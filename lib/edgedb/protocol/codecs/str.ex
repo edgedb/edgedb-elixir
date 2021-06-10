@@ -1,23 +1,23 @@
 defmodule EdgeDB.Protocol.Codecs.Str do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   defbasescalarcodec(
     type_name: "std::str",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000101"),
-    type: binary(),
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000101"),
+    type: String.t(),
     calculate_size?: false
   )
 
-  @spec encode_instance(t() | String.Chars.t()) :: iodata()
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(string) do
-    DataTypes.String.encode(string)
+    Datatypes.String.encode(string)
   end
 
-  @spec decode_instance(bitstring()) :: {t(), bitstring()}
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(data) do
-    {string, <<>>} = DataTypes.String.decode(data)
+    {string, <<>>} = Datatypes.String.decode(data)
     string
   end
 end

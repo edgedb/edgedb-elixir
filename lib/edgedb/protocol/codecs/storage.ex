@@ -4,7 +4,7 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   alias EdgeDB.Protocol.{
     Codec,
     Codecs,
-    DataTypes
+    Datatypes
   }
 
   @known_base_codecs [
@@ -34,38 +34,35 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   defmodule State do
     defstruct [:storage]
 
-    @type t() :: %__MODULE__{}
+    @type t() :: %__MODULE__{
+            storage: :ets.tab()
+          }
   end
 
-  @type t() :: pid()
+  @type t() :: GenServer.server()
 
   @spec start_link(list()) :: GenServer.on_start()
   def start_link(_opts \\ []) do
     GenServer.start_link(__MODULE__, [])
   end
 
-  @spec get(t(), DataTypes.UUID.t() | integer()) :: Codec.t() | nil
-
-  def get(storage, codec_id) when is_number(codec_id) do
-    get(storage, DataTypes.UUID.from_integer(codec_id))
-  end
-
+  @spec get(t(), Datatypes.UUID.t()) :: Codec.t() | nil
   def get(storage, codec_id) do
     GenServer.call(storage, {:get, codec_id})
   end
 
-  @spec get!(t(), DataTypes.UUID.t()) :: Codec.t()
+  @spec get!(t(), Datatypes.UUID.t()) :: Codec.t()
   def get!(storage, codec_id) do
     case get(storage, codec_id) do
       nil ->
-        raise RuntimeError, "no codec for #{DataTypes.UUID.to_string(codec_id)}"
+        raise RuntimeError, "no codec for #{Datatypes.UUID.to_string(codec_id)}"
 
       codec ->
         codec
     end
   end
 
-  @spec get_or_create(t(), DataTypes.UUID.t(), (() -> Codec.t())) :: Codec.t()
+  @spec get_or_create(t(), Datatypes.UUID.t(), (() -> Codec.t())) :: Codec.t()
   def get_or_create(storage, codec_id, creation_fn) do
     case get(storage, codec_id) do
       nil ->
@@ -83,11 +80,13 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
     GenServer.cast(storage, {:register, codec})
   end
 
-  @spec update(t(), Codec.t(), map()) :: :ok
+  @spec update(t(), Datatypes.UUID.t(), map()) :: :ok
   def update(storage, codec_id, updates) do
-    with {:ok, codec} <- get(storage, codec_id) do
+    if codec = get(storage, codec_id) do
       GenServer.cast(storage, {:update, codec, updates})
     end
+
+    :ok
   end
 
   @impl GenServer
@@ -128,12 +127,13 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
     :ets.new(:codecs_storage, [:set, :private])
   end
 
-  @spec register_codec(:ets.tab(), Codec.t()) :: true
+  @spec register_codec(t(), Codec.t()) :: :ok
   defp register_codec(storage, %Codec{} = codec) do
     :ets.insert(storage, {codec.type_id, codec})
+    :ok
   end
 
-  @spec register_base_scalar_codecs(:ets.tab()) :: :ok
+  @spec register_base_scalar_codecs(t()) :: :ok
   defp register_base_scalar_codecs(storage) do
     Enum.each(@known_base_codecs, fn codec_mod ->
       register_codec(storage, codec_mod.new())

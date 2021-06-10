@@ -14,7 +14,7 @@ defmodule EdgeDB.Protocol.Errors do
 
         @type t() :: %__MODULE__{
                 message: String.t(),
-                code: pos_integer(),
+                code: integer(),
                 meta: map()
               }
 
@@ -42,6 +42,9 @@ defmodule EdgeDB.Protocol.Errors do
                         :code.priv_dir(:edgedb),
                         Path.join(["edgedb", "api", "errors.txt"])
                       )
+
+  @spec module_from_code(integer() | String.t()) :: atom()
+  @spec name_from_code(integer() | String.t()) :: String.t()
 
   for line <- File.stream!(@edgedb_errors_file),
       Regex.match?(@error_definition_regex, line) do
@@ -77,8 +80,6 @@ defmodule EdgeDB.Protocol.Errors do
          ]
        ]})
 
-    @spec module_from_code(integer() | binary()) :: atom()
-
     def module_from_code(unquote(code)) do
       unquote(error_module)
     end
@@ -86,8 +87,6 @@ defmodule EdgeDB.Protocol.Errors do
     def module_from_code(unquote(code_hex)) do
       unquote(error_module)
     end
-
-    @spec name_from_code(integer() | binary()) :: binary()
 
     def name_from_code(unquote(code)) do
       unquote(error)

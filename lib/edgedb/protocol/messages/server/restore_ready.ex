@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Types
   }
 
@@ -11,15 +11,19 @@ defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
     server: true,
     mtype: 0x2B,
     fields: [
-      headers: [Types.Header.t()],
-      jobs: DataTypes.UInt16.t()
+      headers: Keyword.t(),
+      jobs: Datatypes.UInt16.t()
     ]
   )
 
-  @spec decode_message(bitstring()) :: t()
-  defp decode_message(<<num_headers::uint16, rest::binary>>) do
+  @impl EdgeDB.Protocol.Message
+  def decode_message(<<num_headers::uint16, rest::binary>>) do
     {headers, rest} = Types.Header.decode(num_headers, rest)
-    {jobs, <<>>} = DataTypes.UInt16.decode(rest)
-    restore_ready(headers: headers, jobs: jobs)
+    {jobs, <<>>} = Datatypes.UInt16.decode(rest)
+
+    restore_ready(
+      headers: process_received_headers(headers),
+      jobs: jobs
+    )
   end
 end

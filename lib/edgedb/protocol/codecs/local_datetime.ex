@@ -3,21 +3,21 @@ defmodule EdgeDB.Protocol.Codecs.LocalDateTime do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    DataTypes
+    Datatypes
   }
 
   defbasescalarcodec(
     type_name: "cal::local_datetime",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010B"),
-    type: NaiveDateTime.t() | non_neg_integer()
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010B"),
+    type: NaiveDateTime.t() | integer()
   )
 
-  @spec encode_instance(t()) :: iodata()
-
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(unix_ts) when is_integer(unix_ts) do
     Codecs.DateTime.encode_instance(unix_ts)
   end
 
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(%NaiveDateTime{} = ndt) do
     ndt
     |> DateTime.from_naive!("Etc/UTC")
@@ -25,7 +25,7 @@ defmodule EdgeDB.Protocol.Codecs.LocalDateTime do
     |> encode_instance()
   end
 
-  @spec decode_instance(bitstring()) :: t()
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(data) do
     data
     |> Codecs.DateTime.decode_instance()

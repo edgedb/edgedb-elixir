@@ -20,7 +20,10 @@ defmodule EdgeDB.Protocol.TypeDescriptors do
     TypeDescriptors.EnumerationTypeDescriptor
   ]
 
-  @spec parse_type_description_into_codec(list(Codec.t()), bitstring()) :: Codec.t()
+  @spec parse_type_description_into_codec(
+          list(Codec.t()),
+          bitstring()
+        ) :: {Codec.t(), bitstring()}
 
   for descriptor_module <- @type_descriptors, descriptor_module.support_parsing?() do
     def parse_type_description_into_codec(
@@ -31,7 +34,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors do
     end
   end
 
-  @spec consume_description(Codecs.Storage.t(), bitstring()) :: Codec.t()
+  @spec consume_description(Codecs.Storage.t(), bitstring()) :: bitstring()
 
   for descriptor_module <- @type_descriptors, descriptor_module.support_consuming?() do
     def consume_description(

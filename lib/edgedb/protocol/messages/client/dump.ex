@@ -8,12 +8,14 @@ defmodule EdgeDB.Protocol.Messages.Client.Dump do
     client: true,
     mtype: 0x3E,
     fields: [
-      headers: [Types.Header.t()]
+      headers: Keyword.t()
     ]
   )
 
-  @spec encode_message(t()) :: iodata()
-  defp encode_message(dump(headers: headers)) do
+  @impl EdgeDB.Protocol.Message
+  def encode_message(dump(headers: headers)) do
+    headers = process_passed_headers(headers)
+
     [Types.Header.encode(headers)]
   end
 end

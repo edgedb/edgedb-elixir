@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Types
   }
 
@@ -11,8 +11,8 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
     client: true,
     mtype: 0x45,
     fields: [
-      headers: [Types.Header.t()],
-      statement_name: DataTypes.Bytes.t(),
+      headers: Keyword.t(),
+      statement_name: Datatypes.Bytes.t(),
       arguments: iodata()
     ],
     defaults: [
@@ -21,17 +21,19 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
     ]
   )
 
-  @spec encode_message(t()) :: iodata()
-  defp encode_message(
-         execute(
-           headers: headers,
-           statement_name: statement_name,
-           arguments: arguments
-         )
-       ) do
+  @impl EdgeDB.Protocol.Message
+  def encode_message(
+        execute(
+          headers: headers,
+          statement_name: statement_name,
+          arguments: arguments
+        )
+      ) do
+    headers = process_passed_headers(headers)
+
     [
       Types.Header.encode(headers),
-      DataTypes.Bytes.encode(statement_name),
+      Datatypes.Bytes.encode(statement_name),
       arguments
     ]
   end

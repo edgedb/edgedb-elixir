@@ -1,4 +1,9 @@
 defmodule EdgeDB.Query do
+  alias EdgeDB.Protocol.{
+    Codec,
+    Enums
+  }
+
   defstruct [
     :statement,
     cardinality: :many,
@@ -9,11 +14,22 @@ defmodule EdgeDB.Query do
     params: []
   ]
 
-  @type t() :: %__MODULE__{}
-  @type params() :: list()
-  @type query_opts :: list()
+  @type t() :: %__MODULE__{
+          statement: String.t() | atom(),
+          cardinality: Enums.Cardinality.t(),
+          io_format: Enums.IOFormat.t(),
+          input_codec: Codec.t() | nil,
+          output_codec: Codec.t() | nil,
+          cached?: boolean(),
+          params: list(any())
+        }
 
-  @spec new(String.t(), params(), query_opts()) :: t()
+  @type option() ::
+          {:cardinality, Enums.Cardinality.t()}
+          | {:io_format, Enums.IOFormat.t()}
+  @type options() :: list(option())
+
+  @spec new(String.t(), list(any()), options()) :: t()
   def new(statement, params, opts \\ []) do
     %__MODULE__{
       statement: statement,
@@ -25,12 +41,17 @@ defmodule EdgeDB.Query do
 end
 
 defimpl DBConnection.Query, for: EdgeDB.Query do
-  @impl DBConnection.Query
+  alias EdgeDB.Protocol.{
+    Codec,
+    Errors
+  }
 
+  @impl DBConnection.Query
   def decode(_query, %EdgeDB.Result{decoded?: true}, _opts) do
-    raise EdgeDB.Protocol.Errors.InterfaceError, "result has been decoded"
+    raise Errors.InterfaceError, "result has been decoded"
   end
 
+  @impl DBConnection.Query
   def decode(%EdgeDB.Query{output_codec: out_codec}, %EdgeDB.Result{} = result, _opts) do
     EdgeDB.Result.decode(result, out_codec)
   end
@@ -41,21 +62,21 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
   end
 
   @impl DBConnection.Query
-
   def encode(%EdgeDB.Query{input_codec: nil}, _params, _opts) do
-    raise EdgeDB.Protocol.Errors.InterfaceError, "query hasn't been prepared"
-  end
-
-  def encode(%EdgeDB.Query{input_codec: in_codec}, params, _opts) do
-    in_codec.encoder.(params)
+    raise Errors.InterfaceError, "query hasn't been prepared"
   end
 
   @impl DBConnection.Query
+  def encode(%EdgeDB.Query{input_codec: in_codec}, params, _opts) do
+    Codec.encode(in_codec, params)
+  end
 
+  @impl DBConnection.Query
   def parse(%EdgeDB.Query{cached?: true}, _opts) do
     raise EdgeDB.Protocol.Errors.InterfaceError, "query has been prepared"
   end
 
+  @impl DBConnection.Query
   def parse(query, _opts) do
     query
   end

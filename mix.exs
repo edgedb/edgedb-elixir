@@ -10,16 +10,21 @@ defmodule EdgeDB.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: [
-        warnings_as_errors: true
+        warnings_as_errors: false
       ],
       consolidate_protocols: Mix.env() != :test,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
+        dialyzer: :test,
         credo: :test,
         coveralls: :test,
         "coveralls.detail": :test,
         "coveralls.github": :test,
         "coveralls.html": :test
+      ],
+      dialyzer: [
+        plt_add_apps: [:ex_unit],
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ]
     ]
   end
@@ -38,6 +43,7 @@ defmodule EdgeDB.MixProject do
       {:decimal, "~> 2.0"},
       {:jason, "~> 1.2"},
       # dev/test
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.14", only: :test}
     ]

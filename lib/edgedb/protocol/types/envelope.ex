@@ -9,12 +9,12 @@ defmodule EdgeDB.Protocol.Types.Envelope do
     name: :envelope,
     encode?: false,
     fields: [
-      elements: [Types.ArrayElement.t()]
+      elements: list(Types.ArrayElement.t())
     ]
   )
 
-  @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(<<len::int32, @nelems::int32, _reserved::int32, rest::binary>>) do
+  @impl EdgeDB.Protocol.Type
+  def decode_type(<<len::int32, @nelems::int32, _reserved::int32, rest::binary>>) do
     {elements, rest} = Types.ArrayElement.decode(len, rest)
 
     {envelope(elements: elements), rest}

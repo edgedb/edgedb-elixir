@@ -1,7 +1,11 @@
 defmodule EdgeDB.Set do
-  defstruct [:__items__]
+  defstruct [
+    :__items__
+  ]
 
-  @type t() :: term()
+  @type t() :: %__MODULE__{
+          __items__: MapSet.t()
+        }
 
   @spec empty?(t()) :: boolean()
   def empty?(%__MODULE__{__items__: items}) do
@@ -18,7 +22,7 @@ defmodule EdgeDB.Set do
     %EdgeDB.Set{__items__: MapSet.new(elements)}
   end
 
-  @spec add(t(), any()) :: t()
+  @spec add(t(), term()) :: t()
   def add(%EdgeDB.Set{__items__: items} = set, value) do
     %EdgeDB.Set{set | __items__: MapSet.put(items, value)}
   end

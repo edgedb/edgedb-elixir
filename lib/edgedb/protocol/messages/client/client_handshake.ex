@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Messages.Client.ClientHandshake do
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Types
   }
 
@@ -11,25 +11,25 @@ defmodule EdgeDB.Protocol.Messages.Client.ClientHandshake do
     client: true,
     mtype: 0x56,
     fields: [
-      major_ver: DataTypes.UInt16.t(),
-      minor_ver: DataTypes.UInt16.t(),
-      params: [Types.ConnectionParam.t()],
-      extensions: [Types.ProtocolExtension.t()]
+      major_ver: Datatypes.UInt16.t(),
+      minor_ver: Datatypes.UInt16.t(),
+      params: list(Types.ConnectionParam.t()),
+      extensions: list(Types.ProtocolExtension.t())
     ]
   )
 
-  @spec encode_message(t()) :: iodata()
-  defp encode_message(
-         client_handshake(
-           major_ver: major_ver,
-           minor_ver: minor_ver,
-           params: params,
-           extensions: extensions
-         )
-       ) do
+  @impl EdgeDB.Protocol.Message
+  def encode_message(
+        client_handshake(
+          major_ver: major_ver,
+          minor_ver: minor_ver,
+          params: params,
+          extensions: extensions
+        )
+      ) do
     [
-      DataTypes.UInt16.encode(major_ver),
-      DataTypes.UInt16.encode(minor_ver),
+      Datatypes.UInt16.encode(major_ver),
+      Datatypes.UInt16.encode(minor_ver),
       Types.ConnectionParam.encode(params),
       Types.ProtocolExtension.encode(extensions)
     ]

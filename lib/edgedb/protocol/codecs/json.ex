@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Errors
   }
 
@@ -10,14 +10,14 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
 
   defbasescalarcodec(
     type_name: "std::json",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010F"),
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010F"),
     type: any(),
     calculate_size?: false
   )
 
   # TODO: allow custom JSON libraries, but for now Jason is hardcoded
 
-  @spec encode_instance(t()) :: iodata()
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(instance) do
     case Jason.encode(instance) do
       {:ok, encoded_data} ->
@@ -25,9 +25,9 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
         data = :binary.bin_to_list(encoded_data)
 
         [
-          DataTypes.UInt32.encode(data_length + 1),
-          DataTypes.Int8.encode(@format),
-          DataTypes.Int8.encode(data, raw: true)
+          Datatypes.UInt32.encode(data_length + 1),
+          Datatypes.Int8.encode(@format),
+          Datatypes.Int8.encode(data, raw: true)
         ]
 
       {:error, error} ->
@@ -36,14 +36,15 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
     end
   end
 
-  @spec decode_instance(bitstring()) :: {t(), bitstring()}
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(<<json_type_length::uint32, @format::uint8, rest::binary>>) do
     json_content_length = json_type_length - 1
+    <<json_content::binary(json_content_length)>> = rest
 
-    with <<json_content::binary(json_content_length)>> <- rest,
-         {:ok, instance} <- Jason.decode(json_content) do
-      instance
-    else
+    case Jason.decode(json_content) do
+      {:ok, instance} ->
+        instance
+
       {:error, error} ->
         raise Errors.InvalidArgumentError,
               "unable to decode binary data as #{@format}: #{inspect(error)}"

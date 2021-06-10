@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Messages.Server.ServerHandshake do
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Types
   }
 
@@ -11,16 +11,16 @@ defmodule EdgeDB.Protocol.Messages.Server.ServerHandshake do
     server: true,
     mtype: 0x76,
     fields: [
-      major_ver: DataTypes.UInt16.t(),
-      minor_ver: DataTypes.UInt16.t(),
-      extensions: [Types.ProtocolExtension.t()]
+      major_ver: Datatypes.UInt16.t(),
+      minor_ver: Datatypes.UInt16.t(),
+      extensions: list(Types.ProtocolExtension.t())
     ]
   )
 
-  @spec decode_message(bitstring()) :: t()
-  defp decode_message(
-         <<major_ver::uint16, minor_ver::uint16, num_extensions::uint16, rest::binary>>
-       ) do
+  @impl EdgeDB.Protocol.Message
+  def decode_message(
+        <<major_ver::uint16, minor_ver::uint16, num_extensions::uint16, rest::binary>>
+      ) do
     {extensions, <<>>} = Types.ProtocolExtension.decode(num_extensions, rest)
 
     server_handshake(

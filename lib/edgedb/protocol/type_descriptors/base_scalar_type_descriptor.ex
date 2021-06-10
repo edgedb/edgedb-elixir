@@ -1,11 +1,6 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.BaseScalarTypeDescriptor do
   use EdgeDB.Protocol.TypeDescriptor
 
-  alias EdgeDB.Protocol.{
-    Codecs,
-    DataTypes
-  }
-
   # base scalar codecs always exist in storage
   # so we don't need parsing
   deftypedescriptor(
@@ -13,8 +8,8 @@ defmodule EdgeDB.Protocol.TypeDescriptors.BaseScalarTypeDescriptor do
     parse?: false
   )
 
-  @spec consume_description(Codecs.Storage.t(), DataTypes.UUID.t(), bitstring()) :: bitstring()
-  defp consume_description(_codecs, _id, <<rest::binary>>) do
+  @impl EdgeDB.Protocol.TypeDescriptor
+  def consume_description(_codecs, _id, <<rest::binary>>) do
     rest
   end
 end

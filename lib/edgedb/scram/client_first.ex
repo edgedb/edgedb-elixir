@@ -12,13 +12,13 @@ defmodule EdgeDB.SCRAM.ClientFirst do
   ]
 
   @type t() :: %__MODULE__{
-          gs2header: binary(),
-          username: binary(),
-          password: binary(),
-          nonce: binary()
+          gs2header: String.t(),
+          username: String.t(),
+          password: String.t(),
+          nonce: String.t()
         }
 
-  @spec new(binary(), binary()) :: t()
+  @spec new(String.t(), String.t()) :: t()
   def new(username, password) do
     %__MODULE__{
       gs2header: @base_gs2header,
@@ -28,7 +28,7 @@ defmodule EdgeDB.SCRAM.ClientFirst do
     }
   end
 
-  @spec client_first(t()) :: {ServerFirst.t(), binary()}
+  @spec client_first(t()) :: {ServerFirst.t(), iodata()}
   def client_first(%__MODULE__{} = cf) do
     client_first_message_bare = "n=#{cf.username},r=#{cf.nonce}"
     client_first_message = "#{cf.gs2header}#{client_first_message_bare}"
@@ -44,7 +44,7 @@ defmodule EdgeDB.SCRAM.ClientFirst do
     {sf, client_first_message}
   end
 
-  @spec generate_nonce() :: binary()
+  @spec generate_nonce() :: String.t()
   defp generate_nonce do
     @nonce_length
     |> :crypto.strong_rand_bytes()

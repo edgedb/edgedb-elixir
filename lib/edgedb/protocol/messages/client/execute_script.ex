@@ -1,10 +1,8 @@
 defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
   use EdgeDB.Protocol.Message
 
-  import EdgeDB.Protocol.Types.Header
-
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Enums,
     Types
   }
@@ -14,17 +12,21 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
     client: true,
     mtype: 0x51,
     fields: [
-      headers: [Types.Header.t()] | Keyword.t(),
-      script: DataTypes.String.t()
+      headers: Keyword.t(),
+      script: Datatypes.String.t()
     ],
     known_headers: %{
-      allow_capabilities: {0xFF04, &Enums.Capability.encode/1}
+      allow_capabilities: {0xFF04, %{encoder: &Enums.Capability.encode/1}}
     }
   )
 
-  @spec encode_message(t()) :: iodata()
-  defp encode_message(execute_script(headers: headers, script: script)) do
-    processed_headers = process_headers(headers)
-    [Types.Header.encode(processed_headers), DataTypes.String.encode(script)]
+  @impl EdgeDB.Protocol.Message
+  def encode_message(execute_script(headers: headers, script: script)) do
+    headers = process_passed_headers(headers)
+
+    [
+      Types.Header.encode(headers),
+      Datatypes.String.encode(script)
+    ]
   end
 end

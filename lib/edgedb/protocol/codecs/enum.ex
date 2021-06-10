@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    DataTypes,
+    Datatypes,
     Errors
   }
 
@@ -11,33 +11,36 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
   # so we don't need to add byte size of encoded/decoded instance here
   # since we just pass data to std::str codec which will do this itself
   defcodec(
-    type: EdgeDB.Enum.t(),
+    type: String.t(),
     calculate_size?: false
   )
 
-  @spec new(DataTypes.UUID.t(), list(String.t())) :: Codec.t()
+  @spec new(Datatypes.UUID.t(), list(String.t())) :: Codec.t()
   def new(type_id, members) do
-    encoder =
-      create_encoder(fn data when is_binary(data) ->
-        if data in members do
-          Codecs.Str.encode(data)
-        else
-          raise Errors.InvalidArgumentError,
-                "unable to encode #{inspect(data)} as enum: #{inspect(data)} is not member of enum"
-        end
-      end)
-
-    decoder =
-      create_decoder(fn data ->
-        Codecs.Str.decode(data)
-      end)
+    encoder = create_encoder(&encode_enum(&1, members))
+    decoder = create_decoder(&decode_enum(&1))
 
     %Codec{
-      type_id: <<type_id::uuid>>,
+      type_id: type_id,
       encoder: encoder,
       decoder: decoder,
       scalar?: true,
       module: __MODULE__
     }
+  end
+
+  @spec encode_enum(t(), list(t())) :: iodata()
+  def encode_enum(value, members) when is_binary(value) do
+    if value in members do
+      Codecs.Str.encode_instance(value)
+    else
+      raise Errors.InvalidArgumentError,
+            "unable to encode #{inspect(value)} as enum: #{inspect(value)} is not member of enum"
+    end
+  end
+
+  @spec decode_enum(bitstring()) :: t()
+  def decode_enum(<<data::binary>>) do
+    Codecs.Str.decode_instance(data)
   end
 end

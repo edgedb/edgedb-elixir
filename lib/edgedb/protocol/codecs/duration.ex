@@ -1,27 +1,27 @@
 defmodule EdgeDB.Protocol.Codecs.Duration do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   @days 0
   @months 0
 
   defbasescalarcodec(
     type_name: "std::duration",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-00000000010E"),
-    type: pos_integer()
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010E"),
+    type: Datatypes.Int64.t()
   )
 
-  @spec encode_instance(t()) :: iodata()
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(duration) when is_integer(duration) do
     [
-      DataTypes.Int64.encode(duration),
-      DataTypes.Int32.encode(@days),
-      DataTypes.Int32.encode(@months)
+      Datatypes.Int64.encode(duration),
+      Datatypes.Int32.encode(@days),
+      Datatypes.Int32.encode(@months)
     ]
   end
 
-  @spec decode_instance(bitstring()) :: t()
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(<<duration::int64, @days::int32, @months::int32>>) do
     duration
   end

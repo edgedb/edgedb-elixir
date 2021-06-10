@@ -1,5 +1,7 @@
 defmodule EdgeDB.Protocol.Type do
-  # credo:disable-for-this-file Credo.Check.Design.AliasUsage
+  @callback encode_type(term()) :: iodata()
+  @callback decode_type(bitstring()) :: {term(), bitstring()}
+  @optional_callbacks encode_type: 1, decode_type: 1
 
   defmacro __using__(_opts \\ []) do
     quote do
@@ -14,60 +16,39 @@ defmodule EdgeDB.Protocol.Type do
   defmacro deftype(opts) do
     {:ok, record_name} = Keyword.fetch(opts, :name)
 
-    add_decode? = Keyword.get(opts, :decode?, true)
-    add_encode? = Keyword.get(opts, :encode?, true)
+    decode? = Keyword.get(opts, :decode?, true)
+    encode? = Keyword.get(opts, :encode?, true)
 
+    fields = Keyword.get(opts, :fields, [])
     defaults = Keyword.get(opts, :defaults, [])
 
-    default_keys = Keyword.keys(defaults)
-
     quote do
-      defrecord unquote(record_name),
-                unquote(
-                  opts
-                  |> Keyword.get(:fields, [])
-                  |> Keyword.drop(default_keys)
-                  |> Keyword.keys()
-                ) ++ unquote(defaults)
+      @behaviour unquote(__MODULE__)
 
-      @type t() :: record(unquote(record_name), unquote(Keyword.get(opts, :fields, [])))
+      unquote(EdgeDB.Protocol.define_edgedb_record(record_name, fields, defaults))
 
-      if unquote(add_encode?) do
-        @spec encode([t()]) :: iodata()
-        def encode(types) when is_list(types) do
-          encode(types, [])
+      if unquote(encode?) do
+        @spec encode(t() | list(t())) :: iodata()
+
+        def encode(unquote(record_name)() = type) do
+          __MODULE__.encode_type(type)
         end
 
-        @spec encode([t()], list()) :: iodata()
-        def encode(types, opts) when is_list(types) do
-          length_data_type = Keyword.get(opts, :data_type, EdgeDB.Protocol.DataTypes.UInt16)
-          encoded_data = Enum.map(types, &encode(&1))
-
-          if Keyword.get(opts, :raw) do
-            encoded_data
-          else
-            [length_data_type.encode(length(types)), encoded_data]
-          end
+        @spec encode(list(t()), EdgeDB.Protocol.list_encoding_options()) :: iodata()
+        def encode(types, opts \\ []) when is_list(types) do
+          EdgeDB.Protocol.encode_list(&__MODULE__.encode/1, types, opts)
         end
       end
 
-      if unquote(add_decode?) do
-        @spec decode(pos_integer(), bitstring()) :: {[t()], bitstring()}
-
-        def decode(0, <<value_to_decode::binary>>) do
-          {[], value_to_decode}
+      if unquote(decode?) do
+        @spec decode(bitstring) :: {t(), bitstring()}
+        def decode(<<data::binary>>) do
+          __MODULE__.decode_type(data)
         end
 
-        def decode(num_types_to_decode, <<value_to_decode::binary>>) do
-          {types, rest} =
-            Enum.reduce(1..num_types_to_decode, {[], value_to_decode}, fn _idx, {types, rest} ->
-              {decoded_type, rest} = decode(rest)
-              {[decoded_type | types], rest}
-            end)
-
-          types = Enum.reverse(types)
-
-          {types, rest}
+        @spec decode(non_neg_integer(), bitstring()) :: {list(t()), bitstring()}
+        def decode(count, <<data::binary>>) do
+          EdgeDB.Protocol.decode_list(&__MODULE__.decode/1, count, data)
         end
       end
     end

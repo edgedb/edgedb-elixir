@@ -1,24 +1,24 @@
 defmodule EdgeDB.Protocol.Types.Header do
   use EdgeDB.Protocol.Type
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   deftype(
     name: :header,
     fields: [
-      code: DataTypes.UInt16.t() | atom(),
-      value: DataTypes.Bytes.t() | term()
+      code: Datatypes.UInt16.t(),
+      value: Datatypes.Bytes.t()
     ]
   )
 
-  @spec encode(t()) :: iodata()
-  def encode(header(code: code, value: value)) do
-    [DataTypes.UInt16.encode(code), DataTypes.Bytes.encode(value)]
+  @impl EdgeDB.Protocol.Type
+  def encode_type(header(code: code, value: value)) do
+    [Datatypes.UInt16.encode(code), Datatypes.Bytes.encode(value)]
   end
 
-  @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(<<code::uint16, rest::binary>>) do
-    {value, rest} = DataTypes.Bytes.decode(rest)
+  @impl EdgeDB.Protocol.Type
+  def decode_type(<<code::uint16, rest::binary>>) do
+    {value, rest} = Datatypes.Bytes.decode(rest)
     {header(code: code, value: value), rest}
   end
 end

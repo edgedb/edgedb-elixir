@@ -1,5 +1,5 @@
-defmodule EdgeDB.Protocol.DataTypes.Int64 do
-  use EdgeDB.Protocol.DataType
+defmodule EdgeDB.Protocol.Datatypes.Int64 do
+  use EdgeDB.Protocol.Datatype
 
   @int64_max 0x7FFFFFFFFFFFFFFF
   @int64_min -0x8000000000000000
@@ -9,13 +9,13 @@ defmodule EdgeDB.Protocol.DataTypes.Int64 do
 
   defdatatype(type: integer())
 
-  @spec encode(t()) :: bitstring()
-  def encode(number) when is_int64(number) do
+  @impl EdgeDB.Protocol.Datatype
+  def encode_datatype(number) when is_int64(number) do
     <<number::int64>>
   end
 
-  @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(<<number::int64, rest::binary>>) do
+  @impl EdgeDB.Protocol.Datatype
+  def decode_datatype(<<number::int64, rest::binary>>) do
     {number, rest}
   end
 end

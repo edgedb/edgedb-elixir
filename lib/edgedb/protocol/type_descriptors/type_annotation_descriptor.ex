@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors.TypeAnnotationDescriptor do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    DataTypes
+    Datatypes
   }
 
   @start_code 0x80
@@ -24,7 +24,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors.TypeAnnotationDescriptor do
   @spec consume(Codecs.Storage.t(), bitstring()) :: bitstring()
   def consume(_storage, <<type::uint8, _type_id::uuid, rest::binary>>)
       when is_supported_type(type) do
-    {_annotation, rest} = DataTypes.String.decode(rest)
+    {_annotation, rest} = Datatypes.String.decode(rest)
     rest
   end
 end

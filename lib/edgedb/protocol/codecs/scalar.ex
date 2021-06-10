@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.Scalar do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    DataTypes
+    Datatypes
   }
 
   defcodec(
@@ -21,15 +21,16 @@ defmodule EdgeDB.Protocol.Codecs.Scalar do
       | Codecs.DateTime.t()
       | Codecs.LocalDateTime.t()
       | Codecs.LocalDate.t()
-      | Codecs.LocalDate.t()
+      | Codecs.LocalTime.t()
       | Codecs.Duration.t()
       | Codecs.JSON.t()
+      | Codecs.BigInt.t()
   )
 
-  @spec new(DataTypes.UUID.t(), Codec.t()) :: Codec.t()
+  @spec new(Datatypes.UUID.t(), Codec.t()) :: Codec.t()
   def new(type_id, %Codec{scalar?: true} = codec) do
     %Codec{
-      type_id: <<type_id::uuid>>,
+      type_id: type_id,
       encoder: codec.encoder,
       decoder: codec.decoder,
       scalar?: true,

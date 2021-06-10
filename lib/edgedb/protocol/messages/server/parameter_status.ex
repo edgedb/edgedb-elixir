@@ -1,22 +1,22 @@
 defmodule EdgeDB.Protocol.Messages.Server.ParameterStatus do
   use EdgeDB.Protocol.Message
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   defmessage(
     name: :parameter_status,
     server: true,
     mtype: 0x53,
     fields: [
-      name: DataTypes.Bytes.t(),
-      value: DataTypes.Bytes.t()
+      name: Datatypes.Bytes.t(),
+      value: Datatypes.Bytes.t()
     ]
   )
 
-  @spec decode_message(bitstring()) :: t()
-  defp decode_message(<<rest::binary>>) do
-    {name, rest} = DataTypes.Bytes.decode(rest)
-    {value, <<>>} = DataTypes.Bytes.decode(rest)
+  @impl EdgeDB.Protocol.Message
+  def decode_message(<<data::binary>>) do
+    {name, rest} = Datatypes.Bytes.decode(data)
+    {value, <<>>} = Datatypes.Bytes.decode(rest)
     parameter_status(name: name, value: value)
   end
 end

@@ -6,31 +6,37 @@ defmodule EdgeDB.Result do
   }
 
   defstruct [
-    :statement,
     :cardinality,
-    :set,
+    set: EdgeDB.Set.new(),
+    statement: nil,
     encoded_data: [],
     decoded?: false
   ]
 
-  @type t() :: %__MODULE__{}
+  @type t() :: %__MODULE__{
+          statement: String.t() | atom() | nil,
+          cardinality: Enums.Cardinality.t(),
+          set: EdgeDB.Set.t(),
+          encoded_data: list(bitstring()),
+          decoded?: boolean()
+        }
 
   @spec new(Enums.Cardinality.t()) :: t()
   def new(cardinality) do
-    %__MODULE__{cardinality: cardinality, set: EdgeDB.Set.new()}
+    %__MODULE__{cardinality: cardinality}
   end
 
-  @spec query_closed() :: t()
-  def query_closed do
-    %__MODULE__{statement: :closed}
+  @spec closed_query() :: t()
+  def closed_query do
+    %__MODULE__{statement: :closed, cardinality: :no_result}
   end
 
-  @spec add_encoded_data(t(), bitstring()) :: t()
+  @spec add_encoded_data(t(), term()) :: t()
   def add_encoded_data(%__MODULE__{encoded_data: data} = result, element) do
     %__MODULE__{result | encoded_data: [element | data]}
   end
 
-  @spec extract(t()) :: term() | EdgeDB.Set.t() | :ok
+  @spec extract(t()) :: EdgeDB.Set.t() | term() | :ok
 
   def extract(%__MODULE__{cardinality: :one, set: set}) do
     if EdgeDB.Set.empty?(set) do
@@ -60,7 +66,7 @@ defmodule EdgeDB.Result do
     result.encoded_data
     |> Enum.reverse()
     |> Enum.reduce(result, fn data, %__MODULE__{set: set} = result ->
-      value = codec.decoder.(data)
+      value = Codec.decode(codec, data)
       %__MODULE__{result | set: EdgeDB.Set.add(set, value)}
     end)
     |> Map.put(:encoded_data, nil)

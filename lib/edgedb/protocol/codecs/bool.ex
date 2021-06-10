@@ -1,33 +1,33 @@
 defmodule EdgeDB.Protocol.Codecs.Bool do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   @true_code 1
   @false_code 0
 
   defbasescalarcodec(
     type_name: "std::bool",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000109"),
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000109"),
     type: boolean()
   )
 
-  @spec encode_instance(t()) :: iodata()
-
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(true) do
-    DataTypes.Int8.encode(@true_code)
+    Datatypes.Int8.encode(@true_code)
   end
 
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(false) do
-    DataTypes.Int8.encode(@false_code)
+    Datatypes.Int8.encode(@false_code)
   end
 
-  @spec decode_instance(bitstring()) :: t()
-
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(<<@true_code::int8>>) do
     true
   end
 
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(<<@false_code::int8>>) do
     false
   end

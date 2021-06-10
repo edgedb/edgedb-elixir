@@ -1,23 +1,23 @@
 defmodule EdgeDB.Protocol.Codecs.Bytes do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   defbasescalarcodec(
     type_name: "std::bytes",
-    type_id: DataTypes.UUID.from_string("00000000-0000-0000-0000-000000000102"),
-    type: DataTypes.Bytes.t(),
+    type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000102"),
+    type: Datatypes.Bytes.t(),
     calculate_size?: false
   )
 
-  @spec encode_instance(t()) :: iodata()
+  @impl EdgeDB.Protocol.Codec
   def encode_instance(bytes) do
-    DataTypes.Bytes.encode(bytes)
+    Datatypes.Bytes.encode(bytes)
   end
 
-  @spec decode_instance(bitstring()) :: {t(), bitstring()}
+  @impl EdgeDB.Protocol.Codec
   def decode_instance(data) do
-    {bytes, <<>>} = DataTypes.Bytes.decode(data)
+    {bytes, <<>>} = Datatypes.Bytes.decode(data)
     bytes
   end
 end

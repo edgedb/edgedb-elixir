@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Enum do
+  alias EdgeDB.Protocol.Datatypes
+
   defmacro __using__(_opts \\ []) do
     quote do
       import EdgeDB.Protocol.Converters
@@ -11,7 +13,7 @@ defmodule EdgeDB.Protocol.Enum do
     {:ok, values} = Keyword.fetch(opts, :values)
     guard = Keyword.get(opts, :guard)
 
-    data_type_codec = Keyword.get(opts, :data_type, EdgeDB.Protocol.DataTypes.UInt8)
+    datatype_codec = Keyword.get(opts, :datatype, Datatypes.UInt8)
 
     codes = Keyword.values(values)
     atoms = Keyword.keys(values)
@@ -25,24 +27,24 @@ defmodule EdgeDB.Protocol.Enum do
         defguard unquote(guard)(code) when code in unquote(codes)
       end
 
-      @spec to_atom(integer() | atom()) :: atom()
-
+      @spec to_atom(integer()) :: atom()
       def to_atom(code) when is_integer(code) and code in unquote(codes) do
         {atom, ^code} = List.keyfind(unquote(values), code, 1)
         atom
       end
 
+      @spec to_atom(atom()) :: atom()
       def to_atom(atom) when is_atom(atom) and atom in unquote(atoms) do
         atom
       end
 
-      @spec to_code(integer() | atom()) :: integer()
-
+      @spec to_code(atom()) :: integer()
       def to_code(atom) when is_atom(atom) and atom in unquote(atoms) do
         {^atom, code} = List.keyfind(unquote(values), atom, 0)
         code
       end
 
+      @spec to_code(integer()) :: integer()
       def to_code(code) when is_integer(code) and code in unquote(codes) do
         code
       end
@@ -51,12 +53,12 @@ defmodule EdgeDB.Protocol.Enum do
       def encode(enum_value) do
         enum_value
         |> to_code()
-        |> unquote(data_type_codec).encode()
+        |> unquote(datatype_codec).encode()
       end
 
       @spec decode(bitstring()) :: {t(), bitstring()}
       def decode(<<content::binary>>) do
-        {code, rest} = unquote(data_type_codec).decode(content)
+        {code, rest} = unquote(datatype_codec).decode(content)
         {to_atom(code), rest}
       end
     end
@@ -64,6 +66,8 @@ defmodule EdgeDB.Protocol.Enum do
 
   # generate typespec for enum, something like:
   # @type t() :: :value1 | 0xA | :value2 | 0xB | :value3 | 0xC
+
+  @spec get_t_typespec(Keyword.t()) :: tuple()
 
   defp get_t_typespec([{last_atom, last_number}]) do
     {:|, [], [last_atom, last_number]}

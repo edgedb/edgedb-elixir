@@ -2,7 +2,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
-    DataTypes,
+    Datatypes,
     Enums,
     Types
   }
@@ -12,11 +12,11 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
     client: true,
     mtype: 0x50,
     fields: [
-      headers: [Types.Header.t()],
+      headers: Keyword.t(),
       io_format: Enums.IOFormat.t(),
       expected_cardinality: Enums.Cardinality.t(),
-      statement_name: DataTypes.Bytes.t(),
-      command: DataTypes.String.t()
+      statement_name: Datatypes.Bytes.t(),
+      command: Datatypes.String.t()
     ],
     defaults: [
       headers: [],
@@ -31,24 +31,24 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
     }
   )
 
-  @spec encode_message(t()) :: iodata()
-  defp encode_message(
-         prepare(
-           headers: headers,
-           io_format: io_format,
-           expected_cardinality: expected_cardinality,
-           statement_name: statement_name,
-           command: command
-         )
-       ) do
-    processed_headers = process_headers(headers)
+  @impl EdgeDB.Protocol.Message
+  def encode_message(
+        prepare(
+          headers: headers,
+          io_format: io_format,
+          expected_cardinality: expected_cardinality,
+          statement_name: statement_name,
+          command: command
+        )
+      ) do
+    headers = process_passed_headers(headers)
 
     [
-      Types.Header.encode(processed_headers),
+      Types.Header.encode(headers),
       Enums.IOFormat.encode(io_format),
       Enums.Cardinality.encode(expected_cardinality),
-      DataTypes.Bytes.encode(statement_name),
-      DataTypes.String.encode(command)
+      Datatypes.Bytes.encode(statement_name),
+      Datatypes.String.encode(command)
     ]
   end
 end

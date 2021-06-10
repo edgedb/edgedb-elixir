@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ScalarTypeNameAnnotation do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    DataTypes
+    Datatypes
   }
 
   # id of type here is always known, so no need to parse
@@ -13,9 +13,9 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ScalarTypeNameAnnotation do
   )
 
   # update existing codec with type name information
-  @spec consume_description(Codecs.Storage.t(), DataTypes.UUID.t(), bitstring()) :: bitstring()
-  defp consume_description(storage, id, <<data::binary>>) do
-    {type_name, rest} = DataTypes.String.decode(data)
+  @impl EdgeDB.Protocol.TypeDescriptor
+  def consume_description(storage, id, <<data::binary>>) do
+    {type_name, rest} = Datatypes.String.decode(data)
 
     Codecs.Storage.update(storage, id, %{type_name: type_name})
 

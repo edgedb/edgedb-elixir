@@ -3,49 +3,56 @@ defmodule EdgeDB.NamedTuple do
 
   alias EdgeDB.Protocol.Errors
 
-  defstruct __keys__: [],
-            __values__: []
+  defstruct [:__keys__, :__values__]
 
-  @type t() :: %__MODULE__{}
+  @type t() :: %__MODULE__{
+          __keys__: list(String.t()),
+          __values__: tuple()
+        }
 
-  @spec new(Map.t()) :: t()
+  @spec new(map()) :: t()
   def new(items) do
-    new(Map.keys(items), Map.values(items))
+    elements =
+      items
+      |> Map.values()
+      |> List.to_tuple()
+
+    keys = Map.keys(items)
+
+    new(keys, elements)
   end
 
-  @spec new(list(), list()) :: t()
+  @spec new(list(String.t()), tuple()) :: t()
   def new(keys, values) do
     %__MODULE__{__keys__: keys, __values__: values}
   end
 
   @spec to_tuple(t()) :: tuple()
   def to_tuple(%__MODULE__{__values__: values}) do
-    List.to_tuple(values)
+    values
   end
 
-  @spec keys(t()) :: list()
+  @spec keys(t()) :: list(String.t())
   def keys(%__MODULE__{__keys__: keys}) do
     keys
   end
 
   @impl Access
-
   def fetch(%__MODULE__{__values__: values}, index) when is_integer(index) do
-    case Enum.at(values, index) do
-      nil ->
-        :error
-
-      value ->
-        {:ok, value}
-    end
+    {:ok, elem(values, index)}
+  rescue
+    ArgumentError ->
+      :error
   end
 
+  @impl Access
   def fetch(%__MODULE__{} = tuple, key) when is_atom(key) do
     fetch(tuple, Atom.to_string(key))
   end
 
-  def fetch(%__MODULE__{__keys__: keys} = tuple, key) do
-    case Enum.find_index(keys, key) do
+  @impl Access
+  def fetch(%__MODULE__{__keys__: keys} = tuple, key) when is_binary(key) do
+    case Enum.find_index(keys, &(&1 == key)) do
       nil ->
         :error
 

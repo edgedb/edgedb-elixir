@@ -1,27 +1,27 @@
 defmodule EdgeDB.Protocol.Types.DumpObjectDesc do
   use EdgeDB.Protocol.Type
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   deftype(
     name: :dump_object_desc,
     encode?: false,
     fields: [
-      object_id: DataTypes.UUID.t(),
-      description: DataTypes.Bytes.t(),
-      dependencies: [DataTypes.UUID.t()]
+      object_id: Datatypes.UUID.t(),
+      description: Datatypes.Bytes.t(),
+      dependencies: list(Datatypes.UUID.t())
     ]
   )
 
-  @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(<<object_id::uuid, rest::binary>>) do
-    {description, rest} = DataTypes.Bytes.decode(rest)
-    {num_dependencies, rest} = DataTypes.UInt16.decode(rest)
-    {dependencies, rest} = DataTypes.UUID.decode(num_dependencies, rest)
+  @impl EdgeDB.Protocol.Type
+  def decode_type(<<object_id::uuid, rest::binary>>) do
+    {description, rest} = Datatypes.Bytes.decode(rest)
+    {num_dependencies, rest} = Datatypes.UInt16.decode(rest)
+    {dependencies, rest} = Datatypes.UUID.decode(num_dependencies, rest)
 
     {
       dump_object_desc(
-        object_id: object_id,
+        object_id: Datatypes.UUID.to_string(object_id),
         description: description,
         dependencies: dependencies
       ),

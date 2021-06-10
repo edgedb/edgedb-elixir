@@ -1,30 +1,30 @@
 defmodule EdgeDB.Protocol.Types.ArrayElement do
   use EdgeDB.Protocol.Type
 
-  alias EdgeDB.Protocol.DataTypes
+  alias EdgeDB.Protocol.Datatypes
 
   deftype(
     name: :array_element,
     fields: [
-      data: iodata()
+      data: Datatypes.Bytes.t()
     ]
   )
 
-  @spec encode(t()) :: iodata()
-  def encode(array_element(data: data)) do
+  @impl EdgeDB.Protocol.Type
+  def encode_type(array_element(data: data)) do
     data =
       data
       |> IO.iodata_to_binary()
       |> :binary.bin_to_list()
 
-    DataTypes.UInt8.encode(data, raw: true)
+    Datatypes.UInt8.encode(data, raw: true)
   end
 
-  @spec decode(bitstring()) :: {t(), bitstring()}
-  def decode(<<len::int32, rest::binary>>) do
-    {data, rest} = DataTypes.UInt8.decode(len, rest)
+  @impl EdgeDB.Protocol.Type
+  def decode_type(<<len::int32, rest::binary>>) do
+    {data, rest} = Datatypes.UInt8.decode(len, rest)
 
-    data = DataTypes.UInt8.encode(data, data_type: DataTypes.UInt32)
+    data = Datatypes.UInt8.encode(data, datatype: Datatypes.UInt32)
 
     {array_element(data: IO.iodata_to_binary(data)), rest}
   end

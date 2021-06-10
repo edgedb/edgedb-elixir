@@ -24,3 +24,6 @@ edgedb-*.tar
 
 .vscode/
 .mypy_cache/
+
+# dialyzer
+priv/plts/

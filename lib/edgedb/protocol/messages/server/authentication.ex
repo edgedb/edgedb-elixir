@@ -1,5 +1,9 @@
 defmodule EdgeDB.Protocol.Messages.Server.Authentication do
+  @behaviour EdgeDB.Protocol.Message
+
   import EdgeDB.Protocol.Converters
+
+  alias EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.Messages.Server.Authentication.{
     AuthenticationOK,
@@ -8,56 +12,44 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication do
     AuthenticationSASLFinal
   }
 
-  @mtype 0x52
-  @sasl_code 0xA
-  @sasl_continue_code 0xB
-  @sasl_final_code 0xC
-
   @type t() ::
           AuthenticationOK.t()
           | AuthenticationSASL.t()
           | AuthenticationSASLContinue.t()
           | AuthenticationSASLFinal.t()
 
-  @spec mtype() :: 0x52
+  @mtype 0x52
+  @sasl_code 0xA
+  @sasl_continue_code 0xB
+  @sasl_final_code 0xC
+
+  @spec mtype() :: integer()
   def mtype do
     @mtype
   end
 
-  @spec decode(bitstring()) ::
-          {:ok, t(), bitstring()} | {:error, {:not_enougth_size, integer()}}
-
-  def decode(<<rest::binary>>) when byte_size(rest) < 5 do
-    {:error, {:not_enougth_size, 0}}
+  @spec decode(bitstring()) :: {:ok, {t(), bitstring()}} | {:error, {:not_enough_size, integer()}}
+  def decode(<<data::binary>>) do
+    Message.decode(&__MODULE__.decode_message/1, @mtype, data)
   end
 
-  def decode(<<@mtype::uint8, message_length::uint32, rest::binary>> = payload) do
-    payload_length = message_length - 4
-
-    case rest do
-      <<message_payload::binary(payload_length), _rest::binary>> ->
-        decode_authentication_message(message_payload, payload)
-
-      _payload ->
-        {:error, {:not_enougth_size, payload_length - byte_size(rest)}}
-    end
+  @impl EdgeDB.Protocol.Message
+  def decode_message(<<@sasl_code::uint32, _rest::binary>> = data) do
+    AuthenticationSASL.decode_message(data)
   end
 
-  @spec decode_authentication_message(bitstring(), bitstring()) :: {t(), bitstring()}
-
-  defp decode_authentication_message(<<@sasl_code::uint32, _rest::binary>>, payload) do
-    AuthenticationSASL.decode(payload)
+  @impl EdgeDB.Protocol.Message
+  def decode_message(<<@sasl_continue_code::uint32, _rest::binary>> = data) do
+    AuthenticationSASLContinue.decode_message(data)
   end
 
-  defp decode_authentication_message(<<@sasl_continue_code::uint32, _rest::binary>>, payload) do
-    AuthenticationSASLContinue.decode(payload)
+  @impl EdgeDB.Protocol.Message
+  def decode_message(<<@sasl_final_code::uint32, _rest::binary>> = data) do
+    AuthenticationSASLFinal.decode_message(data)
   end
 
-  defp decode_authentication_message(<<@sasl_final_code::uint32, _rest::binary>>, payload) do
-    AuthenticationSASLFinal.decode(payload)
-  end
-
-  defp decode_authentication_message(<<_auth_status::uint32, _rest::binary>>, payload) do
-    AuthenticationOK.decode(payload)
+  @impl EdgeDB.Protocol.Message
+  def decode_message(<<_auth_status::uint32, _rest::binary>> = data) do
+    AuthenticationOK.decode_message(data)
   end
 end
