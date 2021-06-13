@@ -2,7 +2,7 @@ defmodule EdgeDB.Result do
   alias EdgeDB.Protocol.{
     Codec,
     Enums,
-    Errors
+    Error
   }
 
   defstruct [
@@ -40,7 +40,7 @@ defmodule EdgeDB.Result do
 
   def extract(%__MODULE__{cardinality: :one, set: set}) do
     if EdgeDB.Set.empty?(set) do
-      raise Errors.NoDataError, "query didn't return any data"
+      raise Error.no_data_error("query didn't return any data")
     end
 
     set

@@ -1,7 +1,7 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Flaot64Test do
   use EdgeDB.Case
 
-  alias EdgeDB.Protocol.Errors
+  alias EdgeDB.Protocol.Error
 
   setup :edgedb_connection
 
@@ -48,10 +48,11 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Flaot64Test do
   test "error when passing non-number as std::float64 argument", %{conn: conn} do
     value = "something"
 
-    assert_raise Errors.InvalidArgumentError,
-                 "unable to encode \"something\" as std::float64",
-                 fn ->
-                   EdgeDB.query_one(conn, "SELECT <float64>$0", [value])
-                 end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <float64>$0", [value])
+      end
+
+    assert exc == Error.invalid_argument_error("unable to encode \"something\" as std::float64")
   end
 end

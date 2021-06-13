@@ -12,7 +12,7 @@ defmodule EdgeDB.Connection do
     Codec,
     Codecs,
     Enums,
-    Errors,
+    Error,
     Messages
   }
 
@@ -104,21 +104,17 @@ defmodule EdgeDB.Connection do
       {:ok, state}
     else
       {:error, reason} ->
-        err =
-          Errors.ClientConnectionError.exception(
-            "unable to establish connection: #{inspect(reason)}"
-          )
+        exc = Error.client_connection_error("unable to establish connection: #{inspect(reason)}")
+        {:error, exc}
 
-        {:error, err}
-
-      {:disconnect, err, state} ->
-        disconnect(err, state)
-        {:error, err}
+      {:disconnect, exc, state} ->
+        disconnect(exc, state)
+        {:error, exc}
     end
   end
 
   @impl DBConnection
-  def disconnect(_err, %State{socket: socket} = state) do
+  def disconnect(_exc, %State{socket: socket} = state) do
     with :ok <- send_message(terminate(), state) do
       :gen_tcp.close(socket)
     end
@@ -158,14 +154,14 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
-    err = Errors.InterfaceError.exception("callback handle_deallocate hasn't been implemented")
-    {:disconnect, err, state}
+    exc = Error.interface_error("callback handle_deallocate hasn't been implemented")
+    {:disconnect, exc, state}
   end
 
   @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
-    err = Errors.InterfaceError.exception("callback handle_declare hasn't been implemented")
-    {:disconnect, err, state}
+    exc = Error.interface_error("callback handle_declare hasn't been implemented")
+    {:disconnect, exc, state}
   end
 
   @impl DBConnection
@@ -180,8 +176,8 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
-    err = Errors.InterfaceError.exception("callback handle_fetch hasn't been implemented")
-    {:disconnect, err, state}
+    exc = Error.interface_error("callback handle_fetch hasn't been implemented")
+    {:disconnect, exc, state}
   end
 
   @impl DBConnection
@@ -260,12 +256,12 @@ defmodule EdgeDB.Connection do
        )
        when major_ver != @major_ver or
               (major_ver == 0 and (minor_ver < @minor_ver_min or minor_ver > @minor_ver)) do
-    err =
-      Errors.ClientConnectionError.exception(
+    exc =
+      Error.client_connection_error(
         "the server requested an unsupported version of the protocol #{major_ver}.#{minor_ver}"
       )
 
-    {:disconnect, err, state}
+    {:disconnect, exc, state}
   end
 
   defp handle_authentication_flow(
@@ -294,12 +290,12 @@ defmodule EdgeDB.Connection do
         ) :: {:ok, State.t()} | disconnection()
 
   defp handle_authentication_flow(authentication_sasl(), nil, %State{} = state) do
-    err =
-      Errors.AuthenticationError.exception(
+    exc =
+      Error.authentication_error(
         "password should be provided for #{inspect(state.username)} authentication authentication"
       )
 
-    {:disconnect, err, state}
+    {:disconnect, exc, state}
   end
 
   defp handle_authentication_flow(
@@ -340,14 +336,12 @@ defmodule EdgeDB.Connection do
       handle_sasl_authentication_flow(message, server_final, %State{state | buffer: buffer})
     else
       {:error, reason} ->
-        err =
-          Errors.AuthenticationError.exception(
-            "unable to continue SASL authentication: #{inspect(reason)}"
-          )
+        exc =
+          Error.authentication_error("unable to continue SASL authentication: #{inspect(reason)}")
 
-        {:disconnect, err, state}
+        {:disconnect, exc, state}
 
-      {:disconnect, _err, _state} = disconnect ->
+      {:disconnect, _exc, _state} = disconnect ->
         disconnect
     end
   end
@@ -367,14 +361,12 @@ defmodule EdgeDB.Connection do
       handle_sasl_authentication_flow(message, %State{state | buffer: buffer})
     else
       {:error, reason} ->
-        err =
-          Errors.AuthenticationError.exception(
-            "unable to complete SASL authentication: #{inspect(reason)}"
-          )
+        exc =
+          Error.authentication_error("unable to complete SASL authentication: #{inspect(reason)}")
 
-        {:disconnect, err, state}
+        {:disconnect, exc, state}
 
-      {:disconnect, _err, _state} = disconnect ->
+      {:disconnect, _exc, _state} = disconnect ->
         disconnect
     end
   end
@@ -459,7 +451,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      Errors.CardinalityViolationError.exception(
+      Error.cardinality_violation_error(
         "cann't execute query since expected single result and query doesn't return any data"
       )
 
@@ -498,7 +490,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      Errors.CardinalityViolationError.exception(
+      Error.cardinality_violation_error(
         "cann't execute query since expected single result and query doesn't return any data"
       )
 
@@ -562,7 +554,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      Errors.CardinalityViolationError.exception(
+      Error.cardinality_violation_error(
         "cann't execute query since expected single result and query doesn't return any data"
       )
 
@@ -759,8 +751,8 @@ defmodule EdgeDB.Connection do
          ),
          state
        ) do
-    err = Errors.module_from_code(code).exception(message, meta: Enum.into(attributes, %{}))
-    {:disconnect, err, state}
+    exc = Error.exception(message, code: code, attributes: Enum.into(attributes, %{}))
+    {:disconnect, exc, state}
   end
 
   @spec handle_log_message(Messages.Server.LogMessage.t(), State.t()) :: State.t()
@@ -794,23 +786,16 @@ defmodule EdgeDB.Connection do
 
   @spec send_message(Messages.client_message(), State.t()) :: :ok | disconnection()
   defp send_message(message, state) do
-    data = EdgeDB.Protocol.encode_message(message)
-
-    state.socket
-    |> :gen_tcp.send(data)
-    |> handle_socket_response(state)
+    message
+    |> EdgeDB.Protocol.encode_message()
+    |> send_data_into_socket(state)
   end
 
   @spec send_messages(list(Messages.client_message()), State.t()) :: :ok | disconnection()
   defp send_messages(messages, state) when is_list(messages) do
-    encoded_messages =
-      Enum.map(messages, fn message ->
-        EdgeDB.Protocol.encode_message(message)
-      end)
-
-    state.socket
-    |> :gen_tcp.send(encoded_messages)
-    |> handle_socket_response(state)
+    messages
+    |> Enum.map(&EdgeDB.Protocol.encode_message/1)
+    |> send_data_into_socket(state)
   end
 
   @spec receive_message(State.t()) ::
@@ -838,34 +823,38 @@ defmodule EdgeDB.Connection do
       {:ok, data} ->
         receive_message(%State{state | buffer: state.buffer <> data})
 
-      {:error, _reason} = error ->
-        handle_socket_response(error, state)
+      {:error, reason} ->
+        exc = exception_from_socket_error(reason)
+        {:disconnect, exc, state}
     end
   end
 
-  @spec handle_socket_response({:error, term()} | term(), State.t()) :: disconnection() | term()
+  @spec send_data_into_socket(iodata(), State.t()) :: :ok | disconnection()
+  defp send_data_into_socket(data, %State{socket: socket} = state) do
+    case :gen_tcp.send(socket, data) do
+      :ok ->
+        :ok
 
-  defp handle_socket_response({:error, :closed}, state) do
-    err = Errors.ClientConnectionClosedError.exception("connection has been closed")
-    {:disconnect, err, state}
+      {:error, reason} ->
+        err = exception_from_socket_error(reason)
+        {:disconnect, err, state}
+    end
   end
 
-  defp handle_socket_response({:error, :etimedout}, state) do
-    err = Errors.ClientConnectionTimeoutError.exception("exceeded timeout")
-    {:disconnect, err, state}
+  @spec exception_from_socket_error(atom()) :: Exception.t()
+
+  defp exception_from_socket_error(:closed) do
+    Error.client_connection_closed_error("connection has been closed")
   end
 
-  defp handle_socket_response({:error, reason}, state) do
-    err =
-      Errors.ClientConnectionError.exception(
-        "unexpected error while receiving data from socket: #{inspect(reason)}"
-      )
-
-    {:disconnect, err, state}
+  defp exception_from_socket_error(:etimedout) do
+    Error.client_connection_timeout_error("exceeded timeout")
   end
 
-  defp handle_socket_response(term, _state) do
-    term
+  defp exception_from_socket_error(reason) do
+    Error.client_connection_error(
+      "unexpected error while receiving data from socket: #{inspect(reason)}"
+    )
   end
 
   @spec status(State.t()) :: DBConnection.status()

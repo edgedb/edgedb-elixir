@@ -1,7 +1,7 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
   use EdgeDB.Case
 
-  alias EdgeDB.Protocol.Errors
+  alias EdgeDB.Protocol.Error
 
   setup :edgedb_connection
 
@@ -24,30 +24,40 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
   test "error when passing non-number as std::bigint argument", %{conn: conn} do
     value = <<16, 13, 2, 42>>
 
-    assert_raise Errors.InvalidArgumentError,
-                 "unable to encode #{inspect(value)} as std::bigint",
-                 fn ->
-                   EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
-                 end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+      end
+
+    assert exc ==
+             Error.invalid_argument_error("unable to encode #{inspect(value)} as std::bigint")
   end
 
   test "error when passing float as std::bigint argument", %{conn: conn} do
     value = 1.0
 
-    assert_raise Errors.InvalidArgumentError,
-                 "unable to encode #{inspect(value)} as std::bigint: floats can't be encoded",
-                 fn ->
-                   EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
-                 end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+      end
+
+    assert exc ==
+             Error.invalid_argument_error(
+               "unable to encode #{inspect(value)} as std::bigint: floats can't be encoded"
+             )
   end
 
   test "error when passing non integer Decimal as std::bigint argument", %{conn: conn} do
     {value, ""} = Decimal.parse("-15000.6250000")
 
-    assert_raise Errors.InvalidArgumentError,
-                 "unable to encode #{inspect(value)} as std::bigint: bigint numbers can't contain exponent",
-                 fn ->
-                   EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
-                 end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+      end
+
+    assert exc ==
+             Error.invalid_argument_error(
+               "unable to encode #{inspect(value)} as std::bigint: bigint numbers can't contain exponent"
+             )
   end
 end

@@ -8,7 +8,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Errors,
+    Error,
     Types
   }
 
@@ -39,8 +39,9 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
   def encode_named_tuple(instance, named_tuple_elements, codecs)
       when is_map(instance) or is_list(instance) do
     if is_list(instance) and not Keyword.keyword?(instance) do
-      raise Errors.InvalidArgumentError,
-            "named tuples encoding is supported only for maps, and keyword lists"
+      raise Error.invalid_argument_error(
+              "named tuples encoding is supported only for maps, and keyword lists"
+            )
     end
 
     instance = transform_into_string_map(instance)
@@ -120,8 +121,12 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     extra_keys = MapSet.difference(passed_keys, required_keys)
 
     if MapSet.size(missed_keys) != 0 or MapSet.size(extra_keys) != 0 do
-      raise Errors.QueryArgumentError,
-            make_missing_args_error_message(required_keys, passed_keys, missed_keys, extra_keys)
+      err =
+        required_keys
+        |> make_missing_args_error_message(passed_keys, missed_keys, extra_keys)
+        |> Error.query_argument_error()
+
+      raise err
     end
 
     :ok

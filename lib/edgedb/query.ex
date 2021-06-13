@@ -43,12 +43,12 @@ end
 defimpl DBConnection.Query, for: EdgeDB.Query do
   alias EdgeDB.Protocol.{
     Codec,
-    Errors
+    Error
   }
 
   @impl DBConnection.Query
   def decode(_query, %EdgeDB.Result{decoded?: true}, _opts) do
-    raise Errors.InterfaceError, "result has been decoded"
+    raise Error.interface_error("result has been decoded")
   end
 
   @impl DBConnection.Query
@@ -63,7 +63,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
 
   @impl DBConnection.Query
   def encode(%EdgeDB.Query{input_codec: nil}, _params, _opts) do
-    raise Errors.InterfaceError, "query hasn't been prepared"
+    raise Error.interface_error("query hasn't been prepared")
   end
 
   @impl DBConnection.Query
@@ -73,7 +73,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
 
   @impl DBConnection.Query
   def parse(%EdgeDB.Query{cached?: true}, _opts) do
-    raise EdgeDB.Protocol.Errors.InterfaceError, "query has been prepared"
+    raise Error.interface_error("query has been prepared")
   end
 
   @impl DBConnection.Query

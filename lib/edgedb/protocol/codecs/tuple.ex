@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Errors,
+    Error,
     Types
   }
 
@@ -31,8 +31,9 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
     expected_length = tuple_size(instance)
     passed_length = length(codecs)
 
-    raise Errors.InvalidArgumentError,
-          "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
+    raise Error.invalid_argument_error(
+            "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
+          )
   end
 
   def encode_tuple(instance, codecs) when is_tuple(instance) do
@@ -46,8 +47,9 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
     expected_length = length(instance)
     passed_length = length(codecs)
 
-    raise Errors.InvalidArgumentError,
-          "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
+    raise Error.invalid_argument_error(
+            "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
+          )
   end
 
   def encode_tuple(instance, codecs) when is_list(instance) do

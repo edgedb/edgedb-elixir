@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.UUID do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Errors
+    Error
   }
 
   defbasescalarcodec(
@@ -17,8 +17,7 @@ defmodule EdgeDB.Protocol.Codecs.UUID do
     Datatypes.UUID.encode(uuid)
   rescue
     _exc in ArgumentError ->
-      reraise Errors.InvalidArgumentError,
-              "unable to encode #{inspect(uuid)} as #{@type_name}",
+      reraise Error.invalid_argument_error("unable to encode #{inspect(uuid)} as #{@type_name}"),
               __STACKTRACE__
   end
 

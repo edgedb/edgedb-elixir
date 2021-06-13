@@ -1,7 +1,7 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.BoolTest do
   use EdgeDB.Case
 
-  alias EdgeDB.Protocol.Errors
+  alias EdgeDB.Protocol.Error
 
   setup :edgedb_connection
 
@@ -19,10 +19,11 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BoolTest do
   test "error when passing non bool as std::bool argument", %{conn: conn} do
     value = 42
 
-    assert_raise Errors.InvalidArgumentError,
-                 "unable to encode #{value} as std::bool",
-                 fn ->
-                   EdgeDB.query_one(conn, "SELECT <bool>$0", [value])
-                 end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <bool>$0", [value])
+      end
+
+    assert exc == Error.invalid_argument_error("unable to encode #{value} as std::bool")
   end
 end

@@ -8,7 +8,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Errors,
+    Error,
     Types
   }
 
@@ -31,7 +31,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
 
   @spec encode_object(EdgeDB.Object.t()) :: no_return()
   def encode_object(%EdgeDB.Object{}) do
-    raise Errors.InvalidArgumentError, "objects can't be encoded"
+    raise Error.invalid_argument_error("objects can't be encoded")
   end
 
   @spec decode_object(

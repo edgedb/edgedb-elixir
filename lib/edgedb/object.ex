@@ -3,7 +3,7 @@ defmodule EdgeDB.Object do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Errors
+    Error
   }
 
   defmodule Field do
@@ -54,12 +54,12 @@ defmodule EdgeDB.Object do
 
   @impl Access
   def get_and_update(%__MODULE__{}, _key, _function) do
-    raise Errors.InterfaceError, "objects can't be mutated"
+    raise Error.interface_error("objects can't be mutated")
   end
 
   @impl Access
   def pop(%__MODULE__{}, _key) do
-    raise Errors.InterfaceError, "objects can't be mutated"
+    raise Error.interface_error("objects can't be mutated")
   end
 
   @spec from_fields(list(Field.t())) :: t()

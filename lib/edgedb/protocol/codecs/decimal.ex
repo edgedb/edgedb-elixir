@@ -4,7 +4,7 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
   alias EdgeDB.Protocol.{
     Datatypes,
     Enums,
-    Errors
+    Error
   }
 
   require Enums.DecimalSign
@@ -33,8 +33,9 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
 
   @impl EdgeDB.Protocol.Codec
   def encode_instance(%Decimal{coef: coef} = decimal) when not is_number(coef) do
-    raise Errors.InvalidArgumentError,
-          "unable to encode #{inspect(decimal)} as #{@type_name}: coef #{coef} is not a number"
+    raise Error.invalid_argument_error(
+            "unable to encode #{inspect(decimal)} as #{@type_name}: coef #{coef} is not a number"
+          )
   end
 
   @impl EdgeDB.Protocol.Codec

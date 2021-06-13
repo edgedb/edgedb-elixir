@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Errors
+    Error
   }
 
   defbasescalarcodec(
@@ -14,11 +14,11 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
 
   @impl EdgeDB.Protocol.Codec
   def encode_instance(_instance) do
-    raise Errors.InvalidArgumentError, "empty result can't be encoded by client"
+    raise Error.invalid_argument_error("empty result can't be encoded by client")
   end
 
   @impl EdgeDB.Protocol.Codec
   def decode_instance(_data) do
-    raise Errors.InvalidArgumentError, "empty result can't be decoded by client"
+    raise Error.invalid_argument_error("empty result can't be decoded by client")
   end
 end

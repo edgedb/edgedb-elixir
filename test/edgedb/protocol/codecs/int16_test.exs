@@ -1,7 +1,7 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
   use EdgeDB.Case
 
-  alias EdgeDB.Protocol.Errors
+  alias EdgeDB.Protocol.Error
 
   setup :edgedb_connection
 
@@ -18,24 +18,33 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
   test "error when passing non-number as std::int16 argument", %{conn: conn} do
     value = 1.0
 
-    assert_raise Errors.InvalidArgumentError, "unable to encode #{value} as std::int16", fn ->
-      EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
-    end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
+      end
+
+    assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int16")
   end
 
   test "error when passing too large number as std::int16 argument", %{conn: conn} do
     value = 0x8000
 
-    assert_raise Errors.InvalidArgumentError, "unable to encode #{value} as std::int16", fn ->
-      EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
-    end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
+      end
+
+    assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int16")
   end
 
   test "error when passing too small number as std::int16 argument", %{conn: conn} do
     value = -0x8001
 
-    assert_raise Errors.InvalidArgumentError, "unable to encode #{value} as std::int16", fn ->
-      EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
-    end
+    exc =
+      assert_raise Error, fn ->
+        EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
+      end
+
+    assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int16")
   end
 end
