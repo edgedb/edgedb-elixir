@@ -11,7 +11,7 @@ defmodule Tests.EdgeDB.Connection.LifecycleTest do
     test "when unable to connect to TCP socket", context do
       {:ok, conn} =
         context.connection_params
-        |> Keyword.put(:port, 5656)
+        |> Keyword.put(:port, 65_635)
         |> EdgeDB.start_link()
 
       assert_receive {:EXIT, ^conn, :killed}, 500

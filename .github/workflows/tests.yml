@@ -50,7 +50,7 @@ jobs:
             --password-from-stdin \
             --trust-tls-cert \
             --non-interactive \
-            edgedb_elixir_test
+            edgedb_edgedb_elixir_test
 
           REPO_PATH=$(pwd)
           PATH_HASH=$(echo -n "$(pwd)" | sha1sum | awk '{ print $1 }')
@@ -60,7 +60,7 @@ jobs:
           PROJECT_DIR="${CONFIG_DIR}/projects/${DIR_NAME}"
           mkdir -p ${PROJECT_DIR}
           cd ${PROJECT_DIR}
-          echo -n "edgedb_elixir_test" > instance-name
+          echo -n "edgedb_edgedb_elixir_test" > instance-name
           echo -n "${REPO_PATH}" > project-path
           ln -s "${REPO_PATH}" project-link
 

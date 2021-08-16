@@ -1,7 +1,7 @@
 defmodule EdgeDB.Config.Platform do
   @spec search_config_dir(list(String.t())) :: String.t()
   def search_config_dir(suffixes) do
-    Enum.reduce([config_dir() | suffixes], "", fn component, result ->
+    Enum.reduce(suffixes, config_dir(), fn component, result ->
       Path.join(result, component)
     end)
   end

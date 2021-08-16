@@ -18,7 +18,7 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
       %{
         connection_params: [
           user: "edgedb_scram",
-          password: "edgedb"
+          password: "edgedb_scram_password"
         ]
       }
     end

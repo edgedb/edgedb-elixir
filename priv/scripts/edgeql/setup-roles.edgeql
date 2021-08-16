@@ -2,7 +2,7 @@
 
 CREATE SUPERUSER ROLE edgedb_scram;
 
-ALTER ROLE edgedb_scram SET password := 'edgedb';
+ALTER ROLE edgedb_scram SET password := 'edgedb_scram_password';
 
 CONFIGURE INSTANCE INSERT Auth {
     user := 'edgedb_scram',

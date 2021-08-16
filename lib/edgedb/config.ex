@@ -246,7 +246,7 @@ defmodule EdgeDB.Config do
 
       if not File.exists?(stash_dir) do
         raise Error.client_connection_error(
-                "Found `edgedb.toml` but the project is not initialized. Run `edgedb project init`."
+                "found `edgedb.toml` but the project is not initialized. Run `edgedb project init`."
               )
       end
 
