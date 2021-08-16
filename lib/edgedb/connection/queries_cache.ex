@@ -72,7 +72,6 @@ defmodule EdgeDB.Connection.QueriesCache do
     {:noreply, state}
   end
 
-  @spec new_cache() :: :ets.tab()
   defp new_cache do
     :ets.new(:connection_queries_cache, [:set, :private])
   end

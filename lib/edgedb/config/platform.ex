@@ -6,8 +6,6 @@ defmodule EdgeDB.Config.Platform do
     end)
   end
 
-  @spec config_dir() :: String.t()
-
   case :os.type() do
     {:unix, :darwin} ->
       defp config_dir do

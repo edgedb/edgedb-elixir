@@ -13,16 +13,9 @@ defmodule EdgeDB.Protocol.Codecs do
     create_codec_from_type_description(storage, type_description)
   end
 
-  @spec create_codec_from_type_description(Codecs.Storage.t(), bitstring()) :: Codec.t()
   defp create_codec_from_type_description(storage, data) do
     create_codec_from_type_description(storage, data, [])
   end
-
-  @spec create_codec_from_type_description(
-          Codecs.Storage.t(),
-          bitstring(),
-          list(Codec.t())
-        ) :: Codec.t()
 
   defp create_codec_from_type_description(_storage, <<>>, [codec | _codecs]) do
     codec

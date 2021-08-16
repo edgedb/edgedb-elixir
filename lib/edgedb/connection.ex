@@ -9,11 +9,9 @@ defmodule EdgeDB.Connection do
   }
 
   alias EdgeDB.Protocol.{
-    Codec,
     Codecs,
     Enums,
-    Error,
-    Messages
+    Error
   }
 
   alias EdgeDB.SCRAM
@@ -248,13 +246,6 @@ defmodule EdgeDB.Connection do
     {:ok, state}
   end
 
-  @spec open_ssl_connection(
-          list({String.t(), :inet.port_number()}),
-          Keyword.t(),
-          timeout()
-        ) ::
-          {:ok, :ssl.sslsocket()} | {:error, atom()}
-
   defp open_ssl_connection([], _opts, _timeout) do
     {:error, :no_endpoints}
   end
@@ -309,7 +300,6 @@ defmodule EdgeDB.Connection do
     Keyword.put(opts, :alpn_advertised_protocols, ["edgedb-binary"])
   end
 
-  @spec handshake(String.t() | nil, State.t()) :: {:ok, State.t()} | disconnection()
   defp handshake(password, %State{} = state) do
     message =
       client_handshake(
@@ -327,18 +317,11 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_authentication(String.t() | nil, State.t()) :: {:ok, State.t()} | disconnection()
   defp handle_authentication(password, state) do
     with {:ok, {message, buffer}} <- receive_message(state) do
       handle_authentication_flow(message, password, %State{state | buffer: buffer})
     end
   end
-
-  @spec handle_authentication_flow(
-          Messages.Server.ServerHandshake.t(),
-          String.t() | nil,
-          State.t()
-        ) :: {:ok, State.t()} | disconnection()
 
   defp handle_authentication_flow(
          server_handshake(major_ver: major_ver, minor_ver: minor_ver),
@@ -365,20 +348,9 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_authentication_flow(
-          Messages.Server.Authentication.AuthenticationOK.t(),
-          String.t() | nil,
-          State.t()
-        ) :: {:ok, State.t()}
   defp handle_authentication_flow(authentication_ok(), _password, state) do
     {:ok, state}
   end
-
-  @spec handle_authentication_flow(
-          Messages.Server.Authentication.AuthenticationSASL.t(),
-          String.t() | nil,
-          State.t()
-        ) :: {:ok, State.t()} | disconnection()
 
   defp handle_authentication_flow(authentication_sasl(), nil, %State{} = state) do
     exc =
@@ -404,17 +376,10 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_authentication_flow(Messages.Server.ErrorResponse.t(), String.t() | nil, State.t()) ::
-          disconnection()
   defp handle_authentication_flow(error_response() = message, _password, state) do
     handle_error_response(message, state)
   end
 
-  @spec handle_sasl_authentication_flow(
-          Messages.Server.Authentication.AuthenticationSASLContinue.t(),
-          SCRAM.ServerFirst.t(),
-          State.t()
-        ) :: {:ok, State.t()} | disconnection()
   defp handle_sasl_authentication_flow(
          authentication_sasl_continue(sasl_data: data),
          %SCRAM.ServerFirst{} = server_first,
@@ -437,11 +402,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_sasl_authentication_flow(
-          Messages.Server.Authentication.AuthenticationSASLFinal.t(),
-          SCRAM.ServerFinal.t(),
-          State.t()
-        ) :: {:ok, State.t()} | disconnection()
   defp handle_sasl_authentication_flow(
          authentication_sasl_final(sasl_data: data),
          %SCRAM.ServerFinal{} = server_final,
@@ -462,59 +422,41 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_sasl_authentication_flow(Messages.Server.ErrorResponse.t(), term(), State.t()) ::
-          disconnection()
   defp handle_sasl_authentication_flow(error_response() = message, _scram_data, state) do
     handle_error_response(message, state)
   end
 
-  @spec handle_sasl_authentication_flow(
-          Messages.Server.Authentication.AuthenticationOK.t(),
-          State.t()
-        ) :: {:ok, State.t()}
   defp handle_sasl_authentication_flow(authentication_ok(), state) do
     {:ok, state}
   end
 
-  @spec handle_sasl_authentication_flow(Messages.Server.ErrorResponse.t(), State.t()) ::
-          disconnection()
   defp handle_sasl_authentication_flow(error_response() = message, state) do
     handle_error_response(message, state)
   end
 
-  @spec wait_for_server_ready(State.t()) :: {:ok, State.t()} | disconnection()
   defp wait_for_server_ready(state) do
     with {:ok, {message, buffer}} <- receive_message(state) do
       handle_server_ready_flow(message, %State{state | buffer: buffer})
     end
   end
 
-  @spec handle_server_ready_flow(Messages.Server.ServerKeyData.t(), State.t()) ::
-          {:ok, State.t()} | disconnection()
   defp handle_server_ready_flow(server_key_data(data: data), state) do
     wait_for_server_ready(%State{state | server_key_data: data})
   end
 
   # TODO: maybe use it somehow, but right now just ignore it
-  @spec handle_server_ready_flow(Messages.Server.ParameterStatus.t(), State.t()) ::
-          {:ok, State.t()} | disconnection()
   defp handle_server_ready_flow(parameter_status(), state) do
     wait_for_server_ready(state)
   end
 
-  @spec handle_server_ready_flow(Messages.Server.ReadyForCommand.t(), State.t()) ::
-          {:ok, State.t()}
   defp handle_server_ready_flow(ready_for_command(transaction_state: transaction_state), state) do
     {:ok, %State{state | server_state: transaction_state}}
   end
 
-  @spec handle_server_ready_flow(Messages.Server.ErrorResponse.t(), State.t()) :: disconnection()
   defp handle_server_ready_flow(error_response() = message, state) do
     handle_error_response(message, state)
   end
 
-  @spec prepare_query(EdgeDB.Query.t(), Keyword.t(), State.t()) ::
-          {:ok, EdgeDB.Query.t(), State.t()} | disconnection()
   defp prepare_query(%EdgeDB.Query{} = query, opts, state) do
     message =
       prepare(
@@ -529,12 +471,6 @@ defmodule EdgeDB.Connection do
       handle_prepare_query_flow(query, message, %State{state | buffer: buffer})
     end
   end
-
-  @spec handle_prepare_query_flow(
-          EdgeDB.Query.t(),
-          Messages.Server.PrepareComplete.t(),
-          State.t()
-        ) :: {:ok, EdgeDB.Query.t(), State.t()} | disconnection()
 
   defp handle_prepare_query_flow(
          %EdgeDB.Query{cardinality: :one},
@@ -569,12 +505,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_prepare_query_flow(
-          EdgeDB.Query.t(),
-          Messages.Server.CommandDataDescription.t(),
-          State.t()
-        ) :: {:ok, EdgeDB.Query.t(), State.t()} | disconnection()
-
   defp handle_prepare_query_flow(
          %EdgeDB.Query{cardinality: :one},
          command_data_description(result_cardinality: :no_result),
@@ -600,14 +530,10 @@ defmodule EdgeDB.Connection do
     {:ok, query, state}
   end
 
-  @spec handle_prepare_query_flow(EdgeDB.Query.t(), Messages.Server.ErrorResponse.t(), State.t()) ::
-          disconnection()
   defp handle_prepare_query_flow(_query, error_response() = message, state) do
     handle_error_response(message, state)
   end
 
-  @spec optimistic_execute_query(EdgeDB.Query.t(), iodata(), Keyword.t(), State.t()) ::
-          {:ok, EdgeDB.Query.t(), EdgeDB.Result.t(), State.t()} | disconnection()
   defp optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
     message =
       optimistic_execute(
@@ -630,13 +556,6 @@ defmodule EdgeDB.Connection do
       )
     end
   end
-
-  @spec handle_optimistic_execute_flow(
-          EdgeDB.Query.t(),
-          EdgeDB.Result.t(),
-          Messages.Server.CommandDataDescription.t(),
-          State.t()
-        ) :: {:ok, EdgeDB.Query.t(), EdgeDB.Result.t(), State.t()} | disconnection()
 
   defp handle_optimistic_execute_flow(
          %EdgeDB.Query{cardinality: :one},
@@ -664,28 +583,14 @@ defmodule EdgeDB.Connection do
     execute_query(query, reencoded_params, state)
   end
 
-  @spec handle_optimistic_execute_flow(
-          EdgeDB.Query.t(),
-          EdgeDB.Result.t(),
-          Messages.Server.Data.t(),
-          State.t()
-        ) :: {:ok, EdgeDB.Query.t(), EdgeDB.Result.t(), State.t()} | disconnection()
   defp handle_optimistic_execute_flow(query, result, data() = message, state) do
     handle_execute_flow(query, result, message, state)
   end
 
-  @spec handle_optimistic_execute_flow(
-          EdgeDB.Query.t(),
-          EdgeDB.Result.t(),
-          Messages.Server.ErrorResponse.t(),
-          State.t()
-        ) :: disconnection()
   defp handle_optimistic_execute_flow(_query, _result, error_response() = message, state) do
     handle_error_response(message, state)
   end
 
-  @spec execute_query(EdgeDB.Query.t(), iodata(), State.t()) ::
-          {:ok, EdgeDB.Query.t(), EdgeDB.Result.t(), State.t()} | disconnection()
   defp execute_query(%EdgeDB.Query{} = query, params, state) do
     message = execute(arguments: params)
 
@@ -700,12 +605,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_execute_flow(
-          EdgeDB.Query.t(),
-          EdgeDB.Result.t(),
-          Messages.Server.Data.t(),
-          State.t()
-        ) :: {:ok, EdgeDB.Query.t(), EdgeDB.Result.t(), State.t()} | disconnection()
   defp handle_execute_flow(
          %EdgeDB.Query{} = query,
          result,
@@ -719,30 +618,16 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_execute_flow(
-          EdgeDB.Query.t(),
-          EdgeDB.Result.t(),
-          Messages.Server.CommandComplete.t(),
-          State.t()
-        ) :: {:ok, EdgeDB.Query.t(), EdgeDB.Result.t(), State.t()} | disconnection()
   defp handle_execute_flow(query, result, command_complete(status: status), state) do
     with {:ok, state} <- wait_for_server_ready(state) do
       {:ok, query, %EdgeDB.Result{result | statement: status}, state}
     end
   end
 
-  @spec handle_execute_flow(
-          EdgeDB.Query.t(),
-          EdgeDB.Result.t(),
-          Messages.Server.ErrorResponse.t(),
-          State.t()
-        ) :: disconnection()
   defp handle_execute_flow(_query, _result, error_response() = message, state) do
     handle_error_response(message, state)
   end
 
-  @spec describe_codecs_from_query(EdgeDB.Query.t(), State.t()) ::
-          {:ok, EdgeDB.Query.t(), State.t()} | disconnection()
   defp describe_codecs_from_query(query, state) do
     message = describe_statement(aspect: :data_description)
 
@@ -752,8 +637,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec parse_description_message(Messages.Server.CommandDataDescription.t(), Codecs.Storage.t()) ::
-          {Codec.t(), Codec.t()}
   defp parse_description_message(
          command_data_description(
            input_typedesc_id: input_typedesc_id,
@@ -776,34 +659,27 @@ defmodule EdgeDB.Connection do
     {input_codec, output_codec}
   end
 
-  @spec close_prepared_query(EdgeDB.Query.t(), State.t()) :: {:ok, EdgeDB.Result.t(), State.t()}
   defp close_prepared_query(query, %State{} = state) do
     QueriesCache.clear(state.queries_cache, query)
     {:ok, EdgeDB.Result.closed_query(), state}
   end
 
-  @spec start_transaction(QueryBuilder.start_transaction_options(), State.t()) ::
-          {:ok, EdgeDB.Result.t(), State.t()} | disconnection()
   defp start_transaction(opts, state) do
     opts
     |> QueryBuilder.start_transaction_statement()
     |> execute_script_query([allow_capabilities: :all], state)
   end
 
-  @spec commit_transaction(State.t()) :: {:ok, EdgeDB.Result.t(), State.t()} | disconnection()
   defp commit_transaction(state) do
     statement = QueryBuilder.commit_transaction_statement()
     execute_script_query(statement, [allow_capabilities: :all], state)
   end
 
-  @spec rollback_transaction(State.t()) :: {:ok, EdgeDB.Result.t(), State.t()} | disconnection()
   defp rollback_transaction(state) do
     statement = QueryBuilder.rollback_transaction_statement()
     execute_script_query(statement, [allow_capabilities: :all], state)
   end
 
-  @spec execute_script_query(String.t(), Keyword.t(), State.t()) ::
-          {:ok, EdgeDB.Result.t(), State.t()} | disconnection()
   defp execute_script_query(statement, headers, state) do
     message = execute_script(headers: headers, script: statement)
 
@@ -813,9 +689,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_execute_script_flow(Messages.Server.CommandComplete.t(), State.t()) ::
-          {:ok, EdgeDB.Result.t(), State.t()}
-          | disconnection()
   defp handle_execute_script_flow(command_complete(status: status), state) do
     result = %EdgeDB.Result{
       cardinality: :no_result,
@@ -827,13 +700,10 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec handle_execute_script_flow(Messages.Server.ErrorResponse.t(), State.t()) ::
-          disconnection()
   defp handle_execute_script_flow(error_response() = message, state) do
     handle_error_response(message, state)
   end
 
-  @spec handle_error_response(Messages.Server.ErrorResponse.t(), State.t()) :: disconnection()
   defp handle_error_response(
          error_response(
            error_code: code,
@@ -846,18 +716,11 @@ defmodule EdgeDB.Connection do
     {:disconnect, exc, state}
   end
 
-  @spec handle_log_message(Messages.Server.LogMessage.t(), State.t()) :: State.t()
   defp handle_log_message(log_message(severity: severity, text: text), state) do
     Logger.log(severity, text)
     state
   end
 
-  @spec save_query_with_codecs_in_cache(
-          QueriesCache.t(),
-          EdgeDB.Query.t(),
-          Codec.t(),
-          Codec.t()
-        ) :: EdgeDB.Query.t()
   defp save_query_with_codecs_in_cache(
          queries_cache,
          query,
@@ -875,22 +738,18 @@ defmodule EdgeDB.Connection do
     query
   end
 
-  @spec send_message(Messages.client_message(), State.t()) :: :ok | disconnection()
   defp send_message(message, state) do
     message
     |> EdgeDB.Protocol.encode_message()
     |> send_data_into_socket(state)
   end
 
-  @spec send_messages(list(Messages.client_message()), State.t()) :: :ok | disconnection()
   defp send_messages(messages, state) when is_list(messages) do
     messages
     |> Enum.map(&EdgeDB.Protocol.encode_message/1)
     |> send_data_into_socket(state)
   end
 
-  @spec receive_message(State.t()) ::
-          {:ok, {Messages.server_message(), bitstring()}} | disconnection()
   defp receive_message(state) do
     case EdgeDB.Protocol.decode_message(state.buffer) do
       {:ok, {log_message() = message, buffer}} ->
@@ -905,10 +764,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec receive_message_data_from_socket(non_neg_integer(), State.t()) ::
-          {:ok, {Messages.server_message(), bitstring()}}
-          | {:error, {:not_enough_size, non_neg_integer()}}
-          | disconnection()
   defp receive_message_data_from_socket(required_data_size, state) do
     case :ssl.recv(state.socket, min(required_data_size, @max_packet_size), state.timeout) do
       {:ok, data} ->
@@ -920,7 +775,6 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  @spec send_data_into_socket(iodata(), State.t()) :: :ok | disconnection()
   defp send_data_into_socket(data, %State{socket: socket} = state) do
     case :ssl.send(socket, data) do
       :ok ->
@@ -931,8 +785,6 @@ defmodule EdgeDB.Connection do
         {:disconnect, err, state}
     end
   end
-
-  @spec exception_from_socket_error(atom()) :: Exception.t()
 
   defp exception_from_socket_error(:closed) do
     Error.client_connection_closed_error("connection has been closed")
@@ -947,8 +799,6 @@ defmodule EdgeDB.Connection do
       "unexpected error while receiving data from socket: #{inspect(reason)}"
     )
   end
-
-  @spec status(State.t()) :: DBConnection.status()
 
   defp status(%State{server_state: :not_in_transaction}) do
     :idle

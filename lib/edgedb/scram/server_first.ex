@@ -54,9 +54,6 @@ defmodule EdgeDB.SCRAM.ServerFirst do
     end
   end
 
-  @spec parse_server_first_data(String.t()) ::
-          {:ok, {String.t(), String.t(), integer()}}
-          | {:error, :wrong_server_first_data}
   defp parse_server_first_data(sf_data) do
     with ["r=" <> nonce, "s=" <> salt, "i=" <> iterations] <-
            String.split(sf_data, ","),
@@ -69,7 +66,6 @@ defmodule EdgeDB.SCRAM.ServerFirst do
     end
   end
 
-  @spec verify_server_nonce(String.t(), String.t()) :: :ok | {:error, :mismatched_nonces}
   defp verify_server_nonce(server_nonce, client_nonce) do
     if String.starts_with?(server_nonce, client_nonce) do
       :ok
@@ -78,7 +74,6 @@ defmodule EdgeDB.SCRAM.ServerFirst do
     end
   end
 
-  @spec hash_password(String.t(), String.t(), integer()) :: bitstring()
   defp hash_password(password, salt, iterations) do
     block_1 = hmac(password, <<salt::binary, 1::integer-size(32)>>)
 
@@ -92,13 +87,6 @@ defmodule EdgeDB.SCRAM.ServerFirst do
     output
   end
 
-  @spec calculate_client_proof(
-          String.t(),
-          String.t(),
-          String.t(),
-          String.t(),
-          String.t()
-        ) :: {bitstring(), bitstring()}
   defp calculate_client_proof(gs2header, cf_bare, sf_data, password, nonce) do
     encoded_gs2header = Base.encode64(gs2header)
     client_final_without_proof = "c=#{encoded_gs2header},r=#{nonce}"
@@ -117,17 +105,14 @@ defmodule EdgeDB.SCRAM.ServerFirst do
     {client_proof, server_signature}
   end
 
-  @spec xor(bitstring(), bitstring()) :: bitstring()
   defp xor(data1, data2) do
     :crypto.exor(data1, data2)
   end
 
-  @spec hash(bitstring()) :: bitstring()
   defp hash(data) do
     :crypto.hash(:sha256, data)
   end
 
-  @spec hmac(String.t(), bitstring()) :: bitstring()
   defp hmac(key, data) do
     :crypto.mac(:hmac, :sha256, key, data)
   end

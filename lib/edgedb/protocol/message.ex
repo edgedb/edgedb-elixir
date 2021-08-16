@@ -179,22 +179,18 @@ defmodule EdgeDB.Protocol.Message do
     end)
   end
 
-  @spec encode_header_value(:raw, iodata()) :: iodata()
   defp encode_header_value(:raw, value) do
     value
   end
 
-  @spec encode_header_value(header_codec(), term()) :: iodata()
   defp encode_header_value(codec, value) do
     codec.encoder.(value)
   end
 
-  @spec decode_header_value(:raw, bitstring()) :: bitstring()
   defp decode_header_value(:raw, value) do
     value
   end
 
-  @spec decode_header_value(header_codec(), bitstring()) :: term()
   defp decode_header_value(codec, value) do
     codec.decoder.(value)
   end

@@ -67,8 +67,6 @@ defmodule EdgeDB.Protocol.Enum do
   # generate typespec for enum, something like:
   # @type t() :: :value1 | 0xA | :value2 | 0xB | :value3 | 0xC
 
-  @spec get_t_typespec(Keyword.t()) :: tuple()
-
   defp get_t_typespec([{last_atom, last_number}]) do
     {:|, [], [last_atom, last_number]}
   end

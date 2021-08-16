@@ -99,12 +99,6 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
     Decimal.new(sign, number, -scale)
   end
 
-  @spec get_decimal_padding(
-          number :: number(),
-          scale :: integer(),
-          decimals_stored :: integer()
-        ) :: {integer(), number()}
-
   defp get_decimal_padding(number, _scale, decimals_stored) when decimals_stored <= 0 do
     {0, number}
   end
@@ -127,15 +121,6 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
     {padding, trunc(number)}
   end
 
-  @spec get_decimal_scale(
-          number :: number(),
-          scale :: integer(),
-          weight :: integer(),
-          digits_count :: integer(),
-          padding :: integer(),
-          decimals_stored :: integer()
-        ) :: {integer(), number()}
-
   defp get_decimal_scale(number, 0, weight, digits_count, padding, _decimals_stored) do
     {-(weight + 1 - digits_count) * 4 - padding, number}
   end
@@ -153,22 +138,18 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
     {scale, trunc(number)}
   end
 
-  @spec to_decimal_sign(:pos) :: 1
   defp to_decimal_sign(:pos) do
     1
   end
 
-  @spec to_decimal_sign(:neg) :: -1
   defp to_decimal_sign(:neg) do
     -1
   end
 
-  @spec to_decimal_sign_enum(1) :: :pos
   defp to_decimal_sign_enum(1) do
     :pos
   end
 
-  @spec to_decimal_sign_enum(-1) :: :neg
   defp to_decimal_sign_enum(-1) do
     :neg
   end

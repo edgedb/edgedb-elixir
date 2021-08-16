@@ -51,11 +51,6 @@ defmodule EdgeDB.Protocol.Codecs.Object do
     EdgeDB.Object.from_fields(fields)
   end
 
-  @spec decode_fields(
-          list(Types.TupleElement.t()),
-          list(Types.ShapeElement.t()),
-          list(Codec.t())
-        ) :: list(EdgeDB.Object.Field.t())
   defp decode_fields(object_fields, shape_elements, codecs) do
     [object_fields, shape_elements, codecs]
     |> Enum.zip()
@@ -63,12 +58,6 @@ defmodule EdgeDB.Protocol.Codecs.Object do
       decode_field_data(field_data, shape_element, codec)
     end)
   end
-
-  @spec decode_field_data(
-          Types.TupleElement.t(),
-          Types.ShapeElement.t(),
-          Codec.t()
-        ) :: EdgeDB.Object.Field.t()
 
   defp decode_field_data(tuple_element(data: :empty_set), shape_element(name: name) = se, _codec) do
     %EdgeDB.Object.Field{
@@ -92,7 +81,6 @@ defmodule EdgeDB.Protocol.Codecs.Object do
     }
   end
 
-  @spec transform_shape_elements(list(Types.ShapeElement.t())) :: list(Types.ShapeElement.t())
   defp transform_shape_elements(shape_elements) do
     Enum.map(shape_elements, fn shape_element(name: name) = e ->
       if link_property?(e) do

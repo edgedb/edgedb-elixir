@@ -80,9 +80,6 @@ defmodule EdgeDB do
     DBConnection.rollback(conn, reason)
   end
 
-  @spec prepare_execute_query(connection, EdgeDB.Query.t(), list(), query_options()) ::
-          {:ok, result()}
-          | {:error, Exception.t()}
   defp prepare_execute_query(conn, query, params, opts) do
     with {:ok, _q, %EdgeDB.Result{} = r} <-
            DBConnection.prepare_execute(conn, query, params, opts) do

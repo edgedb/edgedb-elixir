@@ -44,7 +44,6 @@ defmodule EdgeDB.SCRAM.ClientFirst do
     {sf, client_first_message}
   end
 
-  @spec generate_nonce() :: String.t()
   defp generate_nonce do
     @nonce_length
     |> :crypto.strong_rand_bytes()

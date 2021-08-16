@@ -1,28 +1,12 @@
 defmodule EdgeDB.Object do
   @behaviour Access
 
+  alias EdgeDB.Object.Field
+
   alias EdgeDB.Protocol.{
     Datatypes,
     Error
   }
-
-  defmodule Field do
-    defstruct [
-      :name,
-      :value,
-      :link?,
-      :link_property?,
-      :implicit?
-    ]
-
-    @type t() :: %__MODULE__{
-            name: String.t(),
-            value: any(),
-            link?: boolean(),
-            link_property?: boolean(),
-            implicit?: boolean()
-          }
-  end
 
   defstruct [
     :__fields__,
@@ -30,11 +14,11 @@ defmodule EdgeDB.Object do
     :id
   ]
 
-  @type t() :: %__MODULE__{
-          __fields__: list(Field.t()),
-          __tid__: Datatypes.UUID.t() | nil,
-          id: Datatypes.UUID.t() | nil
-        }
+  @opaque t() :: %__MODULE__{
+            __fields__: list(Field.t()),
+            __tid__: Datatypes.UUID.t() | nil,
+            id: Datatypes.UUID.t() | nil
+          }
 
   @impl Access
   def fetch(%__MODULE__{} = object, key) when is_atom(key) do
@@ -89,7 +73,6 @@ defmodule EdgeDB.Object do
     }
   end
 
-  @spec find_field(list(Field.t()), String.t()) :: Field.t() | nil
   defp find_field(fields, name_to_find) do
     Enum.find(fields, fn %{name: name} ->
       name == name_to_find

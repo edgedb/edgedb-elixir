@@ -20,8 +20,6 @@ defmodule EdgeDB.SCRAM.ServerFinal do
     end
   end
 
-  @spec parse_server_final_data(String.t()) ::
-          {:ok, String.t()} | {:error, :wrong_server_final_data}
   defp parse_server_final_data(server_final_data) do
     with "v=" <> encoded_signature <- server_final_data,
          {:ok, signature} <- Base.decode64(encoded_signature) do
@@ -32,8 +30,6 @@ defmodule EdgeDB.SCRAM.ServerFinal do
     end
   end
 
-  @spec verify_server_signature(String.t(), String.t()) ::
-          :ok | {:error, :mismatched_server_signatures}
   defp verify_server_signature(received_server_signature, calculated_server_signature) do
     if received_server_signature == calculated_server_signature do
       :ok

@@ -65,9 +65,6 @@ defmodule EdgeDB.Protocol.Error do
     false
   end
 
-  @spec name_from_code(integer()) :: String.t()
-  @spec tags_for_error(integer()) :: list(tag())
-
   for line <- File.stream!(@edgedb_errors_file),
       Regex.match?(@error_definition_regex, line) do
     %{

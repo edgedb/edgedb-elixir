@@ -122,18 +122,15 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
     {:noreply, state}
   end
 
-  @spec new_storage() :: :ets.tab()
   defp new_storage do
     :ets.new(:codecs_storage, [:set, :private])
   end
 
-  @spec register_codec(t(), Codec.t()) :: :ok
   defp register_codec(storage, %Codec{} = codec) do
     :ets.insert(storage, {codec.type_id, codec})
     :ok
   end
 
-  @spec register_base_scalar_codecs(t()) :: :ok
   defp register_base_scalar_codecs(storage) do
     Enum.each(@known_base_codecs, fn codec_mod ->
       register_codec(storage, codec_mod.new())

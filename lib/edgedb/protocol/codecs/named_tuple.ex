@@ -61,7 +61,6 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     decode_elements(encoded_elements, named_tuple_elements, codecs)
   end
 
-  @spec transform_into_string_map(t()) :: map()
   defp transform_into_string_map(instance) do
     Enum.into(instance, %{}, fn
       {key, value} when is_atom(key) ->
@@ -72,11 +71,6 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     end)
   end
 
-  @spec encode_elements(
-          map(),
-          list(Types.NamedTupleDescriptorElement.t()),
-          list(Codec.t())
-        ) :: iodata()
   defp encode_elements(instance, descriptor_elements, codecs) do
     descriptor_elements
     |> Enum.zip(codecs)
@@ -90,11 +84,6 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     |> Types.TupleElement.encode(raw: true)
   end
 
-  @spec decode_elements(
-          list(Types.TupleElement.t()),
-          list(Types.NamedTupleDescriptorElement.t()),
-          list(Codec.t())
-        ) :: t()
   defp decode_elements(tuple_elements, descriptor_elements, codecs) do
     [tuple_elements, descriptor_elements, codecs]
     |> Enum.zip()
@@ -105,7 +94,6 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     |> EdgeDB.NamedTuple.new()
   end
 
-  @spec verify_all_members_passed!(map(), list(Types.NamedTupleDescriptorElement.t())) :: :ok
   defp verify_all_members_passed!(instance, elements) do
     passed_keys =
       instance
@@ -132,12 +120,6 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     :ok
   end
 
-  @spec make_missing_args_error_message(
-          required_args :: MapSet.t(),
-          passed_args :: MapSet.t(),
-          missed_args :: MapSet.t(),
-          extra_args :: MapSet.t()
-        ) :: String.t()
   defp make_missing_args_error_message(required_args, passed_args, missed_args, extra_args) do
     error_message = "exptected #{MapSet.to_list(required_args)} keyword arguments"
     error_message = "#{error_message}, got #{MapSet.to_list(passed_args)}"

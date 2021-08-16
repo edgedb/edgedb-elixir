@@ -3,12 +3,15 @@ defmodule EdgeDB.NamedTuple do
 
   alias EdgeDB.Protocol.Error
 
-  defstruct [:__keys__, :__values__]
+  defstruct [
+    :__keys__,
+    :__values__
+  ]
 
-  @type t() :: %__MODULE__{
-          __keys__: list(String.t()),
-          __values__: tuple()
-        }
+  @opaque t() :: %__MODULE__{
+            __keys__: list(String.t()),
+            __values__: tuple()
+          }
 
   @spec new(map()) :: t()
   def new(items) do

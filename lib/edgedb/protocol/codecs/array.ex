@@ -87,7 +87,6 @@ defmodule EdgeDB.Protocol.Codecs.Array do
     decode_array_elements_into_list(raw_elements, parsed_dimensions, codec)
   end
 
-  @spec encode_data_into_array_elements(list(), Codec.t()) :: iodata()
   defp encode_data_into_array_elements(list, codec) do
     Enum.map(list, fn element ->
       encoded_data = Codec.encode(codec, element)
@@ -95,11 +94,6 @@ defmodule EdgeDB.Protocol.Codecs.Array do
     end)
   end
 
-  @spec decode_array_elements_into_list(
-          list(Types.ArrayElement.t()),
-          list(Types.Dimension.t()),
-          Codec.t()
-        ) :: t()
   defp decode_array_elements_into_list(elements, dimensions, codec) do
     elements
     |> Enum.into([], fn array_element(data: data) ->
@@ -107,8 +101,6 @@ defmodule EdgeDB.Protocol.Codecs.Array do
     end)
     |> transform_in_dimensions(dimensions)
   end
-
-  @spec get_dimensions_for_list(non_neg_integer(), list()) :: list(Types.Dimension.t())
 
   defp get_dimensions_for_list(1, list) do
     get_dimensions_for_list(0, [], [dimension(upper: length(list))])
@@ -118,12 +110,6 @@ defmodule EdgeDB.Protocol.Codecs.Array do
     get_dimensions_for_list(ndims, list, [])
   end
 
-  @spec get_dimensions_for_list(
-          non_neg_integer(),
-          list(),
-          list(Types.Dimension.t())
-        ) :: list(Types.Dimension.t())
-
   defp get_dimensions_for_list(0, [], dimensions) do
     dimensions
   end
@@ -132,14 +118,11 @@ defmodule EdgeDB.Protocol.Codecs.Array do
     get_dimensions_for_list(ndims - 1, rest, [dimension(upper: length(list)) | dimensions])
   end
 
-  @spec count_elements_in_array(list(Types.Dimension.t())) :: integer()
   defp count_elements_in_array(dimensions) do
     Enum.reduce(dimensions, 0, fn dimension(upper: upper, lower: lower), acc ->
       acc + upper - lower + 1
     end)
   end
-
-  @spec transform_in_dimensions(list(), list(Types.Dimension.t())) :: t()
 
   defp transform_in_dimensions(list, [dimension()]) do
     list

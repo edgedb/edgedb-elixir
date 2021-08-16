@@ -60,7 +60,6 @@ defmodule EdgeDB.Protocol.Codecs.Set do
     EdgeDB.Set.new(elements)
   end
 
-  @spec decode_envelopes(Codec.t(), non_neg_integer(), bitstring()) :: list(list(any()))
   defp decode_envelopes(codec, elements_count, data) do
     {envelopes, <<>>} = Types.Envelope.decode(elements_count, data)
 
@@ -71,7 +70,6 @@ defmodule EdgeDB.Protocol.Codecs.Set do
     end)
   end
 
-  @spec decode_elements(Codec.t(), non_neg_integer(), bitstring()) :: list(any())
   defp decode_elements(codec, elements_count, data) do
     {raw_elements, <<>>} = Types.ArrayElement.decode(elements_count, data)
 
