@@ -10,7 +10,7 @@ arg = [16, 13, 2, 42]
 ```
 
 # TODO:
-1. Support for retrying transactions
+1. Support for retrying transactions and subtransactions
 2. Better public API
 3. Better tests and coverage
 4. Option to provide custom codec for type

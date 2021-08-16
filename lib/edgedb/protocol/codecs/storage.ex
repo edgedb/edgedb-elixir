@@ -25,6 +25,7 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
     Codecs.LocalTime,
     Codecs.JSON,
     Codecs.BigInt,
+    Codecs.RelativeDuration,
 
     # 2 special cases
     Codecs.EmptyResult,

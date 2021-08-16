@@ -10,7 +10,7 @@ defmodule EdgeDB.MixProject do
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: [
-        warnings_as_errors: false
+        warnings_as_errors: true
       ],
       consolidate_protocols: Mix.env() != :test,
       test_coverage: [tool: ExCoveralls],

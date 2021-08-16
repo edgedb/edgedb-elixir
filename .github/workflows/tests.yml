@@ -64,15 +64,6 @@ jobs:
           echo -n "${REPO_PATH}" > project-path
           ln -s "${REPO_PATH}" project-link
 
-      - name: Create requried users
-        run: |
-          edgedb create-superuser-role edgedb_scram
-          echo "edgedb" | edgedb alter-role --password-from-stdin edgedb_scram
-          edgedb configure insert Auth --user=edgedb_scram --user=edgedb --method=SCRAM --priority=0
-
-          edgedb create-superuser-role edgedb_trust
-          edgedb configure insert Auth --user=edgedb_trust --method=Trust --priority=1
-
       - name: Run migrations
         run: edgedb migrate
 
@@ -89,6 +80,9 @@ jobs:
       - name: Install dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'
         run: mix deps.get --only test
+
+      - name: Create requried users
+        run: mix setup-roles
 
       - name: Run tests
         run: mix coveralls
