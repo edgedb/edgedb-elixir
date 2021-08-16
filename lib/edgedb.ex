@@ -2,12 +2,16 @@ defmodule EdgeDB do
   alias EdgeDB.Protocol.Enums
 
   @type connection() :: DBConnection.conn()
-  @type start_option() ::
+
+  @type connect_option() ::
           {:host, String.t()}
           | {:port, :inet.port_number()}
-          | {:username, String.t()}
+          | {:user, String.t()}
           | {:database, String.t()}
           | {:password, String.t()}
+
+  @type start_option() ::
+          connect_option()
           | DBConnection.start_option()
   @type start_options() :: list(start_option())
 
@@ -22,7 +26,8 @@ defmodule EdgeDB do
   @type result() :: EdgeDB.Set.t() | term()
 
   @spec start_link(start_options()) :: GenServer.on_start()
-  def start_link(opts) do
+  def start_link(opts \\ []) do
+    opts = EdgeDB.Config.connect_opts(opts)
     DBConnection.start_link(EdgeDB.Connection, opts)
   end
 
@@ -45,16 +50,16 @@ defmodule EdgeDB do
     end
   end
 
-  @spec query_one(connection(), String.t(), list(), query_options()) ::
+  @spec query_single(connection(), String.t(), list(), query_options()) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query_one(conn, statement, params \\ [], opts \\ []) do
-    query(conn, statement, params, Keyword.merge(opts, cardinality: :one))
+  def query_single(conn, statement, params \\ [], opts \\ []) do
+    query(conn, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
   end
 
-  @spec query_one!(connection(), String.t(), list(), query_options()) :: result()
-  def query_one!(conn, statement, params \\ [], opts \\ []) do
-    case query_one(conn, statement, params, opts) do
+  @spec query_single!(connection(), String.t(), list(), query_options()) :: result()
+  def query_single!(conn, statement, params \\ [], opts \\ []) do
+    case query_single(conn, statement, params, opts) do
       {:ok, result} ->
         result
 

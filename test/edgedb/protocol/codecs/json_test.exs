@@ -9,7 +9,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.JSONTest do
     }
 
     assert {:ok, ^value} =
-             EdgeDB.query_one(conn, "SELECT <json>to_json('{\"field\": \"value\"}')")
+             EdgeDB.query_single(conn, "SELECT <json>to_json('{\"field\": \"value\"}')")
   end
 
   test "encoding std::json value", %{conn: conn} do
@@ -17,6 +17,6 @@ defmodule Tests.EdgeDB.Protocol.Codecs.JSONTest do
       "field" => "value"
     }
 
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <json>$0", [value])
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <json>$0", [value])
   end
 end

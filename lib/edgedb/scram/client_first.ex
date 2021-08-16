@@ -6,23 +6,23 @@ defmodule EdgeDB.SCRAM.ClientFirst do
 
   defstruct [
     :gs2header,
-    :username,
+    :user,
     :password,
     :nonce
   ]
 
   @type t() :: %__MODULE__{
           gs2header: String.t(),
-          username: String.t(),
+          user: String.t(),
           password: String.t(),
           nonce: String.t()
         }
 
   @spec new(String.t(), String.t()) :: t()
-  def new(username, password) do
+  def new(user, password) do
     %__MODULE__{
       gs2header: @base_gs2header,
-      username: username,
+      user: user,
       password: password,
       nonce: generate_nonce()
     }
@@ -30,7 +30,7 @@ defmodule EdgeDB.SCRAM.ClientFirst do
 
   @spec client_first(t()) :: {ServerFirst.t(), iodata()}
   def client_first(%__MODULE__{} = cf) do
-    client_first_message_bare = "n=#{cf.username},r=#{cf.nonce}"
+    client_first_message_bare = "n=#{cf.user},r=#{cf.nonce}"
     client_first_message = "#{cf.gs2header}#{client_first_message_bare}"
 
     sf =

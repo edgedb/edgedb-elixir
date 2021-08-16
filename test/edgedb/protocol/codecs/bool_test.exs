@@ -8,12 +8,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BoolTest do
   test "decoding std::bool value", %{conn: conn} do
     value = true
 
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <bool>true")
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <bool>true")
   end
 
   test "encoding std::bool value", %{conn: conn} do
     value = false
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <bool>$0", [value])
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <bool>$0", [value])
   end
 
   test "error when passing non bool as std::bool argument", %{conn: conn} do
@@ -21,7 +21,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BoolTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <bool>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <bool>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::bool")

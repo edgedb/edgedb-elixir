@@ -20,36 +20,34 @@ defmodule EdgeDB.Connection do
 
   require Logger
 
-  @default_hostname "127.0.0.1"
-  @default_port 5656
-  @default_username "edgedb"
-  @default_database "edgedb"
-
   @default_timeout 15_000
   @max_packet_size 64 * 1024 * 1024
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
+  @ssl_socket_opts []
 
   @scram_sha_256 "SCRAM-SHA-256"
   @major_ver 0
-  @minor_ver 10
-  @minor_ver_min 9
+  @minor_ver 11
+  @minor_ver_min 11
 
   defmodule State do
     defstruct [
       :socket,
-      :username,
+      :user,
       :database,
       :queries_cache,
       :codecs_storage,
+      :timeout,
       buffer: <<>>,
       server_key_data: nil,
       server_state: :not_in_transaction
     ]
 
     @type t() :: %__MODULE__{
-            socket: :gen_tcp.socket(),
-            username: String.t(),
+            socket: :ssl.sslsocket(),
+            user: String.t(),
             database: String.t(),
+            timeout: timeout(),
             buffer: bitstring(),
             server_key_data: list(byte()) | nil,
             server_state: Enums.TransactionState.t(),
@@ -58,17 +56,19 @@ defmodule EdgeDB.Connection do
           }
 
     @spec new(
-            :gen_tcp.socket(),
+            :ssl.sslsocket(),
             String.t(),
             String.t(),
             QueriesCache.t(),
-            Codecs.Storage.t()
+            Codecs.Storage.t(),
+            timeout()
           ) :: t()
-    def new(socket, username, database, queries_cache, codecs_storage) do
+    def new(socket, user, database, queries_cache, codecs_storage, timeout) do
       %__MODULE__{
         socket: socket,
-        username: username,
+        user: user,
         database: database,
+        timeout: timeout,
         queries_cache: queries_cache,
         codecs_storage: codecs_storage
       }
@@ -89,20 +89,56 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def connect(opts \\ []) do
-    host = Keyword.get(opts, :host, @default_hostname)
-    port = Keyword.get(opts, :port, @default_port)
-    username = Keyword.get(opts, :username, @default_username)
-    database = Keyword.get(opts, :database, @default_database)
-    password = Keyword.get(opts, :password)
+    endpoints = opts[:endpoints] || []
+    user = opts[:user]
+    password = opts[:password]
+    database = opts[:database]
+
+    connect_opts =
+      []
+      |> Keyword.merge(@tcp_socket_opts)
+      |> Keyword.merge(@ssl_socket_opts)
+      |> add_custom_edgedb_ssl_opts(opts)
+      |> Keyword.merge(opts[:tcp_options] || [])
+      |> Keyword.merge(opts[:ssl_options] || [])
+
+    timeout = opts[:timeout] || @default_timeout
 
     with {:ok, qc} <- QueriesCache.start_link(),
          {:ok, cs} <- Codecs.Storage.start_link(),
-         {:ok, socket} <- open_tcp_connection(host, port),
-         state = State.new(socket, username, database, qc, cs),
+         {:ok, socket} <- open_ssl_connection(endpoints, connect_opts, timeout),
+         state = State.new(socket, user, database, qc, cs, timeout),
          {:ok, state} <- handshake(password, state),
          {:ok, state} <- wait_for_server_ready(state) do
       {:ok, state}
     else
+      {:error, :no_endpoints} ->
+        exc =
+          Error.client_connection_error(
+            "unable to establish a connection because the endpoints were not passed"
+          )
+
+        {:error, exc}
+
+      {:error, connect_errors} when is_list(connect_errors) ->
+        connect_error =
+          connect_errors
+          |> Enum.reverse()
+          |> Enum.map_join("\n", fn
+            {{{:local, socket_path}, _fd}, reason} ->
+              "  * #{socket_path}: #{inspect(reason)}"
+
+            {{host, port}, reason} ->
+              "  * #{host}:#{port}: #{inspect(reason)}"
+          end)
+
+        exc =
+          Error.client_connection_error(
+            "unable to establish connection to multiple endpoints:\n\n#{connect_error}"
+          )
+
+        {:error, exc}
+
       {:error, reason} ->
         exc = Error.client_connection_error("unable to establish connection: #{inspect(reason)}")
         {:error, exc}
@@ -116,7 +152,7 @@ defmodule EdgeDB.Connection do
   @impl DBConnection
   def disconnect(_exc, %State{socket: socket} = state) do
     with :ok <- send_message(terminate(), state) do
-      :gen_tcp.close(socket)
+      :ssl.close(socket)
     end
   end
 
@@ -212,10 +248,65 @@ defmodule EdgeDB.Connection do
     {:ok, state}
   end
 
-  @spec open_tcp_connection(String.t(), :inet.port_number()) ::
-          {:ok, :gen_tcp.socket()} | {:error, atom()}
-  defp open_tcp_connection(host, port) do
-    :gen_tcp.connect(to_charlist(host), port, @tcp_socket_opts, @default_timeout)
+  @spec open_ssl_connection(
+          list({String.t(), :inet.port_number()}),
+          Keyword.t(),
+          timeout()
+        ) ::
+          {:ok, :ssl.sslsocket()} | {:error, atom()}
+
+  defp open_ssl_connection([], _opts, _timeout) do
+    {:error, :no_endpoints}
+  end
+
+  defp open_ssl_connection([{host, port}], opts, timeout) do
+    :ssl.connect(host, port, opts, timeout)
+  end
+
+  defp open_ssl_connection(endpoints, opts, timeout) do
+    Enum.reduce_while(endpoints, {:error, []}, fn {host, port}, {:error, connect_errors} ->
+      case :ssl.connect(host, port, opts, timeout) do
+        {:ok, socket} ->
+          {:halt, {:ok, socket}}
+
+        {:error, reason} ->
+          {:cont, {:error, [{{host, port}, reason} | connect_errors]}}
+      end
+    end)
+  end
+
+  defp add_custom_edgedb_ssl_opts(opts, edgedb_opts) do
+    opts =
+      cond do
+        pem_cert_path = edgedb_opts[:tls_ca_file] ->
+          Keyword.put(opts, :cacertfile, pem_cert_path)
+
+        pem_cert_data = edgedb_opts[:tls_ca_data] ->
+          {:Certificate, der_cert_data, _cipher_info} =
+            pem_cert_data
+            |> :public_key.pem_decode()
+            |> Enum.find(fn
+              {:Certificate, _der_cert_data, _cipher_info} ->
+                true
+
+              _other ->
+                false
+            end)
+
+          Keyword.put(opts, :cacerts, [der_cert_data])
+
+        true ->
+          opts
+      end
+
+    opts =
+      if edgedb_opts[:tls_verify_hostname] do
+        Keyword.put(opts, :verify, :verify_peer)
+      else
+        opts
+      end
+
+    Keyword.put(opts, :alpn_advertised_protocols, ["edgedb-binary"])
   end
 
   @spec handshake(String.t() | nil, State.t()) :: {:ok, State.t()} | disconnection()
@@ -225,7 +316,7 @@ defmodule EdgeDB.Connection do
         major_ver: @major_ver,
         minor_ver: @minor_ver,
         params: [
-          connection_param(name: "user", value: state.username),
+          connection_param(name: "user", value: state.user),
           connection_param(name: "database", value: state.database)
         ],
         extensions: []
@@ -292,7 +383,7 @@ defmodule EdgeDB.Connection do
   defp handle_authentication_flow(authentication_sasl(), nil, %State{} = state) do
     exc =
       Error.authentication_error(
-        "password should be provided for #{inspect(state.username)} authentication authentication"
+        "password should be provided for #{inspect(state.user)} authentication authentication"
       )
 
     {:disconnect, exc, state}
@@ -303,7 +394,7 @@ defmodule EdgeDB.Connection do
          password,
          %State{} = state
        ) do
-    {server_first, cf_data} = EdgeDB.SCRAM.handle_client_first(state.username, password)
+    {server_first, cf_data} = EdgeDB.SCRAM.handle_client_first(state.user, password)
 
     message = authentication_sasl_initial_response(method: @scram_sha_256, sasl_data: cf_data)
 
@@ -819,7 +910,7 @@ defmodule EdgeDB.Connection do
           | {:error, {:not_enough_size, non_neg_integer()}}
           | disconnection()
   defp receive_message_data_from_socket(required_data_size, state) do
-    case :gen_tcp.recv(state.socket, min(required_data_size, @max_packet_size), @default_timeout) do
+    case :ssl.recv(state.socket, min(required_data_size, @max_packet_size), state.timeout) do
       {:ok, data} ->
         receive_message(%State{state | buffer: state.buffer <> data})
 
@@ -831,7 +922,7 @@ defmodule EdgeDB.Connection do
 
   @spec send_data_into_socket(iodata(), State.t()) :: :ok | disconnection()
   defp send_data_into_socket(data, %State{socket: socket} = state) do
-    case :gen_tcp.send(socket, data) do
+    case :ssl.send(socket, data) do
       :ok ->
         :ok
 

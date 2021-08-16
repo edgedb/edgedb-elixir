@@ -7,12 +7,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
   test "decoding std::int64 value", %{conn: conn} do
     value = 1
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <int64>1")
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <int64>1")
   end
 
   test "encoding std::int64 value", %{conn: conn} do
     value = 1
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <int64>$0", [1])
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <int64>$0", [1])
   end
 
   test "error when passing non-number as std::int64 argument", %{conn: conn} do
@@ -20,7 +20,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <int64>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <int64>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int64")
@@ -31,7 +31,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <int64>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <int64>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int64")
@@ -42,7 +42,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <int64>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <int64>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int64")

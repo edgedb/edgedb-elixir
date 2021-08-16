@@ -5,11 +5,11 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ScalarTest do
 
   test "decoding custom scalar value", %{conn: conn} do
     value = "value"
-    {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <short_str>'value'")
+    {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <short_str>'value'")
   end
 
   test "encoding as custom scalar value", %{conn: conn} do
     value = "value"
-    {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <short_str>$0", [value])
+    {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <short_str>$0", [value])
   end
 end

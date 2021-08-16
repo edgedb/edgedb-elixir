@@ -7,18 +7,18 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
 
   test "decoding std::bigint value", %{conn: conn} do
     value = Decimal.new(-15_000)
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <bigint>-15000")
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <bigint>-15000")
   end
 
   test "encoding Decimal as std::bigint value", %{conn: conn} do
     value = Decimal.new(-15_000)
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <bigint>$0", [value])
   end
 
   test "encoding integer as std::bigint value", %{conn: conn} do
     value = 1
     expected_value = Decimal.new(1)
-    assert {:ok, ^expected_value} = EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+    assert {:ok, ^expected_value} = EdgeDB.query_single(conn, "SELECT <bigint>$0", [value])
   end
 
   test "error when passing non-number as std::bigint argument", %{conn: conn} do
@@ -26,7 +26,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <bigint>$0", [value])
       end
 
     assert exc ==
@@ -38,7 +38,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <bigint>$0", [value])
       end
 
     assert exc ==
@@ -52,7 +52,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <bigint>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <bigint>$0", [value])
       end
 
     assert exc ==

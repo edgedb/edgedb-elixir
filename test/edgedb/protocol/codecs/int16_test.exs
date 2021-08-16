@@ -7,12 +7,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
 
   test "decoding std::int16 number", %{conn: conn} do
     value = 1
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <int16>1")
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <int16>1")
   end
 
   test "encoding std::int16 argument", %{conn: conn} do
     value = 1
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <int16>$0", [1])
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <int16>$0", [1])
   end
 
   test "error when passing non-number as std::int16 argument", %{conn: conn} do
@@ -20,7 +20,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <int16>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int16")
@@ -31,7 +31,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <int16>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int16")
@@ -42,7 +42,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <int16>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <int16>$0", [value])
       end
 
     assert exc == Error.invalid_argument_error("unable to encode #{value} as std::int16")

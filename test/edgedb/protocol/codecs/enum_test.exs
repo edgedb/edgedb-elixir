@@ -7,12 +7,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.EnumTest do
 
   test "decoding enum value", %{conn: conn} do
     value = "Green"
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <Color>'Green'")
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <Color>'Green'")
   end
 
   test "encoding string to enum value", %{conn: conn} do
     value = "Green"
-    assert {:ok, ^value} = EdgeDB.query_one(conn, "SELECT <Color>$0", [value])
+    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <Color>$0", [value])
   end
 
   test "error when encoding not member element to enum value", %{conn: conn} do
@@ -20,7 +20,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.EnumTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_one(conn, "SELECT <Color>$0", [value])
+        EdgeDB.query_single(conn, "SELECT <Color>$0", [value])
       end
 
     assert exc ==

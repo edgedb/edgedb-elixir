@@ -6,8 +6,8 @@ defmodule EdgeDB.SCRAM do
   }
 
   @spec handle_client_first(String.t(), String.t()) :: {ServerFirst.t(), iodata()}
-  def handle_client_first(username, password) do
-    username
+  def handle_client_first(user, password) do
+    user
     |> ClientFirst.new(password)
     |> ClientFirst.client_first()
   end

@@ -10,16 +10,16 @@ jobs:
 
     strategy:
       matrix:
-        otp: [23.2.1]
-        elixir: [1.11]
+        otp-version: [23.2.1]
+        elixir-version: [1.11]
 
     steps:
       - uses: actions/checkout@v2
 
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ matrix.otp }}
-          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp-version }}
+          elixir-version: ${{ matrix.elixir-version }}
 
       - name: Set up cache
         uses: actions/cache@v2
@@ -29,7 +29,7 @@ jobs:
             deps
             _build
             priv/plts
-          key: styles-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-${{ hashFiles('mix.lock') }}
+          key: styles-${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-${{ hashFiles('mix.lock') }}
 
       - name: Install dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'

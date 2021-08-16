@@ -38,7 +38,7 @@ defmodule EdgeDB.Result do
 
   @spec extract(t()) :: EdgeDB.Set.t() | term() | :ok
 
-  def extract(%__MODULE__{cardinality: :one, set: set}) do
+  def extract(%__MODULE__{cardinality: :at_most_one, set: set}) do
     if EdgeDB.Set.empty?(set) do
       raise Error.no_data_error("query didn't return any data")
     end

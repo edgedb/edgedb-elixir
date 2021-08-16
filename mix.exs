@@ -25,13 +25,14 @@ defmodule EdgeDB.MixProject do
       dialyzer: [
         plt_add_apps: [:ex_unit],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
-      ]
+      ],
+      aliases: aliases()
     ]
   end
 
   def application do
     [
-      extra_applications: [:crypto]
+      extra_applications: [:crypto, :ssl]
     ]
   end
 
@@ -55,5 +56,17 @@ defmodule EdgeDB.MixProject do
 
   defp elixirc_paths(_env) do
     ["lib"]
+  end
+
+  defp aliases do
+    [
+      "setup-roles": [
+        "cmd priv/scripts/setup-roles.sh"
+      ],
+      "reset-roles": [
+        "cmd priv/scripts/drop-roles.sh",
+        "cmd priv/scripts/setup-roles.sh"
+      ]
+    ]
   end
 end

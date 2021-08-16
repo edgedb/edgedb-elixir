@@ -58,7 +58,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   test "decoding object value", %{conn: conn} do
     assert {:error, "no need to save"} =
              EdgeDB.transaction(conn, fn conn ->
-               object = EdgeDB.query_one!(conn, @query)
+               object = EdgeDB.query_single!(conn, @query)
                assert object[:title] == "Harry Potter and the Philosopher's Stone"
                assert object[:year] == 2001
 
