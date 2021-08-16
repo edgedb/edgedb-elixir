@@ -479,7 +479,7 @@ defmodule EdgeDB.Connection do
        ) do
     exc =
       Error.cardinality_violation_error(
-        "cann't execute query since expected single result and query doesn't return any data"
+        "can't execute query since expected single result and query doesn't return any data"
       )
 
     {:disconnect, exc, state}
@@ -512,7 +512,7 @@ defmodule EdgeDB.Connection do
        ) do
     exc =
       Error.cardinality_violation_error(
-        "cann't execute query since expected single result and query doesn't return any data"
+        "can't execute query since expected single result and query doesn't return any data"
       )
 
     {:disconnect, exc, state}
@@ -565,7 +565,7 @@ defmodule EdgeDB.Connection do
        ) do
     exc =
       Error.cardinality_violation_error(
-        "cann't execute query since expected single result and query doesn't return any data"
+        "can't execute query since expected single result and query doesn't return any data"
       )
 
     {:disconnect, exc, state}

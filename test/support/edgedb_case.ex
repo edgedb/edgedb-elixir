@@ -4,7 +4,7 @@ defmodule EdgeDB.Case do
   using do
     quote do
       defp edgedb_connection(_context) do
-        {:ok, conn} = EdgeDB.start_link(user: "edgedb_trust", port: 10_700)
+        {:ok, conn} = start_supervised({EdgeDB, [user: "edgedb_trust"]})
 
         %{conn: conn}
       end

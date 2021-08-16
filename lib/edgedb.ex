@@ -23,12 +23,19 @@ defmodule EdgeDB do
   @type transaction_option() :: DBConnection.option()
   @type transaction_options() :: list(transaction_option())
 
-  @type result() :: EdgeDB.Set.t() | term()
+  @type raw_result() :: {EdgeDB.Query.t(), EdgeDB.Result.t()}
+  @type result() :: EdgeDB.Set.t() | term() | raw_result()
 
   @spec start_link(start_options()) :: GenServer.on_start()
   def start_link(opts \\ []) do
     opts = EdgeDB.Config.connect_opts(opts)
     DBConnection.start_link(EdgeDB.Connection, opts)
+  end
+
+  @spec child_spec(start_options()) :: Supervisor.child_spec()
+  def child_spec(opts) do
+    opts = EdgeDB.Config.connect_opts(opts)
+    DBConnection.child_spec(EdgeDB.Connection, opts)
   end
 
   @spec query(connection(), String.t(), list(), query_options()) ::
@@ -81,9 +88,16 @@ defmodule EdgeDB do
   end
 
   defp prepare_execute_query(conn, query, params, opts) do
-    with {:ok, _q, %EdgeDB.Result{} = r} <-
+    with {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} <-
            DBConnection.prepare_execute(conn, query, params, opts) do
-      {:ok, EdgeDB.Result.extract(r)}
+      result =
+        if opts[:raw] do
+          {q, r}
+        else
+          EdgeDB.Result.extract(r)
+        end
+
+      {:ok, result}
     end
   end
 end

@@ -12,7 +12,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.NamedTupleTest do
         "d" => 1.0
       })
 
-    assert {:ok, ^value} =
-             EdgeDB.query_single(conn, "SELECT (a := 1, b := \"string\", c := true, d := 1.0)")
+    assert ^value =
+             EdgeDB.query_single!(conn, "SELECT (a := 1, b := \"string\", c := true, d := 1.0)")
   end
 end

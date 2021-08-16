@@ -7,24 +7,24 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
 
   test "decoding std::decimal value", %{conn: conn} do
     {value, ""} = Decimal.parse("-15000.6250000")
-    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <decimal>-15000.6250000n")
+    assert ^value = EdgeDB.query_single!(conn, "SELECT <decimal>-15000.6250000n")
   end
 
   test "encoding Decimal as std::decimal value", %{conn: conn} do
     {value, ""} = Decimal.parse("-15000.6250000")
-    assert {:ok, ^value} = EdgeDB.query_single(conn, "SELECT <decimal>$0", [value])
+    assert ^value = EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
   end
 
   test "encoding integer as std::decimal value", %{conn: conn} do
     value = 1
     expected_value = Decimal.new(1)
-    assert {:ok, ^expected_value} = EdgeDB.query_single(conn, "SELECT <decimal>$0", [value])
+    assert ^expected_value = EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
   end
 
   test "encoding float as std::decimal value", %{conn: conn} do
     value = 1.0
     {expected_value, ""} = Decimal.parse("1.0")
-    assert {:ok, ^expected_value} = EdgeDB.query_single(conn, "SELECT <decimal>$0", [value])
+    assert ^expected_value = EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
   end
 
   test "error when passing non-number as std::decimal argument", %{conn: conn} do
@@ -32,7 +32,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_single(conn, "SELECT <decimal>$0", [value])
+        EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
       end
 
     assert exc ==
@@ -44,7 +44,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
 
     exc =
       assert_raise Error, fn ->
-        EdgeDB.query_single(conn, "SELECT <decimal>$0", [value])
+        EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
       end
 
     assert exc ==
