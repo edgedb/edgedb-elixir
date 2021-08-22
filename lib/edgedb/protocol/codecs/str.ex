@@ -3,11 +3,11 @@ defmodule EdgeDB.Protocol.Codecs.Str do
 
   alias EdgeDB.Protocol.Datatypes
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::str",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000101"),
     type: String.t(),
-    calculate_size?: false
+    calculate_size: false
   )
 
   @impl EdgeDB.Protocol.Codec

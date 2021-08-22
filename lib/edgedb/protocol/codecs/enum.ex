@@ -12,7 +12,7 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
   # since we just pass data to std::str codec which will do this itself
   defcodec(
     type: String.t(),
-    calculate_size?: false
+    calculate_size: false
   )
 
   @spec new(Datatypes.UUID.t(), list(String.t())) :: Codec.t()

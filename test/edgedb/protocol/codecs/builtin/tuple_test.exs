@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.TupleTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.TupleTest do
   use EdgeDB.Case
 
   setup :edgedb_connection

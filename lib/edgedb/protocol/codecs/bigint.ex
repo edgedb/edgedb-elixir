@@ -9,7 +9,7 @@ defmodule EdgeDB.Protocol.Codecs.BigInt do
 
   @reserved 0
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::bigint",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000110"),
     type: Decimal.t()

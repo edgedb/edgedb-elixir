@@ -33,7 +33,9 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   ]
 
   defmodule State do
-    defstruct [:storage]
+    defstruct [
+      :storage
+    ]
 
     @type t() :: %__MODULE__{
             storage: :ets.tab()
@@ -43,8 +45,8 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   @type t() :: GenServer.server()
 
   @spec start_link(list()) :: GenServer.on_start()
-  def start_link(_opts \\ []) do
-    GenServer.start_link(__MODULE__, [])
+  def start_link(opts \\ []) do
+    GenServer.start_link(__MODULE__, opts)
   end
 
   @spec get(t(), Datatypes.UUID.t()) :: Codec.t() | nil
@@ -128,7 +130,7 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   end
 
   defp register_codec(storage, %Codec{} = codec) do
-    :ets.insert(storage, {codec.type_id, codec})
+    :ets.insert(storage, {Datatypes.UUID.encode_datatype(codec.type_id), codec})
     :ok
   end
 

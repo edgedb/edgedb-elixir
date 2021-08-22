@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.JSONTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.JSONTest do
   use EdgeDB.Case
 
   setup :edgedb_connection

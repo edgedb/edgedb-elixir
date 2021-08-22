@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.ScalarTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ScalarTest do
   use EdgeDB.Case
 
   setup :edgedb_connection

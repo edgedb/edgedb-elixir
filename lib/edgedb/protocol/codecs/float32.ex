@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.Float32 do
 
   alias EdgeDB.Protocol.Datatypes
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::float32",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000106"),
     type: Datatypes.Float32.t()

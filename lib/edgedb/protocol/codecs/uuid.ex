@@ -6,7 +6,7 @@ defmodule EdgeDB.Protocol.Codecs.UUID do
     Error
   }
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::uuid",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000100"),
     type: Datatypes.UUID.t()

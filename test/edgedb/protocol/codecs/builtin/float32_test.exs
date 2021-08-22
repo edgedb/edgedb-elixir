@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Flaot32Test do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Flaot32Test do
   use EdgeDB.Case
 
   alias EdgeDB.Protocol.Error

@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BigIntTest do
   use EdgeDB.Case
 
   alias EdgeDB.Protocol.Error

@@ -6,10 +6,10 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
     Error
   }
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000000"),
     type: nil,
-    calculate_size?: false
+    calculate_size: false
   )
 
   @impl EdgeDB.Protocol.Codec

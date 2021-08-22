@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.BytesTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BytesTest do
   use EdgeDB.Case
 
   alias EdgeDB.Protocol.Error

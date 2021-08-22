@@ -4,7 +4,7 @@ defmodule EdgeDB.Protocol.Codecs.RelativeDuration do
   alias EdgeDB.Protocol.Datatypes
   alias EdgeDB.RelativeDuration
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "cal::relative_duration",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000111"),
     type: RelativeDuration.t()

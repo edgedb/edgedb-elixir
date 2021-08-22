@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.RelativeDurationTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.RelativeDurationTest do
   use EdgeDB.Case
 
   alias EdgeDB.RelativeDuration

@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Codecs.Decimal do
 
   @base 10_000
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::decimal",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000108"),
     type: Decimal.t()

@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.EnumTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.EnumTest do
   use EdgeDB.Case
 
   alias EdgeDB.Protocol.Error

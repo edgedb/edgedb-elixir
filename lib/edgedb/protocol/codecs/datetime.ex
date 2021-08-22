@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Codecs.DateTime do
 
   @seconds_before_2000_1_1_utc 946_684_800
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::datetime",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010A"),
     type: DateTime.t() | integer()

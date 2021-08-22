@@ -8,11 +8,11 @@ defmodule EdgeDB.Protocol.Codecs.JSON do
 
   @format 1
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::json",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010F"),
     type: any(),
-    calculate_size?: false
+    calculate_size: false
   )
 
   # TODO: allow custom JSON libraries, but for now Jason is hardcoded

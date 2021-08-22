@@ -3,7 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.LocalTime do
 
   alias EdgeDB.Protocol.Datatypes
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "cal::local_time",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010D"),
     type: Time.t()

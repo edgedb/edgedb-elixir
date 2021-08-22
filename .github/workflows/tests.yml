@@ -81,8 +81,11 @@ jobs:
         if: steps.mix-cache.outputs.cache-hit != 'true'
         run: mix deps.get --only test
 
+      # TODO: remove default user authentication configuration
       - name: Create requried users
-        run: mix setup-roles
+        run: |
+          edgedb configure insert Auth --method SCRAM --priority 0 --user edgedb
+          mix setup-roles
 
       - name: Run tests
         run: mix coveralls

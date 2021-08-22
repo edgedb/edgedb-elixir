@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDBTest do
+defmodule Tests.APITest do
   use EdgeDB.Case
 
   setup :edgedb_connection

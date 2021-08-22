@@ -6,7 +6,7 @@ defmodule EdgeDB.Protocol.Codecs.Bool do
   @true_code 1
   @false_code 0
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "std::bool",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000109"),
     type: boolean()

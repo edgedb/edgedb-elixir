@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.UUIDTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.UUIDTest do
   use EdgeDB.Case
 
   alias EdgeDB.Protocol.Error

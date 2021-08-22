@@ -46,4 +46,15 @@ defmodule EdgeDB.Connection.QueryBuilder do
   def rollback_transaction_statement do
     "ROLLBACK"
   end
+
+  @spec scalars_type_ids_by_names_statement() :: statement()
+  def scalars_type_ids_by_names_statement do
+    """
+      SELECT schema::ScalarType {
+        id,
+        name,
+      }
+      FILTER contains(<array<str>>$0, .name)
+    """
+  end
 end

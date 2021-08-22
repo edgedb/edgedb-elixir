@@ -6,7 +6,7 @@ defmodule EdgeDB.Protocol.Codecs.LocalDateTime do
     Datatypes
   }
 
-  defbasescalarcodec(
+  defbuiltinscalarcodec(
     type_name: "cal::local_datetime",
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-00000000010B"),
     type: NaiveDateTime.t() | integer()

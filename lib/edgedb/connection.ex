@@ -9,6 +9,7 @@ defmodule EdgeDB.Connection do
   }
 
   alias EdgeDB.Protocol.{
+    Codec,
     Codecs,
     Enums,
     Error
@@ -91,6 +92,7 @@ defmodule EdgeDB.Connection do
     user = opts[:user]
     password = opts[:password]
     database = opts[:database]
+    codecs_modules = opts[:codecs] || []
 
     connect_opts =
       []
@@ -107,7 +109,8 @@ defmodule EdgeDB.Connection do
          {:ok, socket} <- open_ssl_connection(endpoints, connect_opts, timeout),
          state = State.new(socket, user, database, qc, cs, timeout),
          {:ok, state} <- handshake(password, state),
-         {:ok, state} <- wait_for_server_ready(state) do
+         {:ok, state} <- wait_for_server_ready(state),
+         {:ok, state} <- initialize_custom_codecs(codecs_modules, state) do
       {:ok, state}
     else
       {:error, :no_endpoints} ->
@@ -736,6 +739,55 @@ defmodule EdgeDB.Connection do
     QueriesCache.add(queries_cache, query)
 
     query
+  end
+
+  defp initialize_custom_codecs([], %State{} = state) do
+    {:ok, state}
+  end
+
+  defp initialize_custom_codecs(codecs_modules, %State{codecs_storage: cs} = state) do
+    codecs =
+      Enum.map(codecs_modules, fn codec_mod ->
+        codec_mod.new()
+      end)
+
+    names =
+      Enum.map(codecs, fn codec ->
+        codec.type_name
+      end)
+
+    statement = QueryBuilder.scalars_type_ids_by_names_statement()
+
+    query =
+      statement
+      |> EdgeDB.Query.new([names])
+      |> DBConnection.Query.parse([])
+
+    with {:ok, query, state} <- prepare_query(query, [], state),
+         encoded_params = DBConnection.Query.encode(query, query.params, []),
+         {:ok, query, result, state} <- execute_query(query, encoded_params, state) do
+      types =
+        result
+        |> EdgeDB.Result.decode(query.output_codec)
+        |> EdgeDB.Result.extract()
+
+      Enum.each(codecs, fn %Codec{type_name: name} = codec ->
+        scalar_object =
+          Enum.find(types, fn type ->
+            type[:name] == name
+          end)
+
+        case scalar_object do
+          %EdgeDB.Object{id: type_id} ->
+            Codecs.Storage.register(cs, %Codec{codec | type_id: type_id})
+
+          _other ->
+            Logger.warn("skip registration of codec for unknown type with name #{inspect(name)}")
+        end
+      end)
+
+      {:ok, state}
+    end
   end
 
   defp send_message(message, state) do

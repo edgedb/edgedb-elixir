@@ -38,7 +38,8 @@ defmodule EdgeDB.Protocol.Codec do
         only: [
           defcodec: 0,
           defcodec: 1,
-          defbasescalarcodec: 0,
+          defscalarcodec: 1,
+          defbuiltinscalarcodec: 1,
           defbasescalarcodec: 1
         ]
 
@@ -47,8 +48,8 @@ defmodule EdgeDB.Protocol.Codec do
   end
 
   defmacro defcodec(opts \\ []) do
-    type = Keyword.fetch!(opts, :type)
-    calculate_size? = Keyword.get(opts, :calculate_size?, true)
+    type = Keyword.get(opts, :type)
+    calculate_size? = Keyword.get(opts, :calculate_size, true)
 
     quote do
       @type t() :: unquote(type)
@@ -65,19 +66,48 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  defmacro defscalarcodec(opts \\ []) do
+    # ensure required opts present in declaration since it's macros for custom codecs
+    # which type_ids will fetched by names
+    _type_name = Keyword.fetch!(opts, :type_name)
+
+    quote do
+      defbasescalarcodec(unquote(opts))
+    end
+  end
+
+  defmacro defbuiltinscalarcodec(opts \\ []) do
+    # ensure required opts present in declaration since it's macros for builtin codecs
+    _type = Keyword.fetch!(opts, :type)
+    _type_id = Keyword.fetch!(opts, :type_id)
+
+    quote do
+      defbasescalarcodec(unquote(opts))
+    end
+  end
+
   defmacro defbasescalarcodec(opts \\ []) do
-    calculate_size? = Keyword.get(opts, :calculate_size?, true)
-    type_name = Keyword.get(opts, :type_name)
-    type_id = Keyword.fetch!(opts, :type_id)
-    type = Keyword.fetch!(opts, :type)
+    has_type? = Keyword.has_key?(opts, :type)
+    has_type_id? = Keyword.has_key?(opts, :type_id)
+    has_type_name? = Keyword.has_key?(opts, :type_name)
+    calculate_size? = Keyword.get(opts, :calculate_size, true)
 
     quote do
       @behaviour unquote(__MODULE__)
 
-      @type t() :: unquote(type)
+      if unquote(has_type?) do
+        @type t() :: unquote(opts[:type])
+      else
+        @type t() :: term()
+      end
 
-      @type_name unquote(type_name)
-      @type_id unquote(type_id)
+      if unquote(has_type_id?) do
+        @type_id unquote(opts[:type_id])
+      end
+
+      if unquote(has_type_name?) do
+        @type_name unquote(opts[:type_name])
+      end
 
       @spec new() :: unquote(__MODULE__).t()
       def new do
@@ -94,14 +124,16 @@ defmodule EdgeDB.Protocol.Codec do
           )
 
         %unquote(__MODULE__){
-          type_id: @type_id,
-          type_name: @type_name,
+          type_id: unquote(opts[:type_id]),
+          type_name: unquote(opts[:type_name]),
           encoder: encoder,
           decoder: decoder,
           module: __MODULE__,
           scalar?: true
         }
       end
+
+      defoverridable new: 0
     end
   end
 
