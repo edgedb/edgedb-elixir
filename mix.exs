@@ -40,7 +40,7 @@ defmodule EdgeDB.MixProject do
     [
       # core
       {:db_connection, "~> 2.0"},
-      {:uuid, "~> 1.1"},
+      {:elixir_uuid, "~> 1.2"},
       {:decimal, "~> 2.0"},
       {:jason, "~> 1.2"},
       # dev/test
