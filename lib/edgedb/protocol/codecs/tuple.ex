@@ -28,8 +28,8 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
 
   def encode_tuple(instance, codecs)
       when is_tuple(instance) and tuple_size(instance) != length(codecs) do
-    expected_length = tuple_size(instance)
-    passed_length = length(codecs)
+    expected_length = length(codecs)
+    passed_length = tuple_size(instance)
 
     raise Error.invalid_argument_error(
             "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
@@ -44,8 +44,8 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
 
   def encode_tuple(instance, codecs)
       when is_list(instance) and length(instance) != length(codecs) do
-    expected_length = length(instance)
-    passed_length = length(codecs)
+    expected_length = length(codecs)
+    passed_length = length(instance)
 
     raise Error.invalid_argument_error(
             "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
@@ -56,9 +56,13 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
     encoded_elements =
       instance
       |> Enum.zip(codecs)
-      |> Enum.map(fn {value, codec} ->
-        element_data = Codec.encode(codec, value)
-        tuple_element(data: element_data)
+      |> Enum.map(fn
+        {nil, _codec} ->
+          tuple_element(data: :empty_set)
+
+        {value, codec} ->
+          element_data = Codec.encode(codec, value)
+          tuple_element(data: element_data)
       end)
       |> Types.TupleElement.encode(raw: true)
 

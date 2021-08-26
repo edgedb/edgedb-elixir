@@ -5,13 +5,22 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
 
   @reserved 0
   @empty_set_element_length -1
+  @empty_set [
+    Datatypes.Int32.encode(@reserved),
+    Datatypes.Int32.encode(@empty_set_element_length)
+  ]
 
   deftype(
     name: :tuple_element,
     fields: [
-      data: Datatypes.Bytes.t()
+      data: Datatypes.Bytes.t() | :empty_set
     ]
   )
+
+  @impl EdgeDB.Protocol.Type
+  def encode_type(tuple_element(data: :empty_set)) do
+    @empty_set
+  end
 
   @impl EdgeDB.Protocol.Type
   def encode_type(tuple_element(data: data)) do

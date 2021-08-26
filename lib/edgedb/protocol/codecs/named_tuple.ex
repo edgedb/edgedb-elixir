@@ -75,11 +75,15 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     descriptor_elements
     |> Enum.zip(codecs)
     |> Enum.map(fn {named_tuple_descriptor_element(name: name), codec} ->
-      value = instance[name]
-      Codec.encode(codec, value)
+      {instance[name], codec}
     end)
-    |> Enum.map(fn element_data ->
-      tuple_element(data: element_data)
+    |> Enum.map(fn
+      {nil, _codec} ->
+        tuple_element(data: :empty_set)
+
+      {value, codec} ->
+        element_data = Codec.encode(codec, value)
+        tuple_element(data: element_data)
     end)
     |> Types.TupleElement.encode(raw: true)
   end
