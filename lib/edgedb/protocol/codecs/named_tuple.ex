@@ -95,7 +95,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
                           codec} ->
       {name, Codec.decode(codec, data)}
     end)
-    |> EdgeDB.NamedTuple.new()
+    |> create_named_tuple()
   end
 
   defp verify_all_members_passed!(instance, elements) do
@@ -140,5 +140,16 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     else
       error_message
     end
+  end
+
+  defp create_named_tuple(elements) do
+    values =
+      elements
+      |> Map.values()
+      |> List.to_tuple()
+
+    keys = Map.keys(elements)
+
+    %EdgeDB.NamedTuple{__keys__: keys, __values__: values}
   end
 end

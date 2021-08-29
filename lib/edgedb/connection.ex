@@ -553,7 +553,7 @@ defmodule EdgeDB.Connection do
          {:ok, {message, buffer}} <- receive_message(state) do
       handle_optimistic_execute_flow(
         query,
-        EdgeDB.Result.new(query.cardinality),
+        %EdgeDB.Result{cardinality: query.cardinality},
         message,
         %State{state | buffer: buffer}
       )
@@ -601,7 +601,7 @@ defmodule EdgeDB.Connection do
          {:ok, {message, buffer}} <- receive_message(state) do
       handle_execute_flow(
         query,
-        EdgeDB.Result.new(query.cardinality),
+        %EdgeDB.Result{cardinality: query.cardinality},
         message,
         %State{state | buffer: buffer}
       )
@@ -609,19 +609,27 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_execute_flow(
-         %EdgeDB.Query{} = query,
-         result,
+         query,
+         %EdgeDB.Result{set: encoded_elements} = result,
          data(data: [data_element(data: data)]),
          state
        ) do
-    result = EdgeDB.Result.add_encoded_data(result, data)
-
     with {:ok, {message, buffer}} <- receive_message(state) do
-      handle_execute_flow(query, result, message, %State{state | buffer: buffer})
+      handle_execute_flow(
+        query,
+        %EdgeDB.Result{result | set: [data | encoded_elements]},
+        message,
+        %State{state | buffer: buffer}
+      )
     end
   end
 
-  defp handle_execute_flow(query, result, command_complete(status: status), state) do
+  defp handle_execute_flow(
+         query,
+         %EdgeDB.Result{} = result,
+         command_complete(status: status),
+         state
+       ) do
     with {:ok, state} <- wait_for_server_ready(state) do
       {:ok, query, %EdgeDB.Result{result | statement: status}, state}
     end
@@ -664,7 +672,7 @@ defmodule EdgeDB.Connection do
 
   defp close_prepared_query(query, %State{} = state) do
     QueriesCache.clear(state.queries_cache, query)
-    {:ok, EdgeDB.Result.closed_query(), state}
+    {:ok, closed_query_result(), state}
   end
 
   defp start_transaction(opts, state) do
@@ -757,18 +765,14 @@ defmodule EdgeDB.Connection do
       end)
 
     statement = QueryBuilder.scalars_type_ids_by_names_statement()
-
-    query =
-      statement
-      |> EdgeDB.Query.new([names])
-      |> DBConnection.Query.parse([])
+    query = DBConnection.Query.parse(%EdgeDB.Query{statement: statement, params: [names]}, [])
 
     with {:ok, query, state} <- prepare_query(query, [], state),
          encoded_params = DBConnection.Query.encode(query, query.params, []),
          {:ok, query, result, state} <- execute_query(query, encoded_params, state) do
       types =
-        result
-        |> EdgeDB.Result.decode(query.output_codec)
+        query
+        |> DBConnection.Query.decode(result, [])
         |> EdgeDB.Result.extract()
 
       Enum.each(codecs, fn %Codec{type_name: name} = codec ->
@@ -862,5 +866,9 @@ defmodule EdgeDB.Connection do
 
   defp status(%State{server_state: :in_failed_transaction}) do
     :error
+  end
+
+  defp closed_query_result do
+    %EdgeDB.Result{statement: :closed, cardinality: :no_result}
   end
 end

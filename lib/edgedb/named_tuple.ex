@@ -8,34 +8,18 @@ defmodule EdgeDB.NamedTuple do
     :__values__
   ]
 
-  @opaque t() :: %__MODULE__{
+  @opaque named_tuple() :: %__MODULE__{
             __keys__: list(String.t()),
             __values__: tuple()
           }
+  @type t() :: %__MODULE__{}
 
-  @spec new(map()) :: t()
-  def new(items) do
-    elements =
-      items
-      |> Map.values()
-      |> List.to_tuple()
-
-    keys = Map.keys(items)
-
-    new(keys, elements)
-  end
-
-  @spec new(list(String.t()), tuple()) :: t()
-  def new(keys, values) do
-    %__MODULE__{__keys__: keys, __values__: values}
-  end
-
-  @spec to_tuple(t()) :: tuple()
+  @spec to_tuple(named_tuple()) :: tuple()
   def to_tuple(%__MODULE__{__values__: values}) do
     values
   end
 
-  @spec keys(t()) :: list(String.t())
+  @spec keys(named_tuple()) :: list(String.t())
   def keys(%__MODULE__{__keys__: keys}) do
     keys
   end
