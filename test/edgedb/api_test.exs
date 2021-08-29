@@ -14,6 +14,12 @@ defmodule Tests.APITest do
     end
   end
 
+  describe "EdgeDB.query_json/4" do
+    test "returns decoded JSON on succesful query", %{conn: conn} do
+      assert {:ok, "[{\"number\" : 1}]"} = EdgeDB.query_json(conn, "SELECT { number := 1 }")
+    end
+  end
+
   describe "EdgeDB.query!/4" do
     test "returns EdgeDB.Set on succesful query", %{conn: conn} do
       assert %EdgeDB.Set{} = EdgeDB.query!(conn, "SELECT 1")
@@ -26,17 +32,46 @@ defmodule Tests.APITest do
     end
   end
 
+  describe "EdgeDB.query_json!/4" do
+    test "returns decoded JSON on succesful query", %{conn: conn} do
+      assert "[{\"number\" : 1}]" = EdgeDB.query_json!(conn, "SELECT { number := 1 }")
+    end
+  end
+
   describe "EdgeDB.query_single/4" do
     test "returns result on succesful query", %{conn: conn} do
       assert {:ok, 1} = EdgeDB.query_single(conn, "SELECT 1")
     end
 
-    test "returns error on failed query", %{conn: conn} do
+    test "raises error on failed query", %{conn: conn} do
+      {:error, %EdgeDB.Protocol.Error{}} =
+        EdgeDB.query_single(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
+    end
+  end
+
+  describe "EdgeDB.query_single!/4" do
+    test "returns result on succesful query", %{conn: conn} do
+      assert 1 = EdgeDB.query_single!(conn, "SELECT 1")
+    end
+
+    test "raises error on failed query", %{conn: conn} do
       assert_raise EdgeDB.Protocol.Error, fn ->
         EdgeDB.transaction(conn, fn conn ->
           EdgeDB.query_single!(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
         end)
       end
+    end
+  end
+
+  describe "EdgeDB.query_single_json/4" do
+    test "returns decoded JSON on succesful query", %{conn: conn} do
+      assert {:ok, "{\"number\" : 1}"} = EdgeDB.query_single_json(conn, "SELECT { number := 1 }")
+    end
+  end
+
+  describe "EdgeDB.query_single_json!/4" do
+    test "returns decoded JSON on succesful query", %{conn: conn} do
+      assert "{\"number\" : 1}" = EdgeDB.query_single_json!(conn, "SELECT { number := 1 }")
     end
   end
 

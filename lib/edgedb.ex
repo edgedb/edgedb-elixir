@@ -64,6 +64,18 @@ defmodule EdgeDB do
     end
   end
 
+  @spec query_json(connection(), String.t(), list(), query_options()) ::
+          {:ok, result()}
+          | {:error, Exception.t()}
+  def query_json(conn, statement, params \\ [], opts \\ []) do
+    query(conn, statement, params, Keyword.merge(opts, io_format: :json))
+  end
+
+  @spec query_json!(connection(), String.t(), list(), query_options()) :: result()
+  def query_json!(conn, statement, params \\ [], opts \\ []) do
+    query!(conn, statement, params, Keyword.merge(opts, io_format: :json))
+  end
+
   @spec query_single(connection(), String.t(), list(), query_options()) ::
           {:ok, result()}
           | {:error, Exception.t()}
@@ -82,6 +94,28 @@ defmodule EdgeDB do
     end
   end
 
+  @spec query_single_json(connection(), String.t(), list(), query_options()) ::
+          {:ok, result()}
+          | {:error, Exception.t()}
+  def query_single_json(conn, statement, params \\ [], opts \\ []) do
+    query_json(
+      conn,
+      statement,
+      params,
+      Keyword.merge(opts, cardinality: :at_most_one)
+    )
+  end
+
+  @spec query_single_json!(connection(), String.t(), list(), query_options()) :: result()
+  def query_single_json!(conn, statement, params \\ [], opts \\ []) do
+    query_json!(
+      conn,
+      statement,
+      params,
+      Keyword.merge(opts, cardinality: :at_most_one)
+    )
+  end
+
   @spec transaction(connection(), (DBConnection.t() -> result()), transaction_options()) ::
           {:ok, result()}
           | {:error, term()}
@@ -98,10 +132,19 @@ defmodule EdgeDB do
     with {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} <-
            DBConnection.prepare_execute(conn, query, params, opts) do
       result =
-        if opts[:raw] do
-          {q, r}
-        else
-          EdgeDB.Result.extract(r)
+        cond do
+          opts[:raw] ->
+            {q, r}
+
+          opts[:io_format] == :json ->
+            # in result set there will be only a single value
+
+            r
+            |> Map.put(:cardinality, :at_most_one)
+            |> EdgeDB.Result.extract()
+
+          true ->
+            EdgeDB.Result.extract(r)
         end
 
       {:ok, result}
