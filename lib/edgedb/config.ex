@@ -8,37 +8,33 @@ defmodule EdgeDB.Config do
 
   @type connect_options() :: list(EdgeDB.connect_option())
 
+  @default_port 5656
+
   # options priority:
   # 1. explicitly passed options
   # 2. options from config/#{env}.exs
   # 3. options parsed from passed DSN (either as explicitly passed or from config)
-  # 4. options parsed from instance credentials file
+  # 4. options parsed from instance credentials file if
+  # if instance name passed or if inside EdgeDB project
   # 5. options parsed from environment variables
-  # 6. default options
+  # 6. default options (user, database, host, port)
   @spec connect_opts(connect_options()) :: connect_options()
   def connect_opts(opts \\ []) do
     opts = clear_opts(opts)
     opts = Keyword.merge(opts_from_config(), opts)
 
     dsn = opts[:dsn] || from_config(:dsn)
-    endpoints = opts[:endpoints]
 
     opts =
-      cond do
-        not is_nil(dsn) ->
-          dsn
-          |> opts_from_dsn()
-          |> Keyword.merge(opts)
-
-        endpoints ->
-          opts
-
-        true ->
-          instance = instance_name()
-
-          instance
-          |> Credentials.read_creadentials()
-          |> Keyword.merge(opts)
+      if is_nil(dsn) do
+        opts
+        |> instance_name()
+        |> Credentials.read_creadentials()
+        |> Keyword.merge(opts)
+      else
+        dsn
+        |> opts_from_dsn()
+        |> Keyword.merge(opts)
       end
 
     opts =
@@ -57,16 +53,21 @@ defmodule EdgeDB.Config do
   end
 
   defp process_endpoints(opts) do
-    host = opts[:host]
-    port = opts[:port]
-    endpoints = [{host, port} | opts[:endpoints] || []]
+    endpoints =
+      cond do
+        endpoints = opts[:endpoints] ->
+          endpoints
+
+        host = opts[:host] ->
+          [{host, opts[:port]}]
+
+        true ->
+          raise Error.interface_error("no endpoints defined to connect to the server")
+      end
 
     endpoints =
       endpoints
       |> Enum.map(fn
-        "/" <> _socket_path = path ->
-          {{:local, path}, 0}
-
         {"/" <> _socket_path = path, port} ->
           path =
             if String.contains?(path, ".s.EDGEDB.") do
@@ -77,8 +78,21 @@ defmodule EdgeDB.Config do
 
           {{:local, path}, 0}
 
+        "/" <> _socket_path = path ->
+          path =
+            if String.contains?(path, ".s.EDGEDB.") do
+              path
+            else
+              Path.join(path, ".s.EDGEDB.#{@default_port}")
+            end
+
+          {{:local, path}, 0}
+
         {host, port} ->
           {to_charlist(host), port}
+
+        host ->
+          {to_charlist(host), @default_port}
       end)
       |> Enum.uniq()
 
@@ -113,7 +127,7 @@ defmodule EdgeDB.Config do
       Keyword.merge(
         [
           host: "localhost",
-          port: 5656
+          port: @default_port
         ],
         opts
       )
@@ -122,6 +136,7 @@ defmodule EdgeDB.Config do
 
   defp opts_from_config do
     clear_opts(
+      instance: from_config(:instance),
       host: from_config(:host),
       port: from_config(:port),
       endpoints: from_config(:endpoints),
@@ -134,9 +149,19 @@ defmodule EdgeDB.Config do
   end
 
   defp opts_from_env do
+    port =
+      case from_env("EDGEDB_PORT") do
+        nil ->
+          nil
+
+        port ->
+          {port, ""} = Integer.parse(port)
+          port
+      end
+
     clear_opts(
       host: from_env("EDGEDB_HOST"),
-      port: from_env("EDGEDB_PORT"),
+      port: port,
       user: from_env("EDGEDB_USER"),
       password: from_env("EDGEDB_PASSWORD"),
       database: from_env("EDGEDB_DATABASE")
@@ -166,9 +191,20 @@ defmodule EdgeDB.Config do
       end
 
     []
-    |> Keyword.put(:host, dsn.host || query["host"])
+    |> Keyword.put_new_lazy(:host, fn ->
+      case dsn.host || query["host"] do
+        "" ->
+          nil
+
+        nil ->
+          nil
+
+        host ->
+          host
+      end
+    end)
     |> Keyword.put(:port, dsn.port || query["port"])
-    |> Keyword.put(:database, fn ->
+    |> Keyword.put_new_lazy(:database, fn ->
       dsn_db =
         case dsn.path do
           "/" <> database ->
@@ -180,7 +216,7 @@ defmodule EdgeDB.Config do
 
       dsn_db || query["dbname"] || query["database"]
     end)
-    |> Keyword.put(:user, fn ->
+    |> Keyword.put_new_lazy(:user, fn ->
       user =
         with userinfo when is_binary(userinfo) <- dsn.userinfo,
              [user | _other] <- String.split(userinfo, ":", parts: 2) do
@@ -192,10 +228,10 @@ defmodule EdgeDB.Config do
 
       user || query["user"]
     end)
-    |> Keyword.put(:password, fn ->
+    |> Keyword.put_new_lazy(:password, fn ->
       password =
         with userinfo when is_binary(userinfo) <- dsn.userinfo,
-             [_user | password] <- String.split(userinfo, ":", parts: 2) do
+             [_user, password] <- String.split(userinfo, ":", parts: 2) do
           password
         else
           _other ->
@@ -229,8 +265,8 @@ defmodule EdgeDB.Config do
     |> clear_opts()
   end
 
-  defp instance_name do
-    if instance = from_env("EDGEDB_INSTANCE") do
+  defp instance_name(opts) do
+    if instance = opts[:instance] || from_env("EDGEDB_INSTANCE") do
       instance
     else
       dir = File.cwd!()
