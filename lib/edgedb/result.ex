@@ -32,7 +32,7 @@ defmodule EdgeDB.Result do
     |> List.first()
   end
 
-  def extract(%__MODULE__{cardinality: :many, set: set}) do
+  def extract(%__MODULE__{cardinality: :many, set: %EdgeDB.Set{} = set}) do
     set
   end
 
