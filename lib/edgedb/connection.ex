@@ -28,6 +28,7 @@ defmodule EdgeDB.Connection do
   @major_ver 0
   @minor_ver 11
   @minor_ver_min 11
+  @edgedb_alpn_protocol "edgedb-binary"
 
   defmodule State do
     defstruct [
@@ -254,12 +255,12 @@ defmodule EdgeDB.Connection do
   end
 
   defp open_ssl_connection([{host, port}], opts, timeout) do
-    :ssl.connect(host, port, opts, timeout)
+    open_ssl_connection(host, port, opts, timeout)
   end
 
   defp open_ssl_connection(endpoints, opts, timeout) do
     Enum.reduce_while(endpoints, {:error, []}, fn {host, port}, {:error, connect_errors} ->
-      case :ssl.connect(host, port, opts, timeout) do
+      case open_ssl_connection(host, port, opts, timeout) do
         {:ok, socket} ->
           {:halt, {:ok, socket}}
 
@@ -267,6 +268,13 @@ defmodule EdgeDB.Connection do
           {:cont, {:error, [{{host, port}, reason} | connect_errors]}}
       end
     end)
+  end
+
+  defp open_ssl_connection(host, port, opts, timeout) do
+    with {:ok, socket} <- :ssl.connect(host, port, opts, timeout),
+         {:ok, @edgedb_alpn_protocol} <- :ssl.negotiated_protocol(socket) do
+      {:ok, socket}
+    end
   end
 
   defp add_custom_edgedb_ssl_opts(opts, edgedb_opts) do
@@ -300,7 +308,7 @@ defmodule EdgeDB.Connection do
         opts
       end
 
-    Keyword.put(opts, :alpn_advertised_protocols, ["edgedb-binary"])
+    Keyword.put(opts, :alpn_advertised_protocols, [@edgedb_alpn_protocol])
   end
 
   defp handshake(password, %State{} = state) do
