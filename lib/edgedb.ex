@@ -17,6 +17,7 @@ defmodule EdgeDB do
 
   @type query_option() ::
           {:cardinality, Enums.Cardinality.t()}
+          | {:io_format, Enums.IOFormat.t()}
           | DBConnection.option()
   @type query_options() :: list(query_option())
 
@@ -42,7 +43,13 @@ defmodule EdgeDB do
           {:ok, result()}
           | {:error, Exception.t()}
   def query(conn, statement, params \\ [], opts \\ []) do
-    q = EdgeDB.Query.new(statement, params, opts)
+    q = %EdgeDB.Query{
+      statement: statement,
+      cardinality: Keyword.get(opts, :cardinality, :many),
+      io_format: Keyword.get(opts, :io_format, :binary),
+      params: params
+    }
+
     prepare_execute_query(conn, q, q.params, opts)
   end
 

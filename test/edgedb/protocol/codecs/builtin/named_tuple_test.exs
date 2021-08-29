@@ -5,7 +5,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.NamedTupleTest do
 
   test "decoding named tuple value", %{conn: conn} do
     value =
-      EdgeDB.NamedTuple.new(%{
+      new_named_tuple(%{
         "a" => 1,
         "b" => "string",
         "c" => true,
@@ -24,5 +24,17 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.NamedTupleTest do
   test "encoding nil as valid argument", %{conn: conn} do
     assert set = %EdgeDB.Set{} = EdgeDB.query!(conn, "SELECT <OPTIONAL str>$arg", arg: nil)
     assert EdgeDB.Set.empty?(set)
+  end
+
+  defp new_named_tuple(%{} = elements) do
+    values =
+      elements
+      |> Map.values()
+      |> List.to_tuple()
+
+    %EdgeDB.NamedTuple{
+      __keys__: Map.keys(elements),
+      __values__: values
+    }
   end
 end

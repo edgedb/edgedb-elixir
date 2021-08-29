@@ -12,6 +12,8 @@ defmodule EdgeDB.Protocol.Codecs.Object do
     Types
   }
 
+  @empty_set %EdgeDB.Set{__items__: MapSet.new()}
+
   defcodec(type: EdgeDB.Object.t())
 
   @spec new(Datatypes.UUID.t(), list(Types.ShapeElement.t()), list(Codec.t())) :: Codec.t()
@@ -46,9 +48,9 @@ defmodule EdgeDB.Protocol.Codecs.Object do
       ) do
     {encoded_elements, <<>>} = Types.TupleElement.decode(nelems, elements_data)
 
-    fields = decode_fields(encoded_elements, object_shape_elements, codecs)
-
-    EdgeDB.Object.from_fields(fields)
+    encoded_elements
+    |> decode_fields(object_shape_elements, codecs)
+    |> create_object_from_fields()
   end
 
   defp decode_fields(object_fields, shape_elements, codecs) do
@@ -62,7 +64,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
   defp decode_field_data(tuple_element(data: :empty_set), shape_element(name: name) = se, _codec) do
     %EdgeDB.Object.Field{
       name: name,
-      value: EdgeDB.Set.new(),
+      value: @empty_set,
       link?: link?(se),
       link_property?: link_property?(se),
       implicit?: implicit?(se)
@@ -88,6 +90,38 @@ defmodule EdgeDB.Protocol.Codecs.Object do
       else
         e
       end
+    end)
+  end
+
+  defp create_object_from_fields(fields) do
+    id =
+      case find_field(fields, "id") do
+        nil ->
+          nil
+
+        field ->
+          field.value
+      end
+
+    type_id =
+      case find_field(fields, "__tid__") do
+        nil ->
+          nil
+
+        field ->
+          field.value
+      end
+
+    %EdgeDB.Object{
+      id: id,
+      __tid__: type_id,
+      __fields__: fields
+    }
+  end
+
+  defp find_field(fields, name_to_find) do
+    Enum.find(fields, fn %{name: name} ->
+      name == name_to_find
     end)
   end
 end

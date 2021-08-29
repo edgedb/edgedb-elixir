@@ -3,28 +3,14 @@ defmodule EdgeDB.Set do
     :__items__
   ]
 
-  @type t() :: %__MODULE__{
-          __items__: MapSet.t()
-        }
+  @opaque set() :: %__MODULE__{
+            __items__: MapSet.t()
+          }
+  @type t() :: %__MODULE__{}
 
-  @spec empty?(t()) :: boolean()
+  @spec empty?(set()) :: boolean()
   def empty?(%__MODULE__{__items__: items}) do
     MapSet.size(items) == 0
-  end
-
-  @spec new() :: t()
-  def new do
-    %EdgeDB.Set{__items__: MapSet.new()}
-  end
-
-  @spec new(Enumerable.t()) :: t()
-  def new(elements) do
-    %EdgeDB.Set{__items__: MapSet.new(elements)}
-  end
-
-  @spec add(t(), term()) :: t()
-  def add(%EdgeDB.Set{__items__: items} = set, value) do
-    %EdgeDB.Set{set | __items__: MapSet.put(items, value)}
   end
 end
 

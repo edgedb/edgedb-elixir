@@ -14,11 +14,14 @@ defmodule EdgeDB.Object do
     :id
   ]
 
-  @opaque t() :: %__MODULE__{
+  @opaque object() :: %__MODULE__{
             __fields__: list(Field.t()),
             __tid__: Datatypes.UUID.t() | nil,
             id: Datatypes.UUID.t() | nil
           }
+  @type t() :: %__MODULE__{
+          id: Datatypes.UUID.t() | nil
+        }
 
   @impl Access
   def fetch(%__MODULE__{} = object, key) when is_atom(key) do
@@ -44,33 +47,6 @@ defmodule EdgeDB.Object do
   @impl Access
   def pop(%__MODULE__{}, _key) do
     raise Error.interface_error("objects can't be mutated")
-  end
-
-  @spec from_fields(list(Field.t())) :: t()
-  def from_fields(fields) do
-    id =
-      case find_field(fields, "id") do
-        nil ->
-          nil
-
-        field ->
-          field.value
-      end
-
-    type_id =
-      case find_field(fields, "__tid__") do
-        nil ->
-          nil
-
-        field ->
-          field.value
-      end
-
-    %__MODULE__{
-      id: id,
-      __tid__: type_id,
-      __fields__: fields
-    }
   end
 
   defp find_field(fields, name_to_find) do

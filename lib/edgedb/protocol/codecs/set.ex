@@ -14,6 +14,8 @@ defmodule EdgeDB.Protocol.Codecs.Set do
     Types
   }
 
+  @empty_set %EdgeDB.Set{__items__: MapSet.new()}
+
   defcodec(type: EdgeDB.Set.t())
 
   @spec new(Datatypes.UUID.t(), Codec.t()) :: Codec.t()
@@ -37,7 +39,7 @@ defmodule EdgeDB.Protocol.Codecs.Set do
   @spec decode_set(bitstring(), Codec.t()) :: t()
 
   def decode_set(<<0::int32, _reserved0::int32, _reserved1::int32, _rest::binary>>, _codec) do
-    EdgeDB.Set.new()
+    @empty_set
   end
 
   def decode_set(<<ndims::int32, _reserved0::int32, _reserved1::int32, rest::binary>>, codec) do
@@ -57,7 +59,7 @@ defmodule EdgeDB.Protocol.Codecs.Set do
           decode_elements(codec, elements_count, rest)
       end
 
-    EdgeDB.Set.new(elements)
+    create_set(elements)
   end
 
   defp decode_envelopes(codec, elements_count, data) do
@@ -76,5 +78,9 @@ defmodule EdgeDB.Protocol.Codecs.Set do
     Enum.into(raw_elements, [], fn array_element(data: data) ->
       Codec.decode(codec, data)
     end)
+  end
+
+  defp create_set(elements) do
+    %EdgeDB.Set{__items__: MapSet.new(elements)}
   end
 end

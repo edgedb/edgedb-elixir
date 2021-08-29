@@ -23,21 +23,6 @@ defmodule EdgeDB.Query do
           cached?: boolean(),
           params: list(any())
         }
-
-  @type option() ::
-          {:cardinality, Enums.Cardinality.t()}
-          | {:io_format, Enums.IOFormat.t()}
-  @type options() :: list(option())
-
-  @spec new(String.t(), list(any()), options()) :: t()
-  def new(statement, params, opts \\ []) do
-    %__MODULE__{
-      statement: statement,
-      cardinality: Keyword.get(opts, :cardinality, :many),
-      io_format: Keyword.get(opts, :io_format, :binary),
-      params: params
-    }
-  end
 end
 
 defimpl DBConnection.Query, for: EdgeDB.Query do
@@ -46,14 +31,16 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
     Error
   }
 
+  @empty_set %EdgeDB.Set{__items__: MapSet.new()}
+
   @impl DBConnection.Query
-  def decode(_query, %EdgeDB.Result{decoded?: true}, _opts) do
+  def decode(%EdgeDB.Query{}, %EdgeDB.Result{set: %EdgeDB.Set{}}, _opts) do
     raise Error.interface_error("result has been decoded")
   end
 
   @impl DBConnection.Query
   def decode(%EdgeDB.Query{output_codec: out_codec}, %EdgeDB.Result{} = result, _opts) do
-    EdgeDB.Result.decode(result, out_codec)
+    decode_result(result, out_codec)
   end
 
   @impl DBConnection.Query
@@ -79,5 +66,25 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
   @impl DBConnection.Query
   def parse(query, _opts) do
     query
+  end
+
+  defp decode_result(%EdgeDB.Result{cardinality: :no_result} = result, _codec) do
+    result
+  end
+
+  defp decode_result(%EdgeDB.Result{} = result, codec) do
+    encoded_set = result.set
+    result = %EdgeDB.Result{result | set: @empty_set}
+
+    encoded_set
+    |> Enum.reverse()
+    |> Enum.reduce(result, fn data, %EdgeDB.Result{set: set} = result ->
+      element = Codec.decode(codec, data)
+      %EdgeDB.Result{result | set: add_element_into_set(set, element)}
+    end)
+  end
+
+  defp add_element_into_set(%EdgeDB.Set{__items__: items} = set, element) do
+    %EdgeDB.Set{set | __items__: MapSet.put(items, element)}
   end
 end
