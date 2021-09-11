@@ -111,4 +111,45 @@ defmodule Tests.APITest do
         end)
     end
   end
+
+  describe "EdgeDB.as_readonly/2" do
+    setup %{conn: conn} do
+      %{conn: EdgeDB.as_readonly(conn)}
+    end
+
+    test "setups connection that will fail for non-readonly requests", %{conn: conn} do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.query!(conn, "INSERT Ticket")
+        end
+
+      assert exc.name == "DisabledCapabilityError"
+    end
+
+    test "setups connection that will fail for non-readonly requests in transaction", %{
+      conn: conn
+    } do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.transaction(conn, fn conn ->
+            EdgeDB.query!(conn, "INSERT Ticket")
+          end)
+        end
+
+      assert exc.name == "DisabledCapabilityError"
+    end
+
+    test "setups connection that executes readonly requests", %{conn: conn} do
+      assert 1 == EdgeDB.query_single!(conn, "SELECT 1")
+    end
+
+    test "setups connection that executes readonly requests in transaction", %{
+      conn: conn
+    } do
+      assert {:ok, 1} ==
+               EdgeDB.transaction(conn, fn conn ->
+                 EdgeDB.query_single!(conn, "SELECT 1")
+               end)
+    end
+  end
 end

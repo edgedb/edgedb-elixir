@@ -1,7 +1,8 @@
 defmodule EdgeDB do
+  alias EdgeDB.Connection.InternalRequest
   alias EdgeDB.Protocol.Enums
 
-  @type connection() :: DBConnection.conn()
+  @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
 
   @type connect_option() ::
           {:host, String.t()}
@@ -13,33 +14,32 @@ defmodule EdgeDB do
   @type start_option() ::
           connect_option()
           | DBConnection.start_option()
-  @type start_options() :: list(start_option())
 
   @type query_option() ::
           {:cardinality, Enums.Cardinality.t()}
           | {:io_format, Enums.IOFormat.t()}
           | DBConnection.option()
-  @type query_options() :: list(query_option())
 
   @type transaction_option() :: DBConnection.option()
-  @type transaction_options() :: list(transaction_option())
+
+  @type as_readonly_option() :: {atom(), any()}
 
   @type raw_result() :: {EdgeDB.Query.t(), EdgeDB.Result.t()}
   @type result() :: EdgeDB.Set.t() | term() | raw_result()
 
-  @spec start_link(start_options()) :: GenServer.on_start()
+  @spec start_link(list(start_option())) :: GenServer.on_start()
   def start_link(opts \\ []) do
     opts = EdgeDB.Config.connect_opts(opts)
     DBConnection.start_link(EdgeDB.Connection, opts)
   end
 
-  @spec child_spec(start_options()) :: Supervisor.child_spec()
+  @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts) do
     opts = EdgeDB.Config.connect_opts(opts)
     DBConnection.child_spec(EdgeDB.Connection, opts)
   end
 
-  @spec query(connection(), String.t(), list(), query_options()) ::
+  @spec query(connection(), String.t(), list() | Keyword.t(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query(conn, statement, params \\ [], opts \\ []) do
@@ -53,7 +53,7 @@ defmodule EdgeDB do
     prepare_execute_query(conn, q, q.params, opts)
   end
 
-  @spec query!(connection(), String.t(), list(), query_options()) :: result()
+  @spec query!(connection(), String.t(), list(), list(query_option())) :: result()
   def query!(conn, statement, params \\ [], opts \\ []) do
     case query(conn, statement, params, opts) do
       {:ok, result} ->
@@ -64,26 +64,26 @@ defmodule EdgeDB do
     end
   end
 
-  @spec query_json(connection(), String.t(), list(), query_options()) ::
+  @spec query_json(connection(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_json(conn, statement, params \\ [], opts \\ []) do
     query(conn, statement, params, Keyword.merge(opts, io_format: :json))
   end
 
-  @spec query_json!(connection(), String.t(), list(), query_options()) :: result()
+  @spec query_json!(connection(), String.t(), list(), list(query_option())) :: result()
   def query_json!(conn, statement, params \\ [], opts \\ []) do
     query!(conn, statement, params, Keyword.merge(opts, io_format: :json))
   end
 
-  @spec query_single(connection(), String.t(), list(), query_options()) ::
+  @spec query_single(connection(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_single(conn, statement, params \\ [], opts \\ []) do
     query(conn, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
   end
 
-  @spec query_single!(connection(), String.t(), list(), query_options()) :: result()
+  @spec query_single!(connection(), String.t(), list(), list(query_option())) :: result()
   def query_single!(conn, statement, params \\ [], opts \\ []) do
     case query_single(conn, statement, params, opts) do
       {:ok, result} ->
@@ -94,7 +94,7 @@ defmodule EdgeDB do
     end
   end
 
-  @spec query_single_json(connection(), String.t(), list(), query_options()) ::
+  @spec query_single_json(connection(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_single_json(conn, statement, params \\ [], opts \\ []) do
@@ -106,7 +106,7 @@ defmodule EdgeDB do
     )
   end
 
-  @spec query_single_json!(connection(), String.t(), list(), query_options()) :: result()
+  @spec query_single_json!(connection(), String.t(), list(), list(query_option())) :: result()
   def query_single_json!(conn, statement, params \\ [], opts \\ []) do
     query_json!(
       conn,
@@ -116,16 +116,65 @@ defmodule EdgeDB do
     )
   end
 
-  @spec transaction(connection(), (DBConnection.t() -> result()), transaction_options()) ::
+  # TODO: split into raw_transaction and retrying_transaction as like it is done in other drivers
+  @spec transaction(connection(), (DBConnection.t() -> result()), list(transaction_option())) ::
           {:ok, result()}
           | {:error, term()}
-  def transaction(conn, callback, opts \\ []) do
+
+  def transaction(conn, callback, opts \\ [])
+
+  def transaction(%EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks}, callback, opts) do
+    transaction_callback = &transaction(&1, callback, opts)
+
+    execution_callback =
+      Enum.reduce([transaction_callback | callbacks], fn next, last ->
+        &next.(&1, last)
+      end)
+
+    execution_callback.(conn)
+  end
+
+  def transaction(conn, callback, opts) do
     DBConnection.transaction(conn, callback, opts)
   end
 
   @spec rollback(connection(), term()) :: no_return()
   def rollback(conn, reason) do
     DBConnection.rollback(conn, reason)
+  end
+
+  @spec as_readonly(connection(), list(as_readonly_option())) :: connection()
+  def as_readonly(conn, _opts \\ []) do
+    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
+      request = %InternalRequest{request: :capabilities}
+      capabilities = DBConnection.execute!(conn, request, [], [])
+
+      request = %InternalRequest{request: :set_capabilities}
+      DBConnection.execute!(conn, request, %{capabilities: [:readonly]}, [])
+
+      result = callback.(conn)
+
+      request = %InternalRequest{request: :set_capabilities}
+      DBConnection.execute!(conn, request, %{capabilities: capabilities}, [])
+
+      result
+    end)
+  end
+
+  defp prepare_execute_query(
+         %EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks},
+         query,
+         params,
+         opts
+       ) do
+    prepare_execute_callback = &prepare_execute_query(&1, query, params, opts)
+
+    execution_callback =
+      Enum.reduce([prepare_execute_callback | callbacks], fn next, last ->
+        &next.(&1, last)
+      end)
+
+    execution_callback.(conn)
   end
 
   defp prepare_execute_query(conn, query, params, opts) do

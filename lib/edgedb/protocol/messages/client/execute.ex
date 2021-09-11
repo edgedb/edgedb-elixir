@@ -3,6 +3,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
 
   alias EdgeDB.Protocol.{
     Datatypes,
+    Enums,
     Types
   }
 
@@ -18,7 +19,10 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
     defaults: [
       headers: [],
       statement_name: ""
-    ]
+    ],
+    known_headers: %{
+      allow_capabilities: {0xFF04, %{encoder: &Enums.Capability.encode/1}}
+    }
   )
 
   @impl EdgeDB.Protocol.Message
