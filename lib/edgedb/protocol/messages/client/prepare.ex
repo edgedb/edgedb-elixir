@@ -26,7 +26,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
       implicit_limit: 0xFF01,
       implicit_typenames: 0xFF02,
       implicit_typeids: 0xFF03,
-      allow_capabilities: {0xFF04, &Enums.Capability.encode/1},
+      allow_capabilities: {0xFF04, %{encoder: &Enums.Capability.encode/1}},
       explicit_objectids: 0xFF05
     }
   )

@@ -1,6 +1,11 @@
 defmodule EdgeDB.Protocol.Enum do
   alias EdgeDB.Protocol.Datatypes
 
+  @callback to_atom(integer() | atom()) :: atom()
+  @callback to_code(atom() | integer()) :: integer()
+  @callback encode(term()) :: iodata()
+  @callback decode(bitstring()) :: {term(), bitstring()}
+
   defmacro __using__(_opts \\ []) do
     quote do
       import EdgeDB.Protocol.Converters
@@ -21,46 +26,52 @@ defmodule EdgeDB.Protocol.Enum do
     t_typespec_ast = get_t_typespec(values)
 
     quote do
+      @behaviour unquote(__MODULE__)
+
       @type t() :: unquote(t_typespec_ast)
+
+      @datatype unquote(datatype_codec)
 
       if not is_nil(unquote(guard)) do
         defguard unquote(guard)(code) when code in unquote(codes)
       end
 
-      @spec to_atom(integer()) :: atom()
+      @impl unquote(__MODULE__)
       def to_atom(code) when is_integer(code) and code in unquote(codes) do
         {atom, ^code} = List.keyfind(unquote(values), code, 1)
         atom
       end
 
-      @spec to_atom(atom()) :: atom()
+      @impl unquote(__MODULE__)
       def to_atom(atom) when is_atom(atom) and atom in unquote(atoms) do
         atom
       end
 
-      @spec to_code(atom()) :: integer()
+      @impl unquote(__MODULE__)
       def to_code(atom) when is_atom(atom) and atom in unquote(atoms) do
         {^atom, code} = List.keyfind(unquote(values), atom, 0)
         code
       end
 
-      @spec to_code(integer()) :: integer()
+      @impl unquote(__MODULE__)
       def to_code(code) when is_integer(code) and code in unquote(codes) do
         code
       end
 
-      @spec encode(t()) :: bitstring()
+      @impl unquote(__MODULE__)
       def encode(enum_value) do
         enum_value
         |> to_code()
-        |> unquote(datatype_codec).encode()
+        |> @datatype.encode()
       end
 
-      @spec decode(bitstring()) :: {t(), bitstring()}
+      @impl unquote(__MODULE__)
       def decode(<<content::binary>>) do
-        {code, rest} = unquote(datatype_codec).decode(content)
+        {code, rest} = @datatype.decode(content)
         {to_atom(code), rest}
       end
+
+      defoverridable encode: 1, decode: 1
     end
   end
 

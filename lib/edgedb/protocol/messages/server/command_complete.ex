@@ -16,7 +16,7 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
       status: Datatypes.String.t()
     ],
     known_headers: %{
-      capabilities: {0x1001, %{decoder: &Enums.Capability.decode/1}}
+      capabilities: {0x1001, %{decoder: &Enums.Capability.exhaustive_decode/1}}
     }
   )
 

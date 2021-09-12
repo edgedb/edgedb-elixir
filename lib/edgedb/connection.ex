@@ -4,6 +4,7 @@ defmodule EdgeDB.Connection do
   use EdgeDB.Protocol.Messages
 
   alias EdgeDB.Connection.{
+    InternalRequest,
     QueriesCache,
     QueryBuilder
   }
@@ -38,6 +39,7 @@ defmodule EdgeDB.Connection do
       :queries_cache,
       :codecs_storage,
       :timeout,
+      capabilities: [],
       buffer: <<>>,
       server_key_data: nil,
       server_state: :not_in_transaction
@@ -48,6 +50,7 @@ defmodule EdgeDB.Connection do
             user: String.t(),
             database: String.t(),
             timeout: timeout(),
+            capabilities: list(Enums.Capability.t()),
             buffer: bitstring(),
             server_key_data: list(byte()) | nil,
             server_state: Enums.TransactionState.t(),
@@ -193,13 +196,13 @@ defmodule EdgeDB.Connection do
   @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
     exc = Error.interface_error("callback handle_deallocate hasn't been implemented")
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
     exc = Error.interface_error("callback handle_declare hasn't been implemented")
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   @impl DBConnection
@@ -208,14 +211,40 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_execute(%EdgeDB.Query{} = query, params, _opts, state) do
-    execute_query(query, params, state)
+  def handle_execute(%EdgeDB.Query{} = query, params, opts, state) do
+    execute_query(query, params, opts, state)
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :capabilities} = request,
+        _params,
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, state.capabilities, state}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :set_capabilities} = request,
+        %{capabilities: capabilities},
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, :ok, %State{state | capabilities: capabilities}}
+  end
+
+  @impl DBConnection
+  def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
+    exc = Error.interface_error("unknown internal connection request #{request}")
+    {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
     exc = Error.interface_error("callback handle_fetch hasn't been implemented")
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   @impl DBConnection
@@ -471,7 +500,7 @@ defmodule EdgeDB.Connection do
   defp prepare_query(%EdgeDB.Query{} = query, opts, state) do
     message =
       prepare(
-        headers: opts,
+        headers: prepare_headers(opts, state),
         io_format: query.io_format,
         expected_cardinality: query.cardinality,
         command: query.statement
@@ -493,7 +522,7 @@ defmodule EdgeDB.Connection do
         "can't execute query since expected single result and query doesn't return any data"
       )
 
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   defp handle_prepare_query_flow(
@@ -526,7 +555,7 @@ defmodule EdgeDB.Connection do
         "can't execute query since expected single result and query doesn't return any data"
       )
 
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   defp handle_prepare_query_flow(
@@ -542,13 +571,16 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_prepare_query_flow(_query, error_response() = message, state) do
-    handle_error_response(message, state)
+    with {:error, exc, state} <- handle_error_response(message, state),
+         {:ok, state} <- restore_server_state_from_error(state) do
+      {:error, exc, state}
+    end
   end
 
   defp optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
     message =
       optimistic_execute(
-        headers: opts,
+        headers: prepare_headers(opts, state),
         io_format: query.io_format,
         expected_cardinality: query.cardinality,
         command_text: query.statement,
@@ -563,6 +595,7 @@ defmodule EdgeDB.Connection do
         query,
         %EdgeDB.Result{cardinality: query.cardinality},
         message,
+        opts,
         %State{state | buffer: buffer}
       )
     end
@@ -572,6 +605,7 @@ defmodule EdgeDB.Connection do
          %EdgeDB.Query{cardinality: :one},
          _result,
          command_data_description(result_cardinality: :no_result),
+         _opts,
          state
        ) do
     exc =
@@ -579,31 +613,39 @@ defmodule EdgeDB.Connection do
         "can't execute query since expected single result and query doesn't return any data"
       )
 
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   defp handle_optimistic_execute_flow(
          query,
          _result,
          command_data_description() = message,
+         opts,
          %State{codecs_storage: cs, queries_cache: qc} = state
        ) do
     {input_codec, output_codec} = parse_description_message(message, cs)
     query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
     reencoded_params = DBConnection.Query.encode(query, query.params, [])
-    execute_query(query, reencoded_params, state)
+    execute_query(query, reencoded_params, opts, state)
   end
 
-  defp handle_optimistic_execute_flow(query, result, data() = message, state) do
+  defp handle_optimistic_execute_flow(query, result, data() = message, _opts, state) do
     handle_execute_flow(query, result, message, state)
   end
 
-  defp handle_optimistic_execute_flow(_query, _result, error_response() = message, state) do
-    handle_error_response(message, state)
+  defp handle_optimistic_execute_flow(_query, _result, error_response() = message, _opts, state) do
+    with {:error, exc, state} <- handle_error_response(message, state),
+         {:ok, state} <- restore_server_state_from_error(state) do
+      {:error, exc, state}
+    end
   end
 
-  defp execute_query(%EdgeDB.Query{} = query, params, state) do
-    message = execute(arguments: params)
+  defp execute_query(%EdgeDB.Query{} = query, params, opts, state) do
+    message =
+      execute(
+        headers: prepare_headers(opts, state),
+        arguments: params
+      )
 
     with :ok <- send_messages([message, sync()], state),
          {:ok, {message, buffer}} <- receive_message(state) do
@@ -644,7 +686,10 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_execute_flow(_query, _result, error_response() = message, state) do
-    handle_error_response(message, state)
+    with {:error, exc, state} <- handle_error_response(message, state),
+         {:ok, state} <- restore_server_state_from_error(state) do
+      {:error, exc, state}
+    end
   end
 
   defp describe_codecs_from_query(query, state) do
@@ -686,17 +731,17 @@ defmodule EdgeDB.Connection do
   defp start_transaction(opts, state) do
     opts
     |> QueryBuilder.start_transaction_statement()
-    |> execute_script_query([allow_capabilities: :all], state)
+    |> execute_script_query([allow_capabilities: [:transaction]], state)
   end
 
   defp commit_transaction(state) do
     statement = QueryBuilder.commit_transaction_statement()
-    execute_script_query(statement, [allow_capabilities: :all], state)
+    execute_script_query(statement, [allow_capabilities: [:transaction]], state)
   end
 
   defp rollback_transaction(state) do
     statement = QueryBuilder.rollback_transaction_statement()
-    execute_script_query(statement, [allow_capabilities: :all], state)
+    execute_script_query(statement, [allow_capabilities: [:transaction]], state)
   end
 
   defp execute_script_query(statement, headers, state) do
@@ -720,7 +765,10 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_execute_script_flow(error_response() = message, state) do
-    handle_error_response(message, state)
+    with {:error, exc, state} <- handle_error_response(message, state),
+         {:ok, state} <- wait_for_server_ready(state) do
+      {:error, exc, state}
+    end
   end
 
   defp handle_error_response(
@@ -732,12 +780,19 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc = Error.exception(message, code: code, attributes: Enum.into(attributes, %{}))
-    {:disconnect, exc, state}
+    {:error, exc, state}
   end
 
   defp handle_log_message(log_message(severity: severity, text: text), state) do
     Logger.log(severity, text)
     state
+  end
+
+  defp restore_server_state_from_error(state) do
+    with :ok <- send_message(sync(), state),
+         {:ok, state} <- wait_for_server_ready(state) do
+      {:ok, state}
+    end
   end
 
   defp save_query_with_codecs_in_cache(
@@ -777,7 +832,7 @@ defmodule EdgeDB.Connection do
 
     with {:ok, query, state} <- prepare_query(query, [], state),
          encoded_params = DBConnection.Query.encode(query, query.params, []),
-         {:ok, query, result, state} <- execute_query(query, encoded_params, state) do
+         {:ok, query, result, state} <- execute_query(query, encoded_params, [], state) do
       types =
         query
         |> DBConnection.Query.decode(result, [])
@@ -833,8 +888,20 @@ defmodule EdgeDB.Connection do
       {:ok, data} ->
         receive_message(%State{state | buffer: state.buffer <> data})
 
+      {:error, :closed} ->
+        exc = Error.client_connection_closed_error("connection has been closed")
+        {:disconnect, exc, state}
+
+      {:error, :etimedout} ->
+        exc = Error.client_connection_timeout_error("exceeded timeout")
+        {:disconnect, exc, state}
+
       {:error, reason} ->
-        exc = exception_from_socket_error(reason)
+        exc =
+          Error.client_connection_error(
+            "unexpected error while receiving data from socket: #{inspect(reason)}"
+          )
+
         {:disconnect, exc, state}
     end
   end
@@ -844,24 +911,35 @@ defmodule EdgeDB.Connection do
       :ok ->
         :ok
 
+      {:error, :closed} ->
+        exc = Error.client_connection_closed_error("connection has been closed")
+        {:disconnect, exc, state}
+
+      {:error, :etimedout} ->
+        exc = Error.client_connection_timeout_error("exceeded timeout")
+        {:disconnect, exc, state}
+
       {:error, reason} ->
-        err = exception_from_socket_error(reason)
-        {:disconnect, err, state}
+        exc =
+          Error.client_connection_error(
+            "unexpected error while receiving data from socket: #{inspect(reason)}"
+          )
+
+        {:disconnect, exc, state}
     end
   end
 
-  defp exception_from_socket_error(:closed) do
-    Error.client_connection_closed_error("connection has been closed")
-  end
+  defp prepare_headers(headers, %State{} = state) do
+    state_headers = []
 
-  defp exception_from_socket_error(:etimedout) do
-    Error.client_connection_timeout_error("exceeded timeout")
-  end
+    state_headers =
+      if state.capabilities != [] do
+        Keyword.put(state_headers, :allow_capabilities, state.capabilities)
+      else
+        state_headers
+      end
 
-  defp exception_from_socket_error(reason) do
-    Error.client_connection_error(
-      "unexpected error while receiving data from socket: #{inspect(reason)}"
-    )
+    Keyword.merge(state_headers, headers)
   end
 
   defp status(%State{server_state: :not_in_transaction}) do
