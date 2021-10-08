@@ -71,8 +71,8 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     end)
   end
 
-  defp encode_elements(instance, descriptor_elements, codecs) do
-    descriptor_elements
+  defp encode_elements(instance, elements_descriptors, codecs) do
+    elements_descriptors
     |> Enum.zip(codecs)
     |> Enum.map(fn {named_tuple_descriptor_element(name: name), codec} ->
       {instance[name], codec}
@@ -115,7 +115,7 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     if MapSet.size(missed_keys) != 0 or MapSet.size(extra_keys) != 0 do
       err =
         required_keys
-        |> make_missing_args_error_message(passed_keys, missed_keys, extra_keys)
+        |> make_wrong_elements_error_message(passed_keys, missed_keys, extra_keys)
         |> Error.query_argument_error()
 
       raise err
@@ -124,19 +124,19 @@ defmodule EdgeDB.Protocol.Codecs.NamedTuple do
     :ok
   end
 
-  defp make_missing_args_error_message(required_args, passed_args, missed_args, extra_args) do
-    error_message = "exptected #{MapSet.to_list(required_args)} keyword arguments"
-    error_message = "#{error_message}, got #{MapSet.to_list(passed_args)}"
+  defp make_wrong_elements_error_message(required_keys, passed_keys, missed_keys, extra_keys) do
+    error_message = "exptected #{MapSet.to_list(required_keys)} keys in named tuple, \
+                     got #{MapSet.to_list(passed_keys)}"
 
     error_message =
-      if MapSet.size(missed_args) != 0 do
-        "#{error_message}, missed #{MapSet.to_list(missed_args)}"
+      if MapSet.size(missed_keys) != 0 do
+        "#{error_message}, missed #{MapSet.to_list(missed_keys)}"
       else
         error_message
       end
 
-    if MapSet.size(extra_args) != 0 do
-      "#{error_message}, missed #{MapSet.to_list(extra_args)}"
+    if MapSet.size(extra_keys) != 0 do
+      "#{error_message}, missed #{MapSet.to_list(extra_keys)}"
     else
       error_message
     end

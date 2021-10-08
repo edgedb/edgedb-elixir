@@ -60,10 +60,10 @@ defmodule EdgeDB.MixProject do
 
   defp aliases do
     [
-      "setup-roles": [
+      "edgedb.roles.setup": [
         "cmd priv/scripts/setup-roles.sh"
       ],
-      "reset-roles": [
+      "edgedb.roles.reset": [
         "cmd priv/scripts/drop-roles.sh",
         "cmd priv/scripts/setup-roles.sh"
       ]
