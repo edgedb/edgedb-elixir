@@ -1,9 +1,15 @@
 defmodule Tests.EdgeDB.Connection.AuthenticationTest do
-  use EdgeDB.Case
+  use Tests.Support.EdgeDBCase
 
   describe "trust authentication with valid params" do
     setup do
-      %{connection_params: [user: "edgedb_trust"]}
+      %{
+        connection_params: [
+          user: "edgedb_trust",
+          max_restarts: 0,
+          show_sensitive_data_on_connection_error: true
+        ]
+      }
     end
 
     test "connects successfully", context do
@@ -18,7 +24,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
       %{
         connection_params: [
           user: "edgedb_scram",
-          password: "edgedb_scram_password"
+          password: "edgedb_scram_password",
+          max_restarts: 0,
+          show_sensitive_data_on_connection_error: true
         ]
       }
     end
@@ -37,7 +45,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
       %{
         connection_params: [
           user: "edgedb_scram",
-          backoff_type: :stop
+          backoff_type: :stop,
+          max_restarts: 0,
+          show_sensitive_data_on_connection_error: true
         ]
       }
     end
@@ -57,7 +67,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
         connection_params: [
           username: "edgedb_scram",
           password: "wrong",
-          backoff_type: :stop
+          backoff_type: :stop,
+          max_restarts: 0,
+          show_sensitive_data_on_connection_error: true
         ]
       }
     end

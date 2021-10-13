@@ -1,7 +1,10 @@
 defmodule Tests.Support.Codecs.ShortStr do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.{Codecs, Error}
+  alias EdgeDB.Protocol.{
+    Codecs,
+    Error
+  }
 
   defscalarcodec(
     type_name: "default::short_str",
@@ -20,5 +23,6 @@ defmodule Tests.Support.Codecs.ShortStr do
     end
   end
 
+  @impl EdgeDB.Protocol.Codec
   defdelegate decode_instance(binary_data), to: Codecs.Str
 end

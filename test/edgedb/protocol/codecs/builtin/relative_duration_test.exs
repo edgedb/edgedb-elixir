@@ -1,5 +1,5 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.RelativeDurationTest do
-  use EdgeDB.Case
+  use Tests.Support.EdgeDBCase
 
   alias EdgeDB.RelativeDuration
 

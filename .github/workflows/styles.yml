@@ -10,8 +10,8 @@ jobs:
 
     strategy:
       matrix:
-        otp-version: ["23.2.1"]
-        elixir-version: ["1.11"]
+        otp-version: ["24.1.1"]
+        elixir-version: ["1.12.2"]
 
     steps:
       - uses: actions/checkout@v2

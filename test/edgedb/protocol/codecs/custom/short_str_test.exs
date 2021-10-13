@@ -1,12 +1,15 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Custom.ShortStrTest do
-  use EdgeDB.Case
+  use Tests.Support.EdgeDBCase
 
   alias EdgeDB.Protocol.Error
 
   alias Tests.Support.Codecs
 
   setup do
-    {:ok, conn} = start_supervised({EdgeDB, [codecs: [Codecs.ShortStr]]})
+    {:ok, conn} =
+      start_supervised(
+        {EdgeDB, codecs: [Codecs.ShortStr], show_sensitive_data_on_connection_error: true}
+      )
 
     %{conn: conn}
   end

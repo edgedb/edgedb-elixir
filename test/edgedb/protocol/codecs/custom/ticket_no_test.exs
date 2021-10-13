@@ -1,10 +1,13 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Custom.TicketNoTest do
-  use EdgeDB.Case
+  use Tests.Support.EdgeDBCase
 
   alias Tests.Support.Codecs
 
   setup do
-    {:ok, conn} = start_supervised({EdgeDB, [codecs: [Codecs.TicketNo]]})
+    {:ok, conn} =
+      start_supervised(
+        {EdgeDB, codecs: [Codecs.TicketNo], show_sensitive_data_on_connection_error: true}
+      )
 
     %{conn: conn}
   end
