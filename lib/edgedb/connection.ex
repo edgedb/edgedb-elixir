@@ -286,10 +286,15 @@ defmodule EdgeDB.Connection do
       end
 
     socket_opts =
-      if connect_opts[:tls_verify_hostname] do
-        Keyword.put(socket_opts, :verify, :verify_peer)
-      else
-        socket_opts
+      cond do
+        connect_opts[:insecure_dev_mode] ->
+          Keyword.put(socket_opts, :verify, :verify_none)
+
+        connect_opts[:tls_verify_hostname] ->
+          Keyword.put(socket_opts, :verify, :verify_peer)
+
+        true ->
+          socket_opts
       end
 
     Keyword.put(socket_opts, :alpn_advertised_protocols, [@edgedb_alpn_protocol])

@@ -7,7 +7,6 @@ defmodule EdgeDB.Connection.Config.Credentials do
   @instance_name_regex ~r/^[A-Za-z_][A-Za-z_0-9]*$/
 
   @file_module Application.compile_env(:edgedb, :file_module, File)
-  @path_module Application.compile_env(:edgedb, :path_module, Path)
 
   @spec get_credentials_path(String.t()) :: String.t()
   def get_credentials_path(instance_name) do
@@ -18,7 +17,7 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
     ["credentials", "#{instance_name}.json"]
     |> Platform.search_config_dir()
-    |> @path_module.expand()
+    |> Path.expand()
   end
 
   @spec read_creadentials(String.t()) :: Keyword.t()
@@ -64,19 +63,19 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
   @spec stash_dir(Path.t()) :: String.t()
   def stash_dir(path) do
-    path = @path_module.expand(path)
+    path = Path.expand(path)
 
     hash =
       :sha
       |> :crypto.hash(path)
       |> Base.encode16(case: :lower)
 
-    base_name = @path_module.basename(path)
+    base_name = Path.basename(path)
     dir_name = base_name <> "-" <> hash
 
     ["projects", dir_name]
     |> Platform.search_config_dir()
-    |> @path_module.expand()
+    |> Path.expand()
   end
 
   defp validate_credentials(credentials) do
