@@ -20,7 +20,7 @@ jobs:
       # TODO: replace with original action after PR merge
       - uses: nsidnev/setup-edgedb@0ee76335014034ae7f6aff037b70797143dab4b7
         with:
-          server-version: ${{ matrix.otp.edgedb-version }}
+          server-version: ${{ matrix.edgedb-version }}
           cli-version: nightly # TODO: replace with stable when --server-start-conf will be available
           instance-name: edgedb_elixir
 
