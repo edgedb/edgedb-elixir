@@ -10,9 +10,9 @@ jobs:
 
     strategy:
       matrix:
-        otp-version: ['23.2.1']
-        elixir-version: ['1.11']
-        edgedb-version: ['1-rc1']
+        otp-version: ["23.2.1"]
+        elixir-version: ["1.11"]
+        edgedb-version: ["1-rc1"]
 
     steps:
       - uses: actions/checkout@v2
@@ -21,6 +21,7 @@ jobs:
       - uses: nsidnev/setup-edgedb@0ee76335014034ae7f6aff037b70797143dab4b7
         with:
           server-version: ${{ matrix.otp.edgedb-version }}
+          cli-version: nightly # TODO: replace with stable when --server-start-conf will be available
           instance-name: edgedb_elixir
 
       - uses: erlef/setup-beam@v1
