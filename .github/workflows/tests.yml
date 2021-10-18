@@ -10,62 +10,24 @@ jobs:
 
     strategy:
       matrix:
-        otp-version: [23.2.1]
-        elixir-version: [1.11]
-        edgedb-version: [1-beta3]
-
-    services:
-      edgedb:
-        image: edgedb/edgedb:${{ matrix.edgedb-version }}
-        env:
-          EDGEDB_USER: edgedb
-          EDGEDB_PASSWORD: edgedb
-          EDGEDB_GENERATE_SELF_SIGNED_CERT: 1
-        ports:
-          - 5656:5656
+        otp-version: ["23.2.1"]
+        elixir-version: ["1.11"]
+        edgedb-version: ["1-rc1"]
 
     steps:
       - uses: actions/checkout@v2
+
+      # TODO: replace with original action after PR merge
+      - uses: nsidnev/setup-edgedb@0ee76335014034ae7f6aff037b70797143dab4b7
+        with:
+          server-version: ${{ matrix.edgedb-version }}
+          cli-version: nightly # TODO: replace with stable when --server-start-conf will be available
+          instance-name: edgedb_elixir
 
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp-version }}
           elixir-version: ${{ matrix.elixir-version }}
-
-      # replace with an action when it will be able to install CLI tools only
-      - name: Setup EdgeDB CLI
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.edgedb.com | bash -s -- -y
-          echo "$HOME/.local/edgedb/bin" >> $GITHUB_PATH
-
-      # replace manual project creation when it will be able to do with CLI tools
-      - name: Setup EdgeDB service as instance and link with project
-        env:
-          EDGEDB_PASSWORD: "edgedb"
-        run: |
-          echo "$EDGEDB_PASSWORD" | edgedb \
-            instance link \
-            --user=edgedb \
-            --port=5656 \
-            --password-from-stdin \
-            --trust-tls-cert \
-            --non-interactive \
-            edgedb_edgedb_elixir_test
-
-          REPO_PATH=$(pwd)
-          PATH_HASH=$(echo -n "$(pwd)" | sha1sum | awk '{ print $1 }')
-          BASENAME=$(basename $(pwd))
-          DIR_NAME="${BASENAME}-${PATH_HASH}"
-          CONFIG_DIR=$(realpath ${XDG_CONFIG_DIR:-~/.config/}/edgedb)
-          PROJECT_DIR="${CONFIG_DIR}/projects/${DIR_NAME}"
-          mkdir -p ${PROJECT_DIR}
-          cd ${PROJECT_DIR}
-          echo -n "edgedb_edgedb_elixir_test" > instance-name
-          echo -n "${REPO_PATH}" > project-path
-          ln -s "${REPO_PATH}" project-link
-
-      - name: Run migrations
-        run: edgedb migrate
 
       - name: Set up cache
         uses: actions/cache@v2
@@ -81,11 +43,9 @@ jobs:
         if: steps.mix-cache.outputs.cache-hit != 'true'
         run: mix deps.get --only test
 
-      # TODO: remove default user authentication configuration
       - name: Create requried users
         run: |
-          edgedb configure insert Auth --method SCRAM --priority 0 --user edgedb
-          mix setup-roles
+          mix edgedb.roles.setup
 
       - name: Run tests
         run: mix coveralls

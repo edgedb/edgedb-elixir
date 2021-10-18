@@ -1,4 +1,4 @@
-defmodule EdgeDB.Protocol.Codecs.EmptyResult do
+defmodule EdgeDB.Protocol.Codecs.Null do
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.{
@@ -14,11 +14,11 @@ defmodule EdgeDB.Protocol.Codecs.EmptyResult do
 
   @impl EdgeDB.Protocol.Codec
   def encode_instance(_instance) do
-    raise Error.invalid_argument_error("empty result can't be encoded by client")
+    <<0::uint32>>
   end
 
   @impl EdgeDB.Protocol.Codec
   def decode_instance(_data) do
-    raise Error.invalid_argument_error("empty result can't be decoded by client")
+    raise Error.invalid_argument_error("null can't be decoded by client")
   end
 end

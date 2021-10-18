@@ -27,8 +27,8 @@ defmodule EdgeDB.Connection do
 
   @scram_sha_256 "SCRAM-SHA-256"
   @major_ver 0
-  @minor_ver 11
-  @minor_ver_min 11
+  @minor_ver 12
+  @minor_ver_min 12
   @edgedb_alpn_protocol "edgedb-binary"
 
   defmodule State do

@@ -16,4 +16,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.TupleTest do
     assert set = %EdgeDB.Set{} = EdgeDB.query!(conn, "SELECT <OPTIONAL str>$0", [nil])
     assert EdgeDB.Set.empty?(set)
   end
+
+  test "decoding empty tuple value", %{conn: conn} do
+    value = {}
+    assert ^value = EdgeDB.query_single!(conn, "SELECT ()")
+  end
 end

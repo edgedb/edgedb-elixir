@@ -27,9 +27,8 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
     Codecs.BigInt,
     Codecs.RelativeDuration,
 
-    # 2 special cases
-    Codecs.EmptyResult,
-    Codecs.EmptyTuple
+    # special case
+    Codecs.Null
   ]
 
   defmodule State do
