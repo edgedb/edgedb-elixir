@@ -6,7 +6,6 @@ defmodule EdgeDB.MixProject do
       app: :edgedb,
       version: "0.0.0",
       elixir: "~> 1.10",
-      start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: [
@@ -32,7 +31,12 @@ defmodule EdgeDB.MixProject do
 
   def application do
     [
-      extra_applications: [:crypto, :ssl]
+      mod: {EdgeDB.Application, []},
+      extra_applications: [
+        :crypto,
+        :logger,
+        :ssl
+      ]
     ]
   end
 
