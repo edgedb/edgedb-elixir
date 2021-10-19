@@ -108,33 +108,43 @@ defmodule EdgeDB.Connection.Config.Validation do
   end
 
   @spec validate_tls_verify_hostname(term(), validation()) :: boolean() | nil
+  def validate_tls_verify_hostname(option, validation \\ :lenient) do
+    validate_boolean("tls_verify_hostname", option, validation)
+  end
 
-  def validate_tls_verify_hostname(option, validation \\ :lenient)
+  @spec validate_insecure_dev_mode(term(), validation()) :: boolean() | nil
+  def validate_insecure_dev_mode(option, validation \\ :lenient) do
+    validate_boolean("insecure_dev_mode", option, validation)
+  end
 
-  def validate_tls_verify_hostname(nil, _validation) do
+  @spec validate_boolean(String.t(), term(), validation()) :: boolean() | nil
+
+  def validate_boolean(key, value, validation \\ :lenient)
+
+  def validate_boolean(_key, nil, _validation) do
     nil
   end
 
-  def validate_tls_verify_hostname(option, _validation) when is_boolean(option) do
-    option
+  def validate_boolean(_key, value, _validation) when is_boolean(value) do
+    value
   end
 
-  def validate_tls_verify_hostname(option, :strict) when is_binary(option) do
+  def validate_boolean(key, value, :strict) when is_binary(value) do
     raise RuntimeError,
-      message: "invlid tls_verify_hostname: tls_verify_hostname must be a boolean"
+      message: "invalid #{key}: #{key} must be a boolean"
   end
 
-  def validate_tls_verify_hostname(option, :lenient) when is_binary(option) do
+  def validate_boolean(key, value, :lenient) when is_binary(value) do
     cond do
-      option in ~w(1 yes true y t on) ->
+      value in ~w(1 yes true y t on) ->
         true
 
-      option in ~w(0 no false n f off) ->
+      value in ~w(0 no false n f off) ->
         false
 
       true ->
         raise RuntimeError,
-          message: "invalid tls_verify_hostname: tls_verify_hostname can only be one of yes/no"
+          message: "invalid #{key}: #{key} can only be one of yes/no"
     end
   end
 

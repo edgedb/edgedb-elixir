@@ -14,7 +14,6 @@ defmodule EdgeDB.Connection.Config do
   @default_timeout 15_000
 
   @file_module Application.compile_env(:edgedb, :file_module, File)
-  @path_module Application.compile_env(:edgedb, :path_module, Path)
   @system_module Application.compile_env(:edgedb, :system_module, System)
 
   @type connect_options() :: list(EdgeDB.connect_option())
@@ -129,7 +128,7 @@ defmodule EdgeDB.Connection.Config do
 
   defp resolve_project_opts(resolved_opts) do
     dir = @file_module.cwd!()
-    project_file = @path_module.join(dir, "edgedb.toml")
+    project_file = Path.join(dir, "edgedb.toml")
 
     if not @file_module.exists?(project_file) do
       raise Error.client_connection_error(
@@ -147,7 +146,7 @@ defmodule EdgeDB.Connection.Config do
 
     instance_name =
       [stash_dir, "instance-name"]
-      |> @path_module.join()
+      |> Path.join()
       |> @file_module.read!()
       |> String.trim()
 
@@ -257,6 +256,11 @@ defmodule EdgeDB.Connection.Config do
           env_var
       end
 
+    insecure_dev_mode =
+      "EDGEDB_INSECURE_DEV_MODE"
+      |> from_env()
+      |> Validation.validate_insecure_dev_mode()
+
     clear_opts(
       dsn: from_env("EDGEDB_DSN"),
       instance_name: from_env("EDGEDB_INSTANCE"),
@@ -267,7 +271,8 @@ defmodule EdgeDB.Connection.Config do
       user: from_env("EDGEDB_USER"),
       password: from_env("EDGEDB_PASSWORD"),
       tls_ca_file: from_env("EDGEDB_TLS_CA_FILE"),
-      tls_verify_hostname: from_env("EDGEDB_TLS_VERIFY_HOSTNAME")
+      tls_verify_hostname: from_env("EDGEDB_TLS_VERIFY_HOSTNAME"),
+      insecure_dev_mode: insecure_dev_mode
     )
   end
 

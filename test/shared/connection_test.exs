@@ -152,10 +152,6 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
           Map.has_key?(files, path)
         end)
 
-        stub(Mocks.PathMock, :expand, fn path ->
-          path
-        end)
-
         stub(Mocks.FileMock, :read!, fn path ->
           if data = files[path] do
             data

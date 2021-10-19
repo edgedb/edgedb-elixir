@@ -32,7 +32,6 @@ defmodule Tests.Support.EdgeDBCase do
   @spec setup_stubs_fallbacks(term()) :: :ok
   def setup_stubs_fallbacks(_context) do
     stub_with(Mocks.FileMock, Mocks.Stubs.FileStub)
-    stub_with(Mocks.PathMock, Mocks.Stubs.PathStub)
     stub_with(Mocks.SystemMock, Mocks.Stubs.SystemStub)
 
     :ok
