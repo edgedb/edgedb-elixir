@@ -20,7 +20,6 @@ defmodule EdgeDB.Connection.Config do
 
   @spec connect_opts(connect_options()) :: connect_options()
   def connect_opts(opts) do
-    # TODO: check if we can't parse URI and match it by scheme
     {dsn, instance_name} =
       with {:ok, dsn} <- Keyword.fetch(opts, :dsn),
            true <- Regex.match?(~r"(?i)^[a-z]+://", dsn) do

@@ -62,7 +62,7 @@ defmodule EdgeDB.Connection.Config.DSN do
         |> Enum.reduce(%{}, fn {key, value}, acc ->
           if acc[key] do
             raise RuntimeError,
-              message: "invalid DSN: duplicate query parameter #{key}"
+              message: "invalid DSN or instance name: duplicate query parameter #{inspect(key)}"
           else
             Map.put(acc, key, value)
           end
@@ -113,7 +113,8 @@ defmodule EdgeDB.Connection.Config.DSN do
 
   defp parse(%URI{} = dsn, _opts) do
     raise RuntimeError,
-      message: ~s(invalid DSN: scheme is expected to be "edgedb", got #{inspect(dsn.scheme)})
+      message:
+        ~s(invalid DSN or instance name: scheme is expected to be "edgedb", got #{inspect(dsn.scheme)})
   end
 
   defp handle_dsn_part(option, value, uri_value, query) when is_atom(option) do
@@ -145,7 +146,7 @@ defmodule EdgeDB.Connection.Config.DSN do
           {source, value}
 
         _other ->
-          message = "invalid DSN: more than one of "
+          message = "invalid DSN or instance name: more than one of "
 
           message =
             if value do
@@ -174,7 +175,8 @@ defmodule EdgeDB.Connection.Config.DSN do
             if is_nil(env_value) do
               raise RuntimeError,
                 message:
-                  "invalid DSN: #{option}_env environment variable #{inspect(option_value)} doesn't exist"
+                  "invalid DSN or instance name: " <>
+                    "#{option}_env environment variable #{inspect(option_value)} doesn't exist"
             else
               env_value
             end

@@ -12,7 +12,9 @@ defmodule EdgeDB.Connection.Config.Credentials do
   def get_credentials_path(instance_name) do
     if not Regex.match?(@instance_name_regex, instance_name) do
       raise RuntimeError,
-        message: "invalid instance name: #{inspect(instance_name)}"
+        message:
+          "invalid DSN or instance name: " <>
+            "#{inspect(instance_name)} doesn't match valid instance regex"
     end
 
     ["credentials", "#{instance_name}.json"]
