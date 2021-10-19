@@ -48,7 +48,7 @@ defmodule EdgeDB.Connection.Config.Validation do
 
       option == "" || String.contains?(option, ",") ->
         raise RuntimeError,
-          message: ~s(invalid host: #{inspect(option)})
+          message: "invalid host: #{inspect(option)}"
 
       true ->
         option
@@ -85,7 +85,7 @@ defmodule EdgeDB.Connection.Config.Validation do
 
   def validate_port(option, :lenient) when option < @min_port or option > @max_port do
     raise RuntimeError,
-      message: "invalid port: #{inspect(option)}, must be between #{@min_port} and #{@max_port}"
+      message: "invalid port: #{option}, must be between #{@min_port} and #{@max_port}"
   end
 
   def validate_port(option, :lenient) when is_integer(option) do
@@ -94,7 +94,7 @@ defmodule EdgeDB.Connection.Config.Validation do
 
   def validate_port(option, :lenient) do
     raise RuntimeError,
-      message: "invalid port: #{inspect(option)}, not an integer"
+      message: "invalid port: #{option}, not an integer"
   end
 
   @spec validate_tls_ca_file(term()) :: String.t() | nil
@@ -220,7 +220,7 @@ defmodule EdgeDB.Connection.Config.Validation do
   rescue
     e in RuntimeError ->
       reraise RuntimeError,
-              [message: "invalid DSN: #{e.message}"],
+              [message: "invalid DSN or instance name: #{e.message}"],
               __STACKTRACE__
   end
 end
