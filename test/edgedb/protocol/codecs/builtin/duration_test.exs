@@ -1,5 +1,5 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.DurationTest do
-  use EdgeDB.Case
+  use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection
 

@@ -10,12 +10,14 @@ jobs:
 
     strategy:
       matrix:
-        otp-version: ["23.2.1"]
-        elixir-version: ["1.11"]
         edgedb-version: ["1-rc1"]
+        otp-version: ["24.1.1"]
+        elixir-version: ["1.12.2"]
 
     steps:
       - uses: actions/checkout@v2
+        with:
+          submodules: true
 
       # TODO: replace with original action after PR merge
       - uses: nsidnev/setup-edgedb@0ee76335014034ae7f6aff037b70797143dab4b7
@@ -48,4 +50,4 @@ jobs:
           mix edgedb.roles.setup
 
       - name: Run tests
-        run: mix coveralls
+        run: mix coveralls --include shared

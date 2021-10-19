@@ -1,15 +1,31 @@
 defmodule EdgeDB do
-  alias EdgeDB.Connection.InternalRequest
+  alias EdgeDB.Connection.{
+    Config,
+    InternalRequest
+  }
+
   alias EdgeDB.Protocol.Enums
 
   @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
 
+  # NOTE: :command_timeout, :wait_for_available and :server_settings
+  # options added only for compatability with other drivers and aren't used right now
   @type connect_option() ::
-          {:host, String.t()}
+          {:dsn, String.t()}
+          | {:credentials_file, Path.t()}
+          | {:host, String.t()}
           | {:port, :inet.port_number()}
-          | {:user, String.t()}
           | {:database, String.t()}
+          | {:user, String.t()}
           | {:password, String.t()}
+          | {:tls_ca_file, Path.t()}
+          | {:tls_verify_hostname, boolean()}
+          | {:timeout, timeout()}
+          | {:command_timeout, timeout()}
+          | {:wait_for_available, integer()}
+          | {:server_settings, map()}
+          | {:tcp, list(:gen_tcp.option())}
+          | {:ssl, list(:ssl.tls_client_option())}
 
   @type start_option() ::
           connect_option()
@@ -27,15 +43,51 @@ defmodule EdgeDB do
   @type raw_result() :: {EdgeDB.Query.t(), EdgeDB.Result.t()}
   @type result() :: EdgeDB.Set.t() | term() | raw_result()
 
-  @spec start_link(list(start_option())) :: GenServer.on_start()
-  def start_link(opts \\ []) do
-    opts = EdgeDB.Config.connect_opts(opts)
+  def start_link(opts \\ [])
+
+  @spec start_link(String.t()) :: GenServer.on_start()
+  def start_link(dsn) when is_binary(dsn) do
+    opts = Config.connect_opts(dsn: dsn)
     DBConnection.start_link(EdgeDB.Connection, opts)
+  end
+
+  @spec start_link(list(start_option())) :: GenServer.on_start()
+  def start_link(opts) do
+    opts = Config.connect_opts(opts)
+    DBConnection.start_link(EdgeDB.Connection, opts)
+  end
+
+  @spec start_link(String.t(), list(start_option())) :: GenServer.on_start()
+  def start_link(dsn, opts) do
+    opts =
+      opts
+      |> Keyword.put(:dsn, dsn)
+      |> Config.connect_opts()
+
+    DBConnection.start_link(EdgeDB.Connection, opts)
+  end
+
+  def child_spec(opts \\ [])
+
+  @spec child_spec(String.t()) :: Supervisor.child_spec()
+  def child_spec(dsn) when is_binary(dsn) do
+    opts = Config.connect_opts(dsn: dsn)
+    DBConnection.child_spec(EdgeDB.Connection, opts)
   end
 
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts) do
-    opts = EdgeDB.Config.connect_opts(opts)
+    opts = Config.connect_opts(opts)
+    DBConnection.child_spec(EdgeDB.Connection, opts)
+  end
+
+  @spec child_spec(String.t(), list(start_option())) :: Supervisor.child_spec()
+  def child_spec(dsn, opts) do
+    opts =
+      opts
+      |> Keyword.put(:dsn, dsn)
+      |> Config.connect_opts()
+
     DBConnection.child_spec(EdgeDB.Connection, opts)
   end
 

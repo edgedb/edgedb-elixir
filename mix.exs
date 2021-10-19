@@ -50,7 +50,8 @@ defmodule EdgeDB.MixProject do
       # dev/test
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.14", only: :test}
+      {:excoveralls, "~> 0.14", only: :test},
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

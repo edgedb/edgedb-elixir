@@ -20,7 +20,6 @@ defmodule EdgeDB.Connection do
 
   require Logger
 
-  @default_timeout 15_000
   @max_packet_size 64 * 1024 * 1024
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
   @ssl_socket_opts []
@@ -92,60 +91,36 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def connect(opts \\ []) do
-    endpoints = opts[:endpoints] || []
+    {host, port} = opts[:address]
     user = opts[:user]
     password = opts[:password]
     database = opts[:database]
     codecs_modules = opts[:codecs] || []
 
-    connect_opts =
-      []
-      |> Keyword.merge(@tcp_socket_opts)
-      |> Keyword.merge(@ssl_socket_opts)
-      |> add_custom_edgedb_ssl_opts(opts)
-      |> Keyword.merge(opts[:tcp_options] || [])
-      |> Keyword.merge(opts[:ssl_options] || [])
+    tcp_opts = Keyword.merge(@tcp_socket_opts, opts[:tcp] || [])
 
-    timeout = opts[:timeout] || @default_timeout
+    ssl_opts =
+      @ssl_socket_opts
+      |> Keyword.merge(opts[:ssl] || [])
+      |> add_custom_edgedb_ssl_opts(opts)
+
+    timeout = opts[:timeout]
 
     with {:ok, qc} <- QueriesCache.start_link(),
          {:ok, cs} <- Codecs.Storage.start_link(),
-         {:ok, socket} <- open_ssl_connection(endpoints, connect_opts, timeout),
+         {:ok, socket} <- open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout),
          state = State.new(socket, user, database, qc, cs, timeout),
          {:ok, state} <- handshake(password, state),
          {:ok, state} <- wait_for_server_ready(state),
          {:ok, state} <- initialize_custom_codecs(codecs_modules, state) do
       {:ok, state}
     else
-      {:error, :no_endpoints} ->
-        exc =
-          Error.client_connection_error(
-            "unable to establish a connection because the endpoints were not passed"
-          )
-
-        {:error, exc}
-
-      {:error, connect_errors} when is_list(connect_errors) ->
-        connect_error =
-          connect_errors
-          |> Enum.reverse()
-          |> Enum.map_join("\n", fn
-            {{{:local, socket_path}, _fd}, reason} ->
-              "  * #{socket_path}: #{inspect(reason)}"
-
-            {{host, port}, reason} ->
-              "  * #{host}:#{port}: #{inspect(reason)}"
-          end)
-
-        exc =
-          Error.client_connection_error(
-            "unable to establish connection to multiple endpoints:\n\n#{connect_error}"
-          )
-
-        {:error, exc}
-
       {:error, reason} ->
         exc = Error.client_connection_error("unable to establish connection: #{inspect(reason)}")
+        {:error, exc}
+
+      {:error, exc, state} ->
+        disconnect(exc, state)
         {:error, exc}
 
       {:disconnect, exc, state} ->
@@ -279,40 +254,23 @@ defmodule EdgeDB.Connection do
     {:ok, state}
   end
 
-  defp open_ssl_connection([], _opts, _timeout) do
-    {:error, :no_endpoints}
-  end
+  defp open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout) do
+    host = to_charlist(host)
 
-  defp open_ssl_connection([{host, port}], opts, timeout) do
-    open_ssl_connection(host, port, opts, timeout)
-  end
-
-  defp open_ssl_connection(endpoints, opts, timeout) do
-    Enum.reduce_while(endpoints, {:error, []}, fn {host, port}, {:error, connect_errors} ->
-      case open_ssl_connection(host, port, opts, timeout) do
-        {:ok, socket} ->
-          {:halt, {:ok, socket}}
-
-        {:error, reason} ->
-          {:cont, {:error, [{{host, port}, reason} | connect_errors]}}
-      end
-    end)
-  end
-
-  defp open_ssl_connection(host, port, opts, timeout) do
-    with {:ok, socket} <- :ssl.connect(host, port, opts, timeout),
+    with {:ok, socket} <- :gen_tcp.connect(host, port, tcp_opts, timeout),
+         {:ok, socket} <- :ssl.connect(socket, ssl_opts, timeout),
          {:ok, @edgedb_alpn_protocol} <- :ssl.negotiated_protocol(socket) do
       {:ok, socket}
     end
   end
 
-  defp add_custom_edgedb_ssl_opts(opts, edgedb_opts) do
-    opts =
-      cond do
-        pem_cert_path = edgedb_opts[:tls_ca_file] ->
-          Keyword.put(opts, :cacertfile, pem_cert_path)
+  defp add_custom_edgedb_ssl_opts(socket_opts, connect_opts) do
+    socket_opts =
+      case connect_opts[:tls_ca_data] do
+        nil ->
+          socket_opts
 
-        pem_cert_data = edgedb_opts[:tls_ca_data] ->
+        pem_cert_data ->
           {:Certificate, der_cert_data, _cipher_info} =
             pem_cert_data
             |> :public_key.pem_decode()
@@ -324,20 +282,17 @@ defmodule EdgeDB.Connection do
                 false
             end)
 
-          Keyword.put(opts, :cacerts, [der_cert_data])
-
-        true ->
-          opts
+          Keyword.put(socket_opts, :cacerts, [der_cert_data])
       end
 
-    opts =
-      if edgedb_opts[:tls_verify_hostname] do
-        Keyword.put(opts, :verify, :verify_peer)
+    socket_opts =
+      if connect_opts[:tls_verify_hostname] do
+        Keyword.put(socket_opts, :verify, :verify_peer)
       else
-        opts
+        socket_opts
       end
 
-    Keyword.put(opts, :alpn_advertised_protocols, [@edgedb_alpn_protocol])
+    Keyword.put(socket_opts, :alpn_advertised_protocols, [@edgedb_alpn_protocol])
   end
 
   defp handshake(password, %State{} = state) do

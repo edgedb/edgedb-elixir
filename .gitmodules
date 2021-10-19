@@ -1,0 +1,3 @@
+[submodule "tests/support/shared-client-testcases"]
+	path = test/support/shared-client-testcases
+	url = https://github.com/edgedb/shared-client-testcases.git
