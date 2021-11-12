@@ -20,10 +20,9 @@ jobs:
           submodules: true
 
       # TODO: replace with original action after PR merge
-      - uses: nsidnev/setup-edgedb@0ee76335014034ae7f6aff037b70797143dab4b7
+      - uses: nsidnev/setup-edgedb@project-link
         with:
           server-version: ${{ matrix.edgedb-version }}
-          cli-version: nightly # TODO: replace with stable when --server-start-conf will be available
           instance-name: edgedb_elixir
 
       - uses: erlef/setup-beam@v1
