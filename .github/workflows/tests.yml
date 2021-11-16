@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        edgedb-version: ["1-rc2"]
+        edgedb-version: ["1.0-rc.2"]
         otp-version: ["24.1.1"]
         elixir-version: ["1.12.2"]
 
@@ -23,6 +23,7 @@ jobs:
       - uses: nsidnev/setup-edgedb@project-link
         with:
           server-version: ${{ matrix.edgedb-version }}
+          cli-version: nightly  # to ensure portable installation method will work with action
           instance-name: edgedb_elixir
 
       - uses: erlef/setup-beam@v1
