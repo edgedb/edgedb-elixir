@@ -14,6 +14,7 @@ defmodule EdgeDB.Connection.Config do
   @default_timeout 15_000
 
   @file_module Application.compile_env(:edgedb, :file_module, File)
+  @path_module Application.compile_env(:edgedb, :path_module, Path)
   @system_module Application.compile_env(:edgedb, :system_module, System)
 
   @type connect_options() :: list(EdgeDB.connect_option())
@@ -49,6 +50,33 @@ defmodule EdgeDB.Connection.Config do
   end
 
   defp transform_opts(opts) do
+    tls_security = opts[:tls_security] || :default
+    security = opts[:security] || :default
+
+    tls_security =
+      cond do
+        security == :default and tls_security != :default ->
+          tls_security
+
+        security == :default and opts[:tls_ca_data] ->
+          :no_host_verification
+
+        security == :insecure_dev_mode and tls_security == :default ->
+          :insecure
+
+        security == :strict and tls_security == :default ->
+          :strict
+
+        security == :strict and
+            (tls_security == :no_host_verification or tls_security == :insecure) ->
+          raise RuntimeError,
+            message:
+              "EDGEDB_CLIENT_SECURITY=#{security} but tls_security=#{tls_security}, tls_security must be set to strict when EDGEDB_CLIENT_SECURITY is strict"
+
+        true ->
+          :strict
+      end
+
     opts
     |> Keyword.put_new_lazy(:address, fn ->
       {opts[:host] || @default_host, opts[:port] || @default_port}
@@ -66,13 +94,7 @@ defmodule EdgeDB.Connection.Config do
         nil
       end
     end)
-    |> Keyword.update(:tls_verify_hostname, is_nil(opts[:tls_ca_data]), fn tls_verify_hostname ->
-      if is_nil(tls_verify_hostname) do
-        is_nil(opts[:tls_ca_data])
-      else
-        tls_verify_hostname
-      end
-    end)
+    |> Keyword.put(:tls_security, tls_security)
     |> Keyword.put_new(:timeout, @default_timeout)
   end
 
@@ -126,16 +148,8 @@ defmodule EdgeDB.Connection.Config do
   end
 
   defp resolve_project_opts(resolved_opts) do
-    dir = @file_module.cwd!()
-    project_file = Path.join(dir, "edgedb.toml")
-
-    if not @file_module.exists?(project_file) do
-      raise Error.client_connection_error(
-              ~s(no "edgedb.toml" found and no connection options specified)
-            )
-    end
-
-    stash_dir = Credentials.stash_dir(dir)
+    project_dir = find_edgedb_project_dir()
+    stash_dir = Credentials.stash_dir(project_dir)
 
     if not @file_module.exists?(stash_dir) do
       raise Error.client_connection_error(
@@ -145,7 +159,7 @@ defmodule EdgeDB.Connection.Config do
 
     instance_name =
       [stash_dir, "instance-name"]
-      |> Path.join()
+      |> @path_module.join()
       |> @file_module.read!()
       |> String.trim()
 
@@ -166,8 +180,8 @@ defmodule EdgeDB.Connection.Config do
       |> Keyword.put_new_lazy(:tls_ca_file, fn ->
         Validation.validate_tls_ca_file(opts[:tls_ca_file])
       end)
-      |> Keyword.put_new_lazy(:tls_verify_hostname, fn ->
-        Validation.validate_tls_verify_hostname(opts[:tls_verify_hostname])
+      |> Keyword.put_new_lazy(:tls_security, fn ->
+        Validation.validate_tls_security(opts[:tls_security])
       end)
       |> Keyword.put_new_lazy(:server_settings, fn ->
         Validation.validate_server_settings(opts[:server_settings])
@@ -240,7 +254,7 @@ defmodule EdgeDB.Connection.Config do
       user: from_config(:user),
       password: from_config(:password),
       tls_ca_file: from_config(:tls_ca_file),
-      tls_verify_hostname: from_config(:tls_verify_hostname),
+      tls_security: from_config(:tls_security),
       server_settings: from_config(:server_settings)
     )
   end
@@ -255,10 +269,10 @@ defmodule EdgeDB.Connection.Config do
           env_var
       end
 
-    insecure_dev_mode =
-      "EDGEDB_INSECURE_DEV_MODE"
+    security =
+      "EDGEDB_CLIENT_SECURITY"
       |> from_env()
-      |> Validation.validate_insecure_dev_mode()
+      |> Validation.validate_security()
 
     clear_opts(
       dsn: from_env("EDGEDB_DSN"),
@@ -270,8 +284,8 @@ defmodule EdgeDB.Connection.Config do
       user: from_env("EDGEDB_USER"),
       password: from_env("EDGEDB_PASSWORD"),
       tls_ca_file: from_env("EDGEDB_TLS_CA_FILE"),
-      tls_verify_hostname: from_env("EDGEDB_TLS_VERIFY_HOSTNAME"),
-      insecure_dev_mode: insecure_dev_mode
+      tls_security: from_env("EDGEDB_CLIENT_TLS_SECURITY"),
+      security: security
     )
   end
 
@@ -291,5 +305,38 @@ defmodule EdgeDB.Connection.Config do
 
   defp from_env(name) do
     @system_module.get_env(name)
+  end
+
+  defp find_edgedb_project_dir do
+    dir = @file_module.cwd!()
+    find_edgedb_project_dir(dir)
+  end
+
+  defp find_edgedb_project_dir(dir) do
+    dev = @file_module.stat!(dir).major_device
+    project_file = @path_module.join(dir, "edgedb.toml")
+
+    if @file_module.exists?(project_file) do
+      dir
+    else
+      parent = @path_module.dirname(dir)
+
+      if parent == dir do
+        raise Error.client_connection_error(
+                ~s(no "edgedb.toml" found and no connection options specified)
+              )
+      end
+
+      parent_dev = @file_module.stat!(parent).major_device
+
+      if parent_dev != dev do
+        raise Error.client_connection_error(
+                ~s(no "edgedb.toml" found and no connection options specified) <>
+                  ~s(stopped searching for "edgedb.toml" at file system boundary #{inspect(dir)})
+              )
+      end
+
+      find_edgedb_project_dir(parent)
+    end
   end
 end

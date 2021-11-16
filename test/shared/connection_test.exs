@@ -1,10 +1,15 @@
-if File.exists?("test/support/shared-client-testcases/connection_testcases.json") do
-  defmodule Tests.Shared.ConnectionCase do
-    use Tests.Support.EdgeDBCase, async: false
+testcases_file = "test/support/shared-client-testcases/connection_testcases.json"
+
+if File.exists?(testcases_file) do
+  defmodule Tests.Shared.ConnectionTest do
+    use Tests.Support.SharedCase, async: false
 
     alias EdgeDB.Connection.Config
 
-    alias Tests.Support.Mocks
+    require Logger
+
+    @cases read_testcases(testcases_file)
+    @moduletag :connection
 
     @case_to_driver_errors %{
       "credentials_file_not_found" => {RuntimeError, message: ~r/could not read/},
@@ -36,20 +41,16 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
       },
       "env_not_found" => {RuntimeError, message: ~r/environment variable ".*" doesn't exist/},
       "file_not_found" => {File.Error, message: ~r/could not read/},
-      "invalid_tls_verify_hostname" => {
+      "invalid_tls_security" => {
         RuntimeError,
-        message: ~r"tls_verify_hostname can only be one of yes/no"
+        message:
+          ~r"(one of `insecure`, `no_host_verification`, `strict` or `default`)|(tls_security must be set to strict)"
       }
     }
     @known_case_errors Map.keys(@case_to_driver_errors)
 
-    @shared_cases_file "test/support/shared-client-testcases/connection_testcases.json"
-    @cases @shared_cases_file |> File.read!() |> Jason.decode!()
-
-    @moduletag :shared
-
     for {testcase, index} <- Enum.with_index(@cases, 1) do
-      @tag String.to_atom("shared_testcase_#{index}")
+      @tag String.to_atom("shared_connection_testcase_#{index}")
 
       with %{"fs" => fs_mapping} when map_size(fs_mapping) != 0 <- testcase do
         platform = testcase["platform"]
@@ -71,8 +72,10 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
 
       describe "shared testcase for connection options parsing ##{index}" do
         @tag testcase: testcase
+        @tag debug: @debug_shared
 
         setup [
+          :setup_debug,
           :setup_env,
           :setup_fs,
           :setup_opts,
@@ -88,124 +91,32 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
       end
     end
 
-    defp setup_env(%{testcase: %{"env" => env}}) do
-      original_env = System.get_env()
-
-      original_env_keys =
-        original_env
-        |> Map.keys()
-        |> MapSet.new()
-
-      on_exit(fn ->
-        exit_env = System.get_env()
-
-        exit_env_keys =
-          exit_env
-          |> Map.keys()
-          |> MapSet.new()
-
-        external_keys = MapSet.difference(exit_env_keys, original_env_keys)
-
-        for key <- external_keys do
-          System.delete_env(key)
-        end
-
-        for {key, value} <- original_env do
-          System.put_env(key, value)
-        end
-      end)
-
-      for key <- original_env_keys do
-        System.delete_env(key)
-      end
-
-      for {key, value} <- env do
-        System.put_env(key, value)
-      end
-
-      :ok
-    end
-
-    defp setup_env(_context) do
-      :ok
-    end
-
-    defp setup_fs(%{testcase: %{"fs" => fs_mapping}}) do
-      with %{"cwd" => cwd} <- fs_mapping do
-        stub(Mocks.FileMock, :cwd!, fn ->
-          cwd
-        end)
-      end
-
-      with %{"homedir" => homedir} <- fs_mapping do
-        stub(Mocks.SystemMock, :user_home!, fn ->
-          homedir
-        end)
-      end
-
-      with %{"files" => files} <- fs_mapping do
-        stub(Mocks.FileMock, :exists?, fn path ->
-          Map.has_key?(files, path)
-        end)
-
-        stub(Mocks.FileMock, :exists?, fn path, _opts ->
-          Map.has_key?(files, path)
-        end)
-
-        stub(Mocks.FileMock, :read!, fn path ->
-          if data = files[path] do
-            data
-          else
-            raise File.Error, action: "read", path: path, reason: :enoent
-          end
-        end)
-      end
-
-      :ok
-    end
-
-    defp setup_fs(_context) do
-      stub(Mocks.FileMock, :exists?, fn path ->
-        if path == Path.join(File.cwd!(), "edgedb.toml") do
-          false
-        else
-          File.exists?(path)
-        end
-      end)
-
-      stub(Mocks.FileMock, :exists?, fn path, _opts ->
-        if path == Path.join(File.cwd!(), "edgedb.toml") do
-          false
-        else
-          File.exists?(path)
-        end
-      end)
-
-      :ok
-    end
-
     defp setup_opts(%{testcase: %{"opts" => opts}}) do
-      %{
-        opts:
-          Enum.reject(
-            [
-              dsn: opts["dsn"],
-              credentials_file: opts["credentialsFile"],
-              host: opts["host"],
-              port: opts["port"],
-              database: opts["database"],
-              user: opts["user"],
-              password: opts["password"],
-              tls_ca_file: opts["tlsCAFile"],
-              tls_verify_hostname: opts["tlsVerifyHostname"],
-              timeout: opts["timeout"],
-              server_settings: opts["serverSettings"]
-            ],
-            fn {_key, value} ->
-              is_nil(value)
-            end
-          )
-      }
+      configured_opts =
+        Enum.reject(
+          [
+            dsn: opts["dsn"],
+            credentials_file: opts["credentialsFile"],
+            host: opts["host"],
+            port: opts["port"],
+            database: opts["database"],
+            user: opts["user"],
+            password: opts["password"],
+            tls_ca_file: opts["tlsCAFile"],
+            tls_security: opts["tlsSecurity"],
+            timeout: opts["timeout"],
+            server_settings: opts["serverSettings"]
+          ],
+          fn {_key, value} ->
+            is_nil(value)
+          end
+        )
+
+      Logger.debug(
+        "configure explicit options: #{inspect(opts)}, configured options: #{inspect(opts)}"
+      )
+
+      %{opts: configured_opts}
     end
 
     defp setup_opts(_context) do
@@ -228,6 +139,10 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
     defp setup_error(%{testcase: %{"error" => %{"type" => error_type}}}) do
       {error, opts} = @case_to_driver_errors[error_type]
 
+      Logger.debug(
+        "configure expected error (#{inspect(error_type)}): #{inspect(error)}, opts: #{inspect(opts)}"
+      )
+
       expected_to_fail_callback = fn callback ->
         {message, opts} = Keyword.pop!(opts, :message)
 
@@ -235,6 +150,8 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
           assert_raise error, message, fn ->
             callback.()
           end
+
+        Logger.debug("raised error: #{inspect(raised_error)}")
 
         for {attribute, value} <- opts do
           assert Map.get(raised_error, attribute) == value
@@ -256,6 +173,8 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
     end
 
     defp setup_result(%{testcase: %{"result" => result} = testcase}) do
+      Logger.debug("configure expected result")
+
       expected_result =
         Enum.reject(
           [
@@ -271,6 +190,10 @@ if File.exists?("test/support/shared-client-testcases/connection_testcases.json"
             is_nil(value)
           end
         )
+
+      Logger.debug(
+        "passed result: #{inspect(result)}, expected_result: #{inspect(expected_result)}"
+      )
 
       expected_to_success_callback = fn callback ->
         parsed_opts = callback.()

@@ -4,4 +4,5 @@ defmodule Tests.Support.Mocks.Stubs.FileStub do
   defdelegate cwd!(), to: File
   defdelegate read!(path), to: File
   defdelegate exists?(path, opts \\ []), to: File
+  defdelegate stat!(path, opts \\ []), to: File
 end

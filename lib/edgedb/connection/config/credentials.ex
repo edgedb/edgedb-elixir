@@ -6,6 +6,7 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
   @instance_name_regex ~r/^[A-Za-z_][A-Za-z_0-9]*$/
 
+  @path_module Application.compile_env(:edgedb, :path_module, Path)
   @file_module Application.compile_env(:edgedb, :file_module, File)
 
   @spec get_credentials_path(String.t()) :: String.t()
@@ -19,7 +20,7 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
     ["credentials", "#{instance_name}.json"]
     |> Platform.search_config_dir()
-    |> Path.expand()
+    |> @path_module.expand()
   end
 
   @spec read_creadentials(String.t()) :: Keyword.t()
@@ -27,33 +28,45 @@ defmodule EdgeDB.Connection.Config.Credentials do
     credentials_path
     |> @file_module.read!()
     |> Jason.decode!()
-    |> Enum.into([], fn
-      {"host", value} ->
-        {:host, Validation.validate_host(value)}
+    |> Enum.reduce([], fn
+      {"host", value}, opts ->
+        Keyword.put(opts, :host, Validation.validate_host(value))
 
-      {"port", value} ->
-        {:port, Validation.validate_port(value, :strict)}
+      {"port", value}, opts ->
+        Keyword.put(opts, :port, Validation.validate_port(value, :strict))
 
-      {"database", value} ->
-        {:database, Validation.validate_database(value)}
+      {"database", value}, opts ->
+        Keyword.put(opts, :database, Validation.validate_database(value))
 
-      {"user", value} ->
-        {:user, Validation.validate_user(value)}
+      {"user", value}, opts ->
+        Keyword.put(opts, :user, Validation.validate_user(value))
 
-      {"password", value} ->
-        {:password, value}
+      {"password", value}, opts ->
+        Keyword.put(opts, :password, value)
 
-      {"tls_cert_data", value} ->
-        {:tls_ca_data, value}
+      {"tls_cert_data", value}, opts ->
+        Keyword.put(opts, :tls_ca_data, value)
 
-      {"tls_verify_hostname", value} ->
-        {:tls_verify_hostname, Validation.validate_tls_verify_hostname(value, :strict)}
+      {"tls_verify_hostname", value}, opts ->
+        verify = Validation.validate_tls_verify_hostname(value)
 
-      {key, _value} ->
-        {key, :skip}
-    end)
-    |> Enum.reject(fn {_key, value} ->
-      value == :skip
+        security =
+          if verify do
+            :strict
+          else
+            :no_host_verification
+          end
+
+        opts
+        |> Keyword.put(:tls_verify_hostname, verify)
+        |> Keyword.put_new(:tls_security, security)
+
+      {"tls_security", value}, opts ->
+        security = Validation.validate_tls_security(value)
+        Keyword.put(opts, :tls_security, security)
+
+      _param, opts ->
+        opts
     end)
     |> validate_credentials()
   rescue
@@ -65,19 +78,19 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
   @spec stash_dir(Path.t()) :: String.t()
   def stash_dir(path) do
-    path = Path.expand(path)
+    path = @path_module.expand(path)
 
     hash =
       :sha
       |> :crypto.hash(path)
       |> Base.encode16(case: :lower)
 
-    base_name = Path.basename(path)
+    base_name = @path_module.basename(path)
     dir_name = base_name <> "-" <> hash
 
     ["projects", dir_name]
     |> Platform.search_config_dir()
-    |> Path.expand()
+    |> @path_module.expand()
   end
 
   defp validate_credentials(credentials) do
@@ -85,6 +98,11 @@ defmodule EdgeDB.Connection.Config.Credentials do
       raise RuntimeError,
         message: ~s("user" key is required)
     end
+
+    Validation.validate_tls_verify_hostname_with_tls_security(
+      credentials[:tls_verify_hostname],
+      credentials[:tls_security]
+    )
 
     credentials
   end

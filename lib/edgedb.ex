@@ -7,6 +7,7 @@ defmodule EdgeDB do
   alias EdgeDB.Protocol.Enums
 
   @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
+  @type tls_security() :: :insecure | :no_host_verification | :strict | :default
 
   # NOTE: :command_timeout, :wait_for_available and :server_settings
   # options added only for compatability with other drivers and aren't used right now
@@ -19,7 +20,7 @@ defmodule EdgeDB do
           | {:user, String.t()}
           | {:password, String.t()}
           | {:tls_ca_file, Path.t()}
-          | {:tls_verify_hostname, boolean()}
+          | {:tls_security, tls_security()}
           | {:timeout, timeout()}
           | {:command_timeout, timeout()}
           | {:wait_for_available, integer()}
