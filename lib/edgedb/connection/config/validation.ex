@@ -4,6 +4,12 @@ defmodule EdgeDB.Connection.Config.Validation do
   @min_port 1
   @max_port 65_535
 
+  @tls_security_options ~w(insecure no_host_verification strict default)a
+  @security_options ~w(insecure_dev_mode strict default)a
+
+  @tls_security_string_options Enum.map(@tls_security_options, &to_string/1)
+  @security_string_options Enum.map(@security_options, &to_string/1)
+
   @spec validate_database(term()) :: String.t() | nil
 
   def validate_database(option) do
@@ -107,14 +113,73 @@ defmodule EdgeDB.Connection.Config.Validation do
     option
   end
 
-  @spec validate_tls_verify_hostname(term(), validation()) :: boolean() | nil
-  def validate_tls_verify_hostname(option, validation \\ :lenient) do
-    validate_boolean("tls_verify_hostname", option, validation)
+  @spec validate_tls_verify_hostname(term()) :: boolean() | nil
+
+  def validate_tls_verify_hostname(nil) do
+    nil
   end
 
-  @spec validate_insecure_dev_mode(term(), validation()) :: boolean() | nil
-  def validate_insecure_dev_mode(option, validation \\ :lenient) do
-    validate_boolean("insecure_dev_mode", option, validation)
+  def validate_tls_verify_hostname(option) when is_boolean(option) do
+    option
+  end
+
+  def validate_tls_verify_hostname(option) do
+    raise RuntimeError,
+      message: "invalid tls_verify_hostname: #{inspect(option)}, must be a boolean"
+  end
+
+  @spec validate_tls_security(term()) ::
+          :insecure | :no_host_verification | :strict | :default | nil
+
+  def validate_tls_security(nil) do
+    nil
+  end
+
+  def validate_tls_security(option) when option in @tls_security_string_options do
+    String.to_existing_atom(option)
+  end
+
+  def validate_tls_security(option) when option in @tls_security_options do
+    option
+  end
+
+  def validate_tls_security(option) do
+    raise RuntimeError,
+      message:
+        "invalid tls_security: #{option}, tls_security can only be one of `insecure`, `no_host_verification`, `strict` or `default`"
+  end
+
+  @spec validate_security(term()) :: :insecure_dev_mode | :strict | :default | nil
+
+  def validate_security(nil) do
+    nil
+  end
+
+  def validate_security(option) when option in @security_string_options do
+    String.to_existing_atom(option)
+  end
+
+  def validate_security(option) when option in @security_options do
+    option
+  end
+
+  def validate_security(option) do
+    raise RuntimeError,
+      message:
+        "invalid security: #{option}, security can only be one of `insecure_dev_mode`, `strict` or `default`"
+  end
+
+  @spec validate_tls_verify_hostname_with_tls_security(atom(), atom()) :: :ok | no_return()
+
+  def validate_tls_verify_hostname_with_tls_security(tls_verify_hostname, tls_security) do
+    if (tls_security == :strict and tls_verify_hostname == false) or
+         (tls_security in ~w(no_host_verification insecure)a and tls_verify_hostname == true) do
+      raise RuntimeError,
+        message:
+          "tls_verify_hostname=#{tls_verify_hostname} and tls_security=#{tls_security} are incompatible"
+    else
+      :ok
+    end
   end
 
   @spec validate_boolean(String.t(), term(), validation()) :: boolean() | nil
@@ -132,20 +197,6 @@ defmodule EdgeDB.Connection.Config.Validation do
   def validate_boolean(key, value, :strict) when is_binary(value) do
     raise RuntimeError,
       message: "invalid #{key}: #{key} must be a boolean"
-  end
-
-  def validate_boolean(key, value, :lenient) when is_binary(value) do
-    cond do
-      value in ~w(1 yes true y t on) ->
-        true
-
-      value in ~w(0 no false n f off) ->
-        false
-
-      true ->
-        raise RuntimeError,
-          message: "invalid #{key}: #{key} can only be one of yes/no"
-    end
   end
 
   @spec validate_server_settings(term()) :: map()

@@ -94,8 +94,8 @@ defmodule EdgeDB.Connection.Config.DSN do
     {password, query} = handle_dsn_part(:password, opts[:password], password, query)
     {tls_ca_file, query} = handle_dsn_part(:tls_cert_file, opts[:tls_ca_file], nil, query)
 
-    {tls_verify_hostname, query} =
-      handle_dsn_part(:tls_verify_hostname, opts[:tls_verify_hostname], nil, query)
+    {tls_security, query} =
+      handle_dsn_part(:tls_security, opts[:tls_security], nil, query)
 
     server_settings = Validation.validate_server_settings(query)
 
@@ -106,7 +106,7 @@ defmodule EdgeDB.Connection.Config.DSN do
       user: Validation.validate_user(user),
       password: password,
       tls_ca_file: Validation.validate_tls_ca_file(tls_ca_file),
-      tls_verify_hostname: Validation.validate_tls_verify_hostname(tls_verify_hostname),
+      tls_security: Validation.validate_tls_security(tls_security),
       server_settings: Map.merge(server_settings, opts[:server_settings])
     )
   end
