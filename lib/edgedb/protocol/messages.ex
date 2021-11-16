@@ -87,6 +87,8 @@ defmodule EdgeDB.Protocol.Messages do
         DataElement
       }
 
+      import EdgeDB.Protocol.Types.ParameterStatus.SystemConfig
+
       # messages
 
       # client

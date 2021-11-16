@@ -16,6 +16,8 @@ defmodule EdgeDB.Connection do
     Error
   }
 
+  alias EdgeDB.Protocol.Types.ParameterStatus
+
   alias EdgeDB.SCRAM
 
   require Logger
@@ -26,8 +28,8 @@ defmodule EdgeDB.Connection do
 
   @scram_sha_256 "SCRAM-SHA-256"
   @major_ver 0
-  @minor_ver 12
-  @minor_ver_min 12
+  @minor_ver 13
+  @minor_ver_min 13
   @edgedb_alpn_protocol "edgedb-binary"
 
   defmodule State do
@@ -41,7 +43,8 @@ defmodule EdgeDB.Connection do
       capabilities: [],
       buffer: <<>>,
       server_key_data: nil,
-      server_state: :not_in_transaction
+      server_state: :not_in_transaction,
+      server_settings: %{}
     ]
 
     @type t() :: %__MODULE__{
@@ -54,7 +57,8 @@ defmodule EdgeDB.Connection do
             server_key_data: list(byte()) | nil,
             server_state: Enums.TransactionState.t(),
             queries_cache: QueriesCache.t(),
-            codecs_storage: Codecs.Storage.t()
+            codecs_storage: Codecs.Storage.t(),
+            server_settings: map()
           }
 
     @spec new(
@@ -445,6 +449,35 @@ defmodule EdgeDB.Connection do
   end
 
   # TODO: maybe use it somehow, but right now just ignore it
+  defp handle_server_ready_flow(
+         parameter_status(name: "suggested_pool_concurrency", value: value),
+         state
+       ) do
+    {pool_concurrency, ""} = Integer.parse(value)
+
+    wait_for_server_ready(%State{
+      state
+      | server_settings:
+          Map.put(
+            state.server_settings,
+            :pool_concurrency,
+            pool_concurrency
+          )
+    })
+  end
+
+  defp handle_server_ready_flow(parameter_status(name: "system_config", value: value), state) do
+    wait_for_server_ready(%State{
+      state
+      | server_settings:
+          Map.put(
+            state.server_settings,
+            :system_config,
+            parse_system_config(value, state)
+          )
+    })
+  end
+
   defp handle_server_ready_flow(parameter_status(), state) do
     wait_for_server_ready(state)
   end
@@ -815,6 +848,20 @@ defmodule EdgeDB.Connection do
 
       {:ok, state}
     end
+  end
+
+  defp parse_system_config(encoded_config, %State{} = state) do
+    {system_config(
+       typedesc_id: typedesc_id,
+       typedesc: type_descriptor,
+       data: data_element(data: data)
+     ), <<>>} = ParameterStatus.SystemConfig.decode(encoded_config)
+
+    state.codecs_storage
+    |> Codecs.Storage.get_or_create(typedesc_id, fn ->
+      Codecs.from_type_description(state.codecs_storage, type_descriptor)
+    end)
+    |> Codec.decode(data)
   end
 
   defp send_message(message, state) do

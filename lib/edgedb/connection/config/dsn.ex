@@ -94,8 +94,7 @@ defmodule EdgeDB.Connection.Config.DSN do
     {password, query} = handle_dsn_part(:password, opts[:password], password, query)
     {tls_ca_file, query} = handle_dsn_part(:tls_cert_file, opts[:tls_ca_file], nil, query)
 
-    {tls_security, query} =
-      handle_dsn_part(:tls_security, opts[:tls_security], nil, query)
+    {tls_security, query} = handle_dsn_part(:tls_security, opts[:tls_security], nil, query)
 
     server_settings = Validation.validate_server_settings(query)
 
