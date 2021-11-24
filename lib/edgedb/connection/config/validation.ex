@@ -221,7 +221,7 @@ defmodule EdgeDB.Connection.Config.Validation do
         "invalid server_settings: server_settings is expected to be a map of strings/atoms to strings"
   end
 
-  @spec validate_dsn_authority(term()) :: String.t()
+  @spec validate_dsn_authority(term()) :: {String.t() | nil, :inet.port_number() | nil} | nil
 
   def validate_dsn_authority(nil) do
     nil
@@ -237,41 +237,56 @@ defmodule EdgeDB.Connection.Config.Validation do
           hostinfo
       end
 
-    if String.contains?(hostinfo, ",") do
-      raise RuntimeError,
-        message: "invalid host: multiple hosts are not allowed"
-    end
-
-    {host, port} =
-      case String.split(hostinfo, "[") do
-        [_prev, hostinfo] ->
-          case String.split(hostinfo, "]") do
-            [host, port] ->
-              ["", port] = String.split(port, ":")
-              {host, port}
-
-            [host] ->
-              {host, nil}
-          end
-
-        [hostinfo] ->
-          case String.split(hostinfo, ":") do
-            [host, port] ->
-              {host, port}
-
-            [host] ->
-              {host, nil}
-          end
-      end
-
-    validate_host(host)
-    validate_port(port)
-
-    authority
+    validate_hostinfo(hostinfo)
   rescue
     e in RuntimeError ->
       reraise RuntimeError,
               [message: "invalid DSN or instance name: #{e.message}"],
               __STACKTRACE__
+  end
+
+  @spec validate_hostinfo(term()) :: {String.t() | nil, :inet.port_number() | nil}
+
+  def validate_hostinfo(hostinfo) when is_binary(hostinfo) do
+    if String.contains?(hostinfo, ",") do
+      raise RuntimeError,
+        message: "invalid host: multiple hosts are not allowed"
+    end
+
+    {host, port} = parse_hostinfo(hostinfo)
+
+    host = validate_host(host)
+    port = validate_port(port)
+
+    {host, port}
+  end
+
+  def validate_hostinfo(_hostinfo) do
+    raise RuntimeError,
+      message: "invalid hostinfo: hostinfo should be a string"
+  end
+
+  defp parse_hostinfo(hostinfo) do
+    [hostinfo] = String.split(hostinfo, "[", trim: true)
+
+    case String.split(hostinfo, "]") do
+      [host, port] ->
+        case String.split(port, ":", trim: true) do
+          [port] ->
+            {host, port}
+
+          [] ->
+            {host, nil}
+        end
+
+      [hostinfo] ->
+        case String.split(hostinfo, ":") do
+          [host, port] ->
+            {host, port}
+
+          [host] ->
+            {host, nil}
+        end
+    end
   end
 end

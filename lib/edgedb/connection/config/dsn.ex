@@ -34,14 +34,12 @@ defmodule EdgeDB.Connection.Config.DSN do
   defp parse(
          %URI{
            scheme: "edgedb",
-           host: host,
-           port: port,
            path: database,
            query: query
          } = dsn,
          opts
        ) do
-    Validation.validate_dsn_authority(dsn.authority)
+    %URI{host: host, port: port} = maybe_handle_ipv6_zone(dsn)
 
     {user, password} =
       with userinfo when is_binary(userinfo) <- dsn.userinfo,
@@ -114,6 +112,36 @@ defmodule EdgeDB.Connection.Config.DSN do
     raise RuntimeError,
       message:
         ~s(invalid DSN or instance name: scheme is expected to be "edgedb", got #{inspect(dsn.scheme)})
+  end
+
+  # URI module doesn't handle this, so should do that manually
+
+  defp maybe_handle_ipv6_zone(%URI{authority: nil} = dsn) do
+    dsn
+  end
+
+  defp maybe_handle_ipv6_zone(%URI{} = dsn) do
+    authority =
+      try do
+        URI.decode_www_form(dsn.authority)
+      rescue
+        ArgumentError ->
+          dsn.authority
+      end
+
+    {host, port} = Validation.validate_dsn_authority(authority)
+
+    host =
+      case String.split(host, "%") do
+        [host, zone] ->
+          zone = URI.decode_www_form(zone)
+          "#{String.downcase(host)}%#{zone}"
+
+        [host] ->
+          host
+      end
+
+    %URI{dsn | host: host, port: port}
   end
 
   defp handle_dsn_part(option, value, uri_value, query) when is_atom(option) do

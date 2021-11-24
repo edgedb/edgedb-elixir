@@ -218,6 +218,13 @@ defmodule EdgeDB.Connection.Config do
             else
               host =
                 if host = opts[:host] do
+                  host =
+                    if String.contains?(host, ":") do
+                      "[#{host}]"
+                    else
+                      host
+                    end
+
                   Validation.validate_host(host)
                 else
                   ""
