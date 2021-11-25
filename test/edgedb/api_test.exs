@@ -63,15 +63,54 @@ defmodule Tests.APITest do
     end
   end
 
+  describe "EdgeDB.query_required_single/4" do
+    test "returns result on succesful query", %{conn: conn} do
+      assert {:ok, 1} = EdgeDB.query_required_single(conn, "SELECT 1")
+    end
+
+    test "raises error on failed query", %{conn: conn} do
+      {:error, %EdgeDB.Protocol.Error{}} =
+        EdgeDB.query_required_single(conn, "SELECT <int64>{}", [])
+    end
+  end
+
+  describe "EdgeDB.query_required_single!/4" do
+    test "returns result on succesful query", %{conn: conn} do
+      assert 1 = EdgeDB.query_required_single!(conn, "SELECT 1")
+    end
+
+    test "raises error on failed query", %{conn: conn} do
+      assert_raise EdgeDB.Protocol.Error, fn ->
+        EdgeDB.query_required_single!(conn, "SELECT <int64>{}")
+      end
+    end
+  end
+
   describe "EdgeDB.query_single_json/4" do
     test "returns decoded JSON on succesful query", %{conn: conn} do
       assert {:ok, "{\"number\" : 1}"} = EdgeDB.query_single_json(conn, "SELECT { number := 1 }")
+    end
+
+    test "returns JSON null for empty set", %{conn: conn} do
+      assert {:ok, "null"} = EdgeDB.query_single_json(conn, "SELECT <int64>{}")
     end
   end
 
   describe "EdgeDB.query_single_json!/4" do
     test "returns decoded JSON on succesful query", %{conn: conn} do
       assert "{\"number\" : 1}" = EdgeDB.query_single_json!(conn, "SELECT { number := 1 }")
+    end
+  end
+
+  describe "EdgeDB.query_required_single_json/4" do
+    test "returns decoded JSON on succesful query", %{conn: conn} do
+      assert {:ok, "1"} = EdgeDB.query_required_single_json(conn, "SELECT 1")
+    end
+  end
+
+  describe "EdgeDB.query_required_single_json!/4" do
+    test "returns decoded JSON on succesful query", %{conn: conn} do
+      assert "1" = EdgeDB.query_required_single_json!(conn, "SELECT 1")
     end
   end
 
