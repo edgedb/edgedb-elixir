@@ -825,12 +825,9 @@ defmodule EdgeDB.Connection do
 
     with {:ok, query, state} <- prepare_query(query, [], state),
          encoded_params = DBConnection.Query.encode(query, query.params, []),
-         {:ok, query, result, state} <- execute_query(query, encoded_params, [], state) do
-      types =
-        query
-        |> DBConnection.Query.decode(result, [])
-        |> EdgeDB.Result.extract()
-
+         {:ok, query, result, state} <- execute_query(query, encoded_params, [], state),
+         result = DBConnection.Query.decode(query, result, []),
+         {:ok, types} <- EdgeDB.Result.extract(result) do
       Enum.each(codecs, fn %Codec{type_name: name} = codec ->
         scalar_object =
           Enum.find(types, fn type ->

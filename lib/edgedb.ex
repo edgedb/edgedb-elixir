@@ -100,6 +100,7 @@ defmodule EdgeDB do
       statement: statement,
       cardinality: Keyword.get(opts, :cardinality, :many),
       io_format: Keyword.get(opts, :io_format, :binary),
+      required: Keyword.get(opts, :required, false),
       params: params
     }
 
@@ -108,25 +109,9 @@ defmodule EdgeDB do
 
   @spec query!(connection(), String.t(), list(), list(query_option())) :: result()
   def query!(conn, statement, params \\ [], opts \\ []) do
-    case query(conn, statement, params, opts) do
-      {:ok, result} ->
-        result
-
-      {:error, exc} ->
-        raise exc
-    end
-  end
-
-  @spec query_json(connection(), String.t(), list(), list(query_option())) ::
-          {:ok, result()}
-          | {:error, Exception.t()}
-  def query_json(conn, statement, params \\ [], opts \\ []) do
-    query(conn, statement, params, Keyword.merge(opts, io_format: :json))
-  end
-
-  @spec query_json!(connection(), String.t(), list(), list(query_option())) :: result()
-  def query_json!(conn, statement, params \\ [], opts \\ []) do
-    query!(conn, statement, params, Keyword.merge(opts, io_format: :json))
+    conn
+    |> query(statement, params, opts)
+    |> unwrap!()
   end
 
   @spec query_single(connection(), String.t(), list(), list(query_option())) ::
@@ -138,38 +123,68 @@ defmodule EdgeDB do
 
   @spec query_single!(connection(), String.t(), list(), list(query_option())) :: result()
   def query_single!(conn, statement, params \\ [], opts \\ []) do
-    case query_single(conn, statement, params, opts) do
-      {:ok, result} ->
-        result
+    conn
+    |> query_single(statement, params, opts)
+    |> unwrap!()
+  end
 
-      {:error, exc} ->
-        raise exc
-    end
+  @spec query_required_single(connection(), String.t(), list(), list(query_option())) ::
+          {:ok, result()}
+          | {:error, Exception.t()}
+  def query_required_single(conn, statement, params \\ [], opts \\ []) do
+    query_single(conn, statement, params, Keyword.merge(opts, required: true))
+  end
+
+  @spec query_required_single!(connection(), String.t(), list(), list(query_option())) :: result()
+  def query_required_single!(conn, statement, params \\ [], opts \\ []) do
+    conn
+    |> query_required_single(statement, params, opts)
+    |> unwrap!()
+  end
+
+  @spec query_json(connection(), String.t(), list(), list(query_option())) ::
+          {:ok, result()}
+          | {:error, Exception.t()}
+  def query_json(conn, statement, params \\ [], opts \\ []) do
+    query(conn, statement, params, Keyword.merge(opts, io_format: :json))
+  end
+
+  @spec query_json!(connection(), String.t(), list(), list(query_option())) :: result()
+  def query_json!(conn, statement, params \\ [], opts \\ []) do
+    conn
+    |> query_json(statement, params, opts)
+    |> unwrap!()
   end
 
   @spec query_single_json(connection(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_single_json(conn, statement, params \\ [], opts \\ []) do
-    query_json(
-      conn,
-      statement,
-      params,
-      Keyword.merge(opts, cardinality: :at_most_one)
-    )
+    query_json(conn, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
   end
 
   @spec query_single_json!(connection(), String.t(), list(), list(query_option())) :: result()
   def query_single_json!(conn, statement, params \\ [], opts \\ []) do
-    query_json!(
-      conn,
-      statement,
-      params,
-      Keyword.merge(opts, cardinality: :at_most_one)
-    )
+    conn
+    |> query_single_json(statement, params, opts)
+    |> unwrap!()
   end
 
-  # TODO: split into raw_transaction and retrying_transaction as like it is done in other drivers
+  @spec query_required_single_json(connection(), String.t(), list(), list(query_option())) ::
+          {:ok, result()}
+          | {:error, Exception.t()}
+  def query_required_single_json(conn, statement, params \\ [], opts \\ []) do
+    query_single_json(conn, statement, params, Keyword.merge(opts, required: true))
+  end
+
+  @spec query_required_single_json!(connection(), String.t(), list(), list(query_option())) ::
+          result()
+  def query_required_single_json!(conn, statement, params \\ [], opts \\ []) do
+    conn
+    |> query_required_single_json(statement, params, opts)
+    |> unwrap!()
+  end
+
   @spec transaction(connection(), (DBConnection.t() -> result()), list(transaction_option())) ::
           {:ok, result()}
           | {:error, term()}
@@ -233,23 +248,39 @@ defmodule EdgeDB do
   defp prepare_execute_query(conn, query, params, opts) do
     with {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} <-
            DBConnection.prepare_execute(conn, query, params, opts) do
-      result =
-        cond do
-          opts[:raw] ->
-            {q, r}
+      cond do
+        opts[:raw] ->
+          {:ok, {q, r}}
 
-          opts[:io_format] == :json ->
-            # in result set there will be only a single value
+        opts[:io_format] == :json ->
+          # in result set there will be only a single value
 
+          result =
             r
             |> Map.put(:cardinality, :at_most_one)
             |> EdgeDB.Result.extract()
 
-          true ->
-            EdgeDB.Result.extract(r)
-        end
+          case result do
+            {:ok, nil} ->
+              {:ok, "null"}
 
-      {:ok, result}
+            other ->
+              other
+          end
+
+        true ->
+          EdgeDB.Result.extract(r)
+      end
+    end
+  end
+
+  defp unwrap!(result) do
+    case result do
+      {:ok, value} ->
+        value
+
+      {:error, exc} ->
+        raise exc
     end
   end
 end

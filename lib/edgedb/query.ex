@@ -8,6 +8,7 @@ defmodule EdgeDB.Query do
     :statement,
     cardinality: :many,
     io_format: :binary,
+    required: false,
     input_codec: nil,
     output_codec: nil,
     cached?: false,
@@ -18,6 +19,7 @@ defmodule EdgeDB.Query do
           statement: String.t() | atom(),
           cardinality: Enums.Cardinality.t(),
           io_format: Enums.IOFormat.t(),
+          required: boolean(),
           input_codec: Codec.t() | nil,
           output_codec: Codec.t() | nil,
           cached?: boolean(),
@@ -39,8 +41,12 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
   end
 
   @impl DBConnection.Query
-  def decode(%EdgeDB.Query{output_codec: out_codec}, %EdgeDB.Result{} = result, _opts) do
-    decode_result(result, out_codec)
+  def decode(
+        %EdgeDB.Query{output_codec: out_codec, required: required},
+        %EdgeDB.Result{} = result,
+        _opts
+      ) do
+    decode_result(%EdgeDB.Result{result | required: required}, out_codec)
   end
 
   @impl DBConnection.Query
