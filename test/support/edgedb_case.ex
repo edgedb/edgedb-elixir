@@ -5,6 +5,8 @@ defmodule Tests.Support.EdgeDBCase do
 
   alias Tests.Support.Mocks
 
+  @dialyzer {:nowarn_function, rollback: 2}
+
   using do
     quote do
       import Mox
@@ -27,6 +29,18 @@ defmodule Tests.Support.EdgeDBCase do
       )
 
     %{conn: conn}
+  end
+
+  @spec rollback(EdgeDB.connection(), (EdgeDB.connection() -> any())) :: :ok
+  def rollback(conn, callback) do
+    assert {:error, :expected} =
+             EdgeDB.transaction(conn, fn conn ->
+               callback.(conn)
+
+               EdgeDB.rollback(conn, :expected)
+             end)
+
+    :ok
   end
 
   @spec setup_stubs_fallbacks(term()) :: :ok
