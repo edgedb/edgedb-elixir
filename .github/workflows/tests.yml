@@ -19,11 +19,9 @@ jobs:
         with:
           submodules: true
 
-      # TODO: replace with original action after PR merge
-      - uses: nsidnev/setup-edgedb@project-link
+      - uses: edgedb/setup-edgedb@v1.2.0
         with:
           server-version: ${{ matrix.edgedb-version }}
-          cli-version: nightly  # to ensure portable installation method will work with action
           instance-name: edgedb_elixir
 
       - uses: erlef/setup-beam@v1
@@ -50,4 +48,4 @@ jobs:
           mix edgedb.roles.setup
 
       - name: Run tests
-        run: mix coveralls --include shared
+        run: mix coveralls
