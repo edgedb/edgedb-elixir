@@ -84,11 +84,6 @@ defmodule EdgeDB.Connection do
   @type disconnection() :: {:disconnect, Exception.t(), State.t()}
 
   @impl DBConnection
-  def checkin(state) do
-    {:ok, state}
-  end
-
-  @impl DBConnection
   def checkout(state) do
     {:ok, state}
   end
