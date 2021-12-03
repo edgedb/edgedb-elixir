@@ -777,9 +777,8 @@ defmodule EdgeDB.Connection do
   end
 
   defp restore_server_state_from_error(state) do
-    with :ok <- send_message(sync(), state),
-         {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, state}
+    with :ok <- send_message(sync(), state) do
+      wait_for_server_ready(state)
     end
   end
 
