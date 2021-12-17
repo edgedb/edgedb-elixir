@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Types.DumpObjectDesc do
 
   deftype(
     name: :dump_object_desc,
-    encode?: false,
+    encode: false,
     fields: [
       object_id: Datatypes.UUID.t(),
       description: Datatypes.Bytes.t(),

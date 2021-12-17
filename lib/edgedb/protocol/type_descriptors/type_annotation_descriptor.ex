@@ -15,14 +15,13 @@ defmodule EdgeDB.Protocol.TypeDescriptors.TypeAnnotationDescriptor do
   # custom consume to handle range of codes
   deftypedescriptor(
     type: @start_code..@end_code,
-    parse?: false,
-    consume?: false
+    parse: false,
+    consume: false
   )
 
   # ignore annotation since right now driver doesn't understand any annotation
-
   @spec consume(Codecs.Storage.t(), bitstring()) :: bitstring()
-  def consume(_storage, <<type::uint8, _type_id::uuid, rest::binary>>)
+  def consume(_codecs_storage, <<type::uint8, _type_id::uuid, rest::binary>>)
       when is_supported_type(type) do
     {_annotation, rest} = Datatypes.String.decode(rest)
     rest

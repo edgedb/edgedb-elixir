@@ -8,28 +8,28 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   }
 
   @known_base_codecs [
-    Codecs.UUID,
-    Codecs.Str,
-    Codecs.Bytes,
-    Codecs.Int16,
-    Codecs.Int32,
-    Codecs.Int64,
-    Codecs.Float32,
-    Codecs.Float64,
-    Codecs.Decimal,
-    Codecs.Bool,
-    Codecs.DateTime,
-    Codecs.Duration,
-    Codecs.LocalDateTime,
-    Codecs.LocalDate,
-    Codecs.LocalTime,
-    Codecs.JSON,
-    Codecs.BigInt,
-    Codecs.RelativeDuration,
-    Codecs.ConfigMemory,
+    Codecs.Builtin.UUID,
+    Codecs.Builtin.Str,
+    Codecs.Builtin.Bytes,
+    Codecs.Builtin.Int16,
+    Codecs.Builtin.Int32,
+    Codecs.Builtin.Int64,
+    Codecs.Builtin.Float32,
+    Codecs.Builtin.Float64,
+    Codecs.Builtin.Decimal,
+    Codecs.Builtin.Bool,
+    Codecs.Builtin.DateTime,
+    Codecs.Builtin.Duration,
+    Codecs.Builtin.LocalDateTime,
+    Codecs.Builtin.LocalDate,
+    Codecs.Builtin.LocalTime,
+    Codecs.Builtin.JSON,
+    Codecs.Builtin.BigInt,
+    Codecs.Builtin.RelativeDuration,
+    Codecs.Builtin.ConfigMemory,
 
     # special case
-    Codecs.Null
+    Codecs.Builtin.Null
   ]
 
   defmodule State do

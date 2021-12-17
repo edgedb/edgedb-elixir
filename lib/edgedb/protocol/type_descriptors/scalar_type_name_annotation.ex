@@ -9,15 +9,15 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ScalarTypeNameAnnotation do
   # id of type here is always known, so no need to parse
   deftypedescriptor(
     type: 0xFF,
-    parse?: false
+    parse: false
   )
 
   # update existing codec with type name information
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(storage, id, <<data::binary>>) do
+  def consume_description(codecs_storage, id, <<data::binary>>) do
     {type_name, rest} = Datatypes.String.decode(data)
 
-    Codecs.Storage.update(storage, id, %{type_name: type_name})
+    Codecs.Storage.update(codecs_storage, id, %{type_name: type_name})
 
     rest
   end

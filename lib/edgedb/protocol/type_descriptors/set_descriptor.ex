@@ -8,11 +8,11 @@ defmodule EdgeDB.Protocol.TypeDescriptors.SetDescriptor do
   @impl EdgeDB.Protocol.TypeDescriptor
   def parse_description(codecs, id, <<type_pos::uint16, rest::binary>>) do
     codec = codec_by_index(codecs, type_pos)
-    {Codecs.Set.new(id, codec), rest}
+    {Codecs.Builtin.Set.new(id, codec), rest}
   end
 
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(_storage, _id, <<_type_pos::uint16, rest::binary>>) do
+  def consume_description(_codecs_storage, _id, <<_type_pos::uint16, rest::binary>>) do
     rest
   end
 end

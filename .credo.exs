@@ -84,7 +84,7 @@
         {Credo.Check.Design.AliasUsage,
          [
            priority: :low,
-           if_nested_deeper_than: 2,
+           if_nested_deeper_than: 3,
            if_called_more_often_than: 0
          ]},
         # You can also customize the exit_status of each check.

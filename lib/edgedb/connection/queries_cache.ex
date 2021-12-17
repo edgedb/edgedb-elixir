@@ -59,7 +59,7 @@ defmodule EdgeDB.Connection.QueriesCache do
   @impl GenServer
   def handle_cast({:add, query}, %State{cache: cache} = state) do
     key = {query.statement, query.cardinality, query.io_format}
-    :ets.insert(cache, {key, %EdgeDB.Query{query | cached?: true}})
+    :ets.insert(cache, {key, %EdgeDB.Query{query | cached: true}})
 
     {:noreply, state}
   end

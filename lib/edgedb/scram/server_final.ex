@@ -12,9 +12,9 @@ defmodule EdgeDB.SCRAM.ServerFinal do
     %__MODULE__{server_signature: server_signature}
   end
 
-  @spec server_final(t(), String.t()) ::
+  @spec handle(t(), String.t()) ::
           :ok | {:error, :wrong_server_final_data | :mismatched_server_signatures}
-  def server_final(%__MODULE__{} = sf, sf_data) do
+  def handle(%__MODULE__{} = sf, sf_data) do
     with {:ok, server_signature} <- parse_server_final_data(sf_data) do
       verify_server_signature(server_signature, sf.server_signature)
     end

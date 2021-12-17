@@ -15,74 +15,134 @@ defmodule EdgeDB.Protocol.Enum do
   end
 
   defmacro defenum(opts) do
-    {:ok, values} = Keyword.fetch(opts, :values)
-    guard = Keyword.get(opts, :guard)
+    values = Keyword.fetch!(opts, :values)
+    union? = Keyword.get(opts, :union, false)
+    typespec_def = define_typespec(values, union?)
+
+    guard_name = Keyword.get(opts, :guard)
+    codes = Keyword.values(values)
+    guard_def = define_guard(guard_name, codes)
+
+    to_atom_funs_def = define_to_atom_funs(values)
+    to_code_funs_def = define_to_code_funs(values)
 
     datatype_codec = Keyword.get(opts, :datatype, Datatypes.UInt8)
+    datatype_codec_access_fun_def = define_datatype_codec_access_fun(datatype_codec)
 
-    codes = Keyword.values(values)
-    atoms = Keyword.keys(values)
-
-    t_typespec_ast = get_t_typespec(values)
+    encoder_def = define_enum_encoder(datatype_codec)
+    decoder_def = define_enum_decoder(datatype_codec)
 
     quote do
       @behaviour unquote(__MODULE__)
 
-      @type t() :: unquote(t_typespec_ast)
+      unquote(typespec_def)
 
-      @datatype unquote(datatype_codec)
-
-      if not is_nil(unquote(guard)) do
-        defguard unquote(guard)(code) when code in unquote(codes)
+      if not is_nil(unquote(guard_name)) do
+        unquote(guard_def)
       end
 
-      @impl unquote(__MODULE__)
-      def to_atom(code) when is_integer(code) and code in unquote(codes) do
-        {atom, ^code} = List.keyfind(unquote(values), code, 1)
-        atom
-      end
+      unquote(datatype_codec_access_fun_def)
 
-      @impl unquote(__MODULE__)
-      def to_atom(atom) when is_atom(atom) and atom in unquote(atoms) do
-        atom
-      end
+      unquote(to_atom_funs_def)
+      unquote(to_code_funs_def)
 
-      @impl unquote(__MODULE__)
-      def to_code(atom) when is_atom(atom) and atom in unquote(atoms) do
-        {^atom, code} = List.keyfind(unquote(values), atom, 0)
-        code
-      end
-
-      @impl unquote(__MODULE__)
-      def to_code(code) when is_integer(code) and code in unquote(codes) do
-        code
-      end
-
-      @impl unquote(__MODULE__)
-      def encode(enum_value) do
-        enum_value
-        |> to_code()
-        |> @datatype.encode()
-      end
-
-      @impl unquote(__MODULE__)
-      def decode(<<content::binary>>) do
-        {code, rest} = @datatype.decode(content)
-        {to_atom(code), rest}
-      end
+      unquote(encoder_def)
+      unquote(decoder_def)
 
       defoverridable encode: 1, decode: 1
     end
   end
 
-  # generate typespec for enum, something like:
-  # @type t() :: :value1 | 0xA | :value2 | 0xB | :value3 | 0xC
+  defp define_typespec(values, union) do
+    main_spec =
+      Enum.reduce(values, nil, fn
+        {name, code}, nil ->
+          quote do
+            unquote(name) | unquote(code)
+          end
 
-  defp get_t_typespec([{last_atom, last_number}]) do
-    {:|, [], [last_atom, last_number]}
+        {name, code}, acc ->
+          quote do
+            unquote(acc) | unquote(name) | unquote(code)
+          end
+      end)
+
+    if union do
+      quote do
+        @type t() :: list(unquote(main_spec))
+      end
+    else
+      quote do
+        @type t() :: unquote(main_spec)
+      end
+    end
   end
 
-  defp get_t_typespec([{current_atom, current_number} | rest]) do
-    {:|, [], [current_atom, {:|, [], [current_number, get_t_typespec(rest)]}]}
+  defp define_guard(guard_name, codes) do
+    quote do
+      defguard unquote(guard_name)(code) when code in unquote(codes)
+    end
+  end
+
+  defp define_to_atom_funs(values) do
+    for {name, code} <- values do
+      quote do
+        @spec to_atom(unquote(code) | unquote(name)) :: unquote(name)
+
+        def to_atom(unquote(code)) do
+          unquote(name)
+        end
+
+        def to_atom(unquote(name)) do
+          unquote(name)
+        end
+      end
+    end
+  end
+
+  defp define_to_code_funs(values) do
+    for {name, code} <- values do
+      quote do
+        @spec to_code(unquote(code) | unquote(name)) :: unquote(code)
+
+        def to_code(unquote(code)) do
+          unquote(code)
+        end
+
+        def to_code(unquote(name)) do
+          unquote(code)
+        end
+      end
+    end
+  end
+
+  defp define_datatype_codec_access_fun(codec) do
+    quote do
+      @spec enum_codec() :: module()
+      def enum_codec do
+        unquote(codec)
+      end
+    end
+  end
+
+  defp define_enum_encoder(codec) do
+    quote do
+      @spec encode(t()) :: iodata()
+      def encode(value) do
+        value
+        |> to_code()
+        |> unquote(codec).encode()
+      end
+    end
+  end
+
+  defp define_enum_decoder(codec) do
+    quote do
+      @spec decode(bitstring()) :: {t(), bitstring()}
+      def decode(<<content::binary>>) do
+        {code, rest} = unquote(codec).decode(content)
+        {to_atom(code), rest}
+      end
+    end
   end
 end

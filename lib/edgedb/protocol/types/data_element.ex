@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Types.DataElement do
 
   deftype(
     name: :data_element,
-    encode?: false,
+    encode: false,
     fields: [
       data: Datatypes.Bytes.t()
     ]

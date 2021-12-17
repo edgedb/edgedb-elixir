@@ -16,13 +16,16 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
       script: Datatypes.String.t()
     ],
     known_headers: %{
-      allow_capabilities: {0xFF04, %{encoder: &Enums.Capability.encode/1}}
+      allow_capabilities: [
+        code: 0xFF04,
+        encoder: Enums.Capability
+      ]
     }
   )
 
   @impl EdgeDB.Protocol.Message
   def encode_message(execute_script(headers: headers, script: script)) do
-    headers = process_passed_headers(headers)
+    headers = handle_headers(headers)
 
     [
       Types.Header.encode(headers),

@@ -14,7 +14,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Dump do
 
   @impl EdgeDB.Protocol.Message
   def encode_message(dump(headers: headers)) do
-    headers = process_passed_headers(headers)
+    headers = handle_headers(headers)
 
     [Types.Header.encode(headers)]
   end

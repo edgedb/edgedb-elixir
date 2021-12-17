@@ -17,12 +17,12 @@ defmodule Tests.Support.Codecs.ShortStr do
   @impl EdgeDB.Protocol.Codec
   def encode_instance(str) do
     if String.length(str) <= 5 do
-      Codecs.Str.encode_instance(str)
+      Codecs.Builtin.Str.encode_instance(str)
     else
       raise Error.invalid_argument_error("string is too long")
     end
   end
 
   @impl EdgeDB.Protocol.Codec
-  defdelegate decode_instance(binary_data), to: Codecs.Str
+  defdelegate decode_instance(binary_data), to: Codecs.Builtin.Str
 end

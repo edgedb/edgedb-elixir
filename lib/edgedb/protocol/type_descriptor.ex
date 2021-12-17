@@ -22,63 +22,95 @@ defmodule EdgeDB.Protocol.TypeDescriptor do
       import EdgeDB.Protocol.Converters
 
       import unquote(__MODULE__)
-
-      alias EdgeDB.Protocol.{
-        Codec,
-        Codecs
-      }
     end
   end
 
   defmacro deftypedescriptor(opts \\ []) do
     type = Keyword.fetch!(opts, :type)
+    type_access_fun_def = define_type_access_fun(type)
 
-    parse? = Keyword.get(opts, :parse?, true)
-    consume? = Keyword.get(opts, :consume?, true)
+    define_parser? = Keyword.get(opts, :parse, true)
+    define_consumer? = Keyword.get(opts, :consume, true)
+
+    support_funs_def = define_support_funs(define_parser?, define_consumer?)
+
+    parser_def = define_typedescriptor_parser(type)
+    consumer_def = define_typedescriptor_consumer(type)
 
     quote do
       @behaviour unquote(__MODULE__)
 
-      @descriptor_type unquote(type)
+      unquote(type_access_fun_def)
+      unquote(support_funs_def)
 
-      @spec type() :: term()
-      def type do
-        @descriptor_type
+      if unquote(define_parser?) do
+        unquote(parser_def)
       end
 
-      @spec support_parsing?() :: boolean()
-      def support_parsing? do
-        unquote(parse?)
-      end
-
-      @spec support_consuming?() :: boolean()
-      def support_consuming? do
-        unquote(consume?)
-      end
-
-      if unquote(parse?) do
-        @spec parse(list(Codec.t()), bitstring()) :: {Codec.t(), bitstring()}
-        def parse(
-              codecs,
-              <<@descriptor_type::uint8, type_id::uuid, rest::binary>> = type_description
-            ) do
-          __MODULE__.parse_description(codecs, Datatypes.UUID.to_string(type_id), rest)
-        end
-      end
-
-      if unquote(consume?) do
-        @spec consume(Codecs.Storage.t(), bitstring()) :: bitstring()
-        def consume(
-              storage,
-              <<@descriptor_type::uint8, type_id::uuid, rest::binary>> = type_description
-            ) do
-          __MODULE__.consume_description(storage, Datatypes.UUID.to_string(type_id), rest)
-        end
+      if unquote(define_consumer?) do
+        unquote(consumer_def)
       end
     end
   end
 
-  @spec codec_by_index(list(Codec.t()), pos_integer()) :: Codec.t() | nil
+  defp define_type_access_fun(type) do
+    quote do
+      @spec type() :: term()
+      def type do
+        unquote(type)
+      end
+    end
+  end
+
+  defp define_support_funs(support_parsing, support_consuming) do
+    quote do
+      @spec support_parsing?() :: boolean()
+      def support_parsing? do
+        unquote(support_parsing)
+      end
+
+      @spec support_consuming?() :: boolean()
+      def support_consuming? do
+        unquote(support_consuming)
+      end
+    end
+  end
+
+  defp define_typedescriptor_parser(type) do
+    quote do
+      @spec parse(list(EdgeDB.Protocol.Codec.t()), bitstring()) ::
+              {EdgeDB.Protocol.Codec.t(), bitstring()}
+      def parse(
+            codecs,
+            <<
+              unquote(type)::uint8,
+              type_id::uuid,
+              rest::binary
+            >> = type_description
+          ) do
+        parse_description(codecs, EdgeDB.Protocol.Datatypes.UUID.to_string(type_id), rest)
+      end
+    end
+  end
+
+  defp define_typedescriptor_consumer(type) do
+    quote do
+      @spec consume(EdgeDB.Protocol.Codecs.Storage.t(), bitstring()) :: bitstring()
+      def consume(
+            storage,
+            <<
+              unquote(type)::uint8,
+              type_id::uuid,
+              rest::binary
+            >> = type_description
+          ) do
+        consume_description(storage, EdgeDB.Protocol.Datatypes.UUID.to_string(type_id), rest)
+      end
+    end
+  end
+
+  @spec codec_by_index(list(EdgeDB.Protocol.Codec.t()), pos_integer()) ::
+          EdgeDB.Protocol.Codec.t() | nil
   def codec_by_index(codecs, index) do
     Enum.at(codecs, length(codecs) - index - 1)
   end

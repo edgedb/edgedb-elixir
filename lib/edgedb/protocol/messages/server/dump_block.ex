@@ -14,10 +14,19 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpBlock do
       headers: Keyword.t()
     ],
     known_headers: %{
-      block_type: 101,
-      block_id: {110, %{decoder: &Datatypes.UUID.decode/1}},
-      block_num: 111,
-      block_data: 112
+      block_type: [
+        code: 101
+      ],
+      block_id: [
+        code: 110,
+        decoder: Datatypes.UUID
+      ],
+      block_num: [
+        code: 111
+      ],
+      block_data: [
+        code: 112
+      ]
     }
   )
 
@@ -25,6 +34,6 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpBlock do
   def decode_message(<<num_headers::uint16, rest::binary>>) do
     {headers, <<>>} = Types.Header.decode(num_headers, rest)
 
-    dump_block(headers: process_received_headers(headers))
+    dump_block(headers: handle_headers(headers))
   end
 end

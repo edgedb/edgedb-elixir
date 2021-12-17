@@ -32,7 +32,7 @@ defmodule EdgeDB.Protocol.Messages.Server.LogMessage do
       severity: Enums.MessageSeverity.to_atom(severity),
       code: code,
       text: text,
-      attributes: process_received_headers(attributes)
+      attributes: handle_headers(attributes)
     )
   end
 end

@@ -28,8 +28,8 @@ defmodule EdgeDB.SCRAM.ClientFirst do
     }
   end
 
-  @spec client_first(t()) :: {ServerFirst.t(), iodata()}
-  def client_first(%__MODULE__{} = cf) do
+  @spec handle(t()) :: {ServerFirst.t(), iodata()}
+  def handle(%__MODULE__{} = cf) do
     client_first_message_bare = "n=#{cf.user},r=#{cf.nonce}"
     client_first_message = "#{cf.gs2header}#{client_first_message_bare}"
 

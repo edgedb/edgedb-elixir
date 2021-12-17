@@ -17,11 +17,11 @@ defmodule EdgeDB.Protocol.TypeDescriptors.TupleTypeDescriptor do
         codec_by_index(codecs, type_pos)
       end)
 
-    {Codecs.Tuple.new(type_id, codecs), rest}
+    {Codecs.Builtin.Tuple.new(type_id, codecs), rest}
   end
 
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(_storage, _id, <<element_count::uint16, rest::binary>>) do
+  def consume_description(_codecs_storage, _id, <<element_count::uint16, rest::binary>>) do
     {_element_types, rest} = Datatypes.UInt16.decode(element_count, rest)
 
     rest

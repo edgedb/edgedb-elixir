@@ -12,7 +12,7 @@ defmodule EdgeDB.Protocol.Types.ShapeElement do
 
   deftype(
     name: :shape_element,
-    encode?: false,
+    encode: false,
     fields: [
       flags: Datatypes.UInt8.t(),
       cardinality: Enums.Cardinality.t(),

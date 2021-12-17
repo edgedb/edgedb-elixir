@@ -1,7 +1,7 @@
 defmodule EdgeDB.Connection do
   use DBConnection
 
-  use EdgeDB.Protocol.Messages
+  use EdgeDB.Protocol
 
   alias EdgeDB.Connection.{
     InternalRequest,
@@ -180,7 +180,7 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_execute(%EdgeDB.Query{cached?: true} = query, params, opts, state) do
+  def handle_execute(%EdgeDB.Query{cached: true} = query, params, opts, state) do
     optimistic_execute_query(query, params, opts, state)
   end
 
@@ -700,12 +700,12 @@ defmodule EdgeDB.Connection do
        ) do
     input_codec =
       Codecs.Storage.get_or_create(codecs_storage, input_typedesc_id, fn ->
-        Codecs.from_type_description(codecs_storage, input_typedesc)
+        EdgeDB.Protocol.build_codec_from_type_description(codecs_storage, input_typedesc)
       end)
 
     output_codec =
       Codecs.Storage.get_or_create(codecs_storage, output_typedesc_id, fn ->
-        Codecs.from_type_description(codecs_storage, output_typedesc)
+        EdgeDB.Protocol.build_codec_from_type_description(codecs_storage, output_typedesc)
       end)
 
     {input_codec, output_codec}
@@ -850,7 +850,7 @@ defmodule EdgeDB.Connection do
 
     state.codecs_storage
     |> Codecs.Storage.get_or_create(typedesc_id, fn ->
-      Codecs.from_type_description(state.codecs_storage, type_descriptor)
+      EdgeDB.Protocol.build_codec_from_type_description(state.codecs_storage, type_descriptor)
     end)
     |> Codec.decode(data)
   end

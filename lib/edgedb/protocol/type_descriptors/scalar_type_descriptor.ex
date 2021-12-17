@@ -8,11 +8,11 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ScalarTypeDescriptor do
   @impl EdgeDB.Protocol.TypeDescriptor
   def parse_description(codecs, type_id, <<type_pos::uint16, rest::binary>>) do
     codec = codec_by_index(codecs, type_pos)
-    {Codecs.Scalar.new(type_id, codec), rest}
+    {Codecs.Builtin.Scalar.new(type_id, codec), rest}
   end
 
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(_storage, _id, <<_type_pos::uint16, rest::binary>>) do
+  def consume_description(_codecs_storage, _id, <<_type_pos::uint16, rest::binary>>) do
     rest
   end
 end

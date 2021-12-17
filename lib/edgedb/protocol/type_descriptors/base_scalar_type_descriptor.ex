@@ -5,11 +5,11 @@ defmodule EdgeDB.Protocol.TypeDescriptors.BaseScalarTypeDescriptor do
   # so we don't need parsing
   deftypedescriptor(
     type: 2,
-    parse?: false
+    parse: false
   )
 
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(_codecs, _id, <<rest::binary>>) do
+  def consume_description(_codecs_storage, _id, <<rest::binary>>) do
     rest
   end
 end

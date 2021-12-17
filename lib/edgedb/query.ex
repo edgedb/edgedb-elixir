@@ -11,7 +11,7 @@ defmodule EdgeDB.Query do
     required: false,
     input_codec: nil,
     output_codec: nil,
-    cached?: false,
+    cached: false,
     params: []
   ]
 
@@ -22,7 +22,7 @@ defmodule EdgeDB.Query do
           required: boolean(),
           input_codec: Codec.t() | nil,
           output_codec: Codec.t() | nil,
-          cached?: boolean(),
+          cached: boolean(),
           params: list(any())
         }
 end
@@ -65,7 +65,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
   end
 
   @impl DBConnection.Query
-  def parse(%EdgeDB.Query{cached?: true}, _opts) do
+  def parse(%EdgeDB.Query{cached: true}, _opts) do
     raise Error.interface_error("query has been prepared")
   end
 

@@ -27,10 +27,10 @@ defmodule EdgeDB.SCRAM.ServerFirst do
     }
   end
 
-  @spec server_first(t(), String.t()) ::
+  @spec handle(t(), String.t()) ::
           {:ok, {ServerFinal.t(), iodata()}}
           | {:error, :mismatched_nonces | :wrong_server_first_data}
-  def server_first(%__MODULE__{} = sf, sf_data) do
+  def handle(%__MODULE__{} = sf, sf_data) do
     with {:ok, {nonce, salt, iterations}} <- parse_server_first_data(sf_data),
          :ok <- verify_server_nonce(nonce, sf.client_nonce) do
       salted_password = hash_password(sf.password, salt, iterations)
