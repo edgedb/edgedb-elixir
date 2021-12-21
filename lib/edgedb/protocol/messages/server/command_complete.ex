@@ -16,7 +16,10 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
       status: Datatypes.String.t()
     ],
     known_headers: %{
-      capabilities: {0x1001, %{decoder: &Enums.Capability.exhaustive_decode/1}}
+      capabilities: [
+        code: 0x1001,
+        decoder: &Enums.Capability.exhaustive_decode/1
+      ]
     }
   )
 
@@ -26,7 +29,7 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
     {status, <<>>} = Datatypes.String.decode(rest)
 
     command_complete(
-      headers: process_received_headers(headers),
+      headers: handle_headers(headers),
       status: status
     )
   end

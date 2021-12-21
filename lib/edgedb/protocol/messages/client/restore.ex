@@ -25,7 +25,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Restore do
           header_data: header_data
         )
       ) do
-    headers = process_passed_headers(headers)
+    headers = handle_headers(headers)
 
     [
       Types.Header.encode(headers),

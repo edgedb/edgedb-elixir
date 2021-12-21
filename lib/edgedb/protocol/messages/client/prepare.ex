@@ -7,6 +7,8 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
     Types
   }
 
+  @anonymous_statement ""
+
   defmessage(
     name: :prepare,
     client: true,
@@ -18,16 +20,23 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
       statement_name: Datatypes.Bytes.t(),
       command: Datatypes.String.t()
     ],
-    defaults: [
-      headers: [],
-      statement_name: ""
-    ],
     known_headers: %{
-      implicit_limit: 0xFF01,
-      implicit_typenames: 0xFF02,
-      implicit_typeids: 0xFF03,
-      allow_capabilities: {0xFF04, %{encoder: &Enums.Capability.encode/1}},
-      explicit_objectids: 0xFF05
+      implicit_limit: [
+        code: 0xFF01
+      ],
+      implicit_typenames: [
+        code: 0xFF02
+      ],
+      implicit_typeids: [
+        code: 0xFF03
+      ],
+      allow_capabilities: [
+        code: 0xFF04,
+        encoder: Enums.Capability
+      ],
+      explicit_objectids: [
+        code: 0xFF05
+      ]
     }
   )
 
@@ -41,13 +50,13 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
           command: command
         )
       ) do
-    headers = process_passed_headers(headers)
+    headers = handle_headers(headers || [])
 
     [
       Types.Header.encode(headers),
       Enums.IOFormat.encode(io_format),
       Enums.Cardinality.encode(expected_cardinality),
-      Datatypes.Bytes.encode(statement_name),
+      Datatypes.Bytes.encode(statement_name || @anonymous_statement),
       Datatypes.String.encode(command)
     ]
   end

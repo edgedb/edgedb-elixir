@@ -7,7 +7,7 @@ defmodule EdgeDB.Protocol.Types.Envelope do
 
   deftype(
     name: :envelope,
-    encode?: false,
+    encode: false,
     fields: [
       elements: list(Types.ArrayElement.t())
     ]

@@ -7,6 +7,6 @@ defmodule Tests.Support.Codecs.NotRegisteredString do
     calculate_size: false
   )
 
-  defdelegate encode_instance(term), to: EdgeDB.Protocol.Codecs.Str
-  defdelegate decode_instance(binary_data), to: EdgeDB.Protocol.Codecs.Str
+  defdelegate encode_instance(term), to: EdgeDB.Protocol.Codecs.Builtin.Str
+  defdelegate decode_instance(binary_data), to: EdgeDB.Protocol.Codecs.Builtin.Str
 end

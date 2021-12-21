@@ -3,7 +3,10 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ObjectShapeDescriptor do
 
   import EdgeDB.Protocol.Types.ShapeElement
 
-  alias EdgeDB.Protocol.Types
+  alias EdgeDB.Protocol.{
+    Codecs,
+    Types
+  }
 
   deftypedescriptor(type: 1)
 
@@ -16,11 +19,11 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ObjectShapeDescriptor do
         codec_by_index(codecs, pos)
       end)
 
-    {Codecs.Object.new(type_id, elements, codecs), rest}
+    {Codecs.Builtin.Object.new(type_id, elements, codecs), rest}
   end
 
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(_storage, _type_id, <<elements_count::uint16, rest::binary>>) do
+  def consume_description(_codecs_storage, _type_id, <<elements_count::uint16, rest::binary>>) do
     {_elements, rest} = Types.ShapeElement.decode(elements_count, rest)
 
     rest

@@ -31,7 +31,7 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandDataDescription do
     {output_typedesc, <<>>} = Datatypes.Bytes.decode(rest)
 
     command_data_description(
-      headers: process_received_headers(headers),
+      headers: handle_headers(headers),
       result_cardinality: cardinality,
       input_typedesc_id: input_typedesc_id,
       input_typedesc: input_typedesc,

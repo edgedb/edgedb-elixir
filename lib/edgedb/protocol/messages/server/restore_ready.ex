@@ -22,7 +22,7 @@ defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
     {jobs, <<>>} = Datatypes.UInt16.decode(rest)
 
     restore_ready(
-      headers: process_received_headers(headers),
+      headers: handle_headers(headers),
       jobs: jobs
     )
   end

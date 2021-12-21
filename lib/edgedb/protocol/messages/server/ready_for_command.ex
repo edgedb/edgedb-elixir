@@ -24,7 +24,7 @@ defmodule EdgeDB.Protocol.Messages.Server.ReadyForCommand do
     {transaction_state, <<>>} = Datatypes.UInt8.decode(rest)
 
     ready_for_command(
-      headers: process_received_headers(headers),
+      headers: handle_headers(headers),
       transaction_state: Enums.TransactionState.to_atom(transaction_state)
     )
   end

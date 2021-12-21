@@ -18,7 +18,10 @@ defmodule EdgeDB.Protocol.Messages.Server.PrepareComplete do
       output_typedesc_id: Datatypes.UUID.t()
     ],
     known_headers: %{
-      capabilities: {0x1001, %{decoder: &Enums.Capability.exhaustive_decode/1}}
+      capabilities: [
+        code: 0x1001,
+        decoder: &Enums.Capability.exhaustive_decode/1
+      ]
     }
   )
 
@@ -30,7 +33,7 @@ defmodule EdgeDB.Protocol.Messages.Server.PrepareComplete do
     {output_typedesc_id, <<>>} = Datatypes.UUID.decode(rest)
 
     prepare_complete(
-      headers: process_received_headers(headers),
+      headers: handle_headers(headers),
       cardinality: cardinality,
       input_typedesc_id: input_typedesc_id,
       output_typedesc_id: output_typedesc_id

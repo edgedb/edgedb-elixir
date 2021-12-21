@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Types.ConnectionParam do
 
   deftype(
     name: :connection_param,
-    decode?: false,
+    decode: false,
     fields: [
       name: Datatypes.String.t(),
       value: Datatypes.String.t()

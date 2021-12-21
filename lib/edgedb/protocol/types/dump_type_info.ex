@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Types.DumpTypeInfo do
 
   deftype(
     name: :dump_type_info,
-    encode?: false,
+    encode: false,
     fields: [
       type_name: Datatypes.String.t(),
       type_class: Datatypes.String.t(),

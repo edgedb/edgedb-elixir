@@ -19,11 +19,11 @@ defmodule EdgeDB.Protocol.TypeDescriptors.NamedTupleTypeDescriptor do
         codec_by_index(codecs, type_pos)
       end)
 
-    {Codecs.NamedTuple.new(type_id, elements, codecs), rest}
+    {Codecs.Builtin.NamedTuple.new(type_id, elements, codecs), rest}
   end
 
   @impl EdgeDB.Protocol.TypeDescriptor
-  def consume_description(_storage, _id, <<element_count::uint16, rest::binary>>) do
+  def consume_description(_codecs_storage, _id, <<element_count::uint16, rest::binary>>) do
     {_elements, rest} = Types.NamedTupleDescriptorElement.decode(element_count, rest)
 
     rest

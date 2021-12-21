@@ -19,9 +19,15 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpHeader do
       descriptors: list(Types.DumpObjectDesc.t())
     ],
     known_headers: %{
-      block_type: 101,
-      block_id: 102,
-      block_num: 103
+      block_type: [
+        code: 101
+      ],
+      block_id: [
+        code: 102
+      ],
+      block_num: [
+        code: 103
+      ]
     }
   )
 
@@ -37,7 +43,7 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpHeader do
     {descriptors, <<>>} = Types.DumpObjectDesc.decode(num_descriptors, rest)
 
     dump_header(
-      headers: process_received_headers(headers),
+      headers: handle_headers(headers),
       major_ver: major_ver,
       minor_ver: minor_ver,
       schema_ddl: schema_ddl,

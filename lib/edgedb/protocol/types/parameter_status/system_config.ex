@@ -8,7 +8,7 @@ defmodule EdgeDB.Protocol.Types.ParameterStatus.SystemConfig do
 
   deftype(
     name: :system_config,
-    encode?: false,
+    encode: false,
     fields: [
       typedesc_id: Datatypes.UUID.t(),
       typedesc: Datatypes.Bytes.t(),

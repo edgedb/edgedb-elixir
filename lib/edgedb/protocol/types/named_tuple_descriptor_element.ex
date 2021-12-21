@@ -5,7 +5,7 @@ defmodule EdgeDB.Protocol.Types.NamedTupleDescriptorElement do
 
   deftype(
     name: :named_tuple_descriptor_element,
-    encode?: false,
+    encode: false,
     fields: [
       name: Datatypes.String.t(),
       type_pos: Datatypes.Int16.t()

@@ -25,25 +25,22 @@ defmodule EdgeDB.Protocol.Enums.Capability do
       all: 0xFFFF_FFFF_FFFF_FFFF,
       execute: 0xFFFF_FFFF_FFFF_FFFB
     ],
+    union: true,
     datatype: Datatypes.UInt64
   )
 
   @impl EdgeDB.Protocol.Enum
-  def encode(capabilities) when is_list(capabilities) do
+  def encode(capabilities) do
     capabilities
+    |> List.wrap()
     |> Enum.map(&to_code(&1))
     |> Enum.reduce(0, &Bitwise.bor(&1, &2))
     |> super()
   end
 
   @impl EdgeDB.Protocol.Enum
-  def encode(capabilities) do
-    super(capabilities)
-  end
-
-  @impl EdgeDB.Protocol.Enum
   def decode(capabilities) do
-    {capabilities, rest} = @datatype.decode(capabilities)
+    {capabilities, rest} = enum_codec().decode(capabilities)
 
     capabilities =
       @codes_to_decode
@@ -63,7 +60,7 @@ defmodule EdgeDB.Protocol.Enums.Capability do
   # when we process headers we are sure that there won't
   # be any additional data after decoding datatype
   # or if there is, then it's an error in driver's protocol
-  @spec exhaustive_decode(bitstring()) :: list(t())
+  @spec exhaustive_decode(bitstring()) :: t()
   def exhaustive_decode(capabilities) do
     {capabilities, <<>>} = decode(capabilities)
     capabilities
