@@ -262,7 +262,12 @@ defmodule EdgeDB.Connection.Config do
       password: from_config(:password),
       tls_ca_file: from_config(:tls_ca_file),
       tls_security: from_config(:tls_security),
-      server_settings: from_config(:server_settings)
+      timeout: from_config(:timeout),
+      command_timeout: from_config(:command_timeout),
+      wait_for_available: from_config(:wait_for_available),
+      server_settings: from_config(:server_settings),
+      tcp: from_config(:tcp),
+      ssl: from_config(:ssl)
     )
   end
 
