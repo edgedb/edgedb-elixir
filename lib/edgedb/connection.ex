@@ -129,6 +129,14 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
+  def disconnect(
+        %EdgeDB.Protocol.Error{name: "ClientConnectionClosedError"},
+        %State{socket: socket}
+      ) do
+    :ssl.close(socket)
+  end
+
+  @impl DBConnection
   def disconnect(_exc, %State{socket: socket} = state) do
     with :ok <- send_message(terminate(), state) do
       :ssl.close(socket)
@@ -891,6 +899,10 @@ defmodule EdgeDB.Connection do
         {:disconnect, exc, state}
 
       {:error, :etimedout} ->
+        exc = Error.client_connection_timeout_error("exceeded timeout")
+        {:disconnect, exc, state}
+
+      {:error, :timeout} ->
         exc = Error.client_connection_timeout_error("exceeded timeout")
         {:disconnect, exc, state}
 
