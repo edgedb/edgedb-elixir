@@ -96,7 +96,7 @@ defmodule EdgeDB.Connection do
     database = opts[:database]
     codecs_modules = opts[:codecs] || []
 
-    tcp_opts = Keyword.merge(@tcp_socket_opts, opts[:tcp] || [])
+    tcp_opts = (opts[:tcp] || []) ++ @tcp_socket_opts
 
     ssl_opts =
       @ssl_socket_opts
