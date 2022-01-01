@@ -19,7 +19,7 @@ jobs:
         with:
           submodules: true
 
-      - uses: edgedb/setup-edgedb@v1.2.0
+      - uses: edgedb/setup-edgedb@v1.2.2
         with:
           server-version: ${{ matrix.edgedb-version }}
           instance-name: edgedb_elixir
