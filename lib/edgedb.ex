@@ -13,12 +13,14 @@ defmodule EdgeDB do
   # options added only for compatability with other drivers and aren't used right now
   @type connect_option() ::
           {:dsn, String.t()}
+          | {:credentials, String.t()}
           | {:credentials_file, Path.t()}
           | {:host, String.t()}
           | {:port, :inet.port_number()}
           | {:database, String.t()}
           | {:user, String.t()}
           | {:password, String.t()}
+          | {:tls_ca, String.t()}
           | {:tls_ca_file, Path.t()}
           | {:tls_security, tls_security()}
           | {:timeout, timeout()}

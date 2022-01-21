@@ -39,6 +39,10 @@ if File.exists?(testcases_file) do
         name: "ClientConnectionError",
         message: ~r/can not have more than one of the following connection options/
       },
+      "exclusive_options" => {
+        EdgeDB.Protocol.Error,
+        name: "ClientConnectionError", message: ~r/are mutually exclusive/
+      },
       "env_not_found" => {RuntimeError, message: ~r/environment variable ".*" doesn't exist/},
       "file_not_found" => {File.Error, message: ~r/could not read/},
       "invalid_tls_security" => {
@@ -96,12 +100,14 @@ if File.exists?(testcases_file) do
         Enum.reject(
           [
             dsn: opts["dsn"],
+            credentials: opts["credentials"],
             credentials_file: opts["credentialsFile"],
             host: opts["host"],
             port: opts["port"],
             database: opts["database"],
             user: opts["user"],
             password: opts["password"],
+            tls_ca: opts["tlsCA"],
             tls_ca_file: opts["tlsCAFile"],
             tls_security: opts["tlsSecurity"],
             timeout: opts["timeout"],
@@ -113,7 +119,8 @@ if File.exists?(testcases_file) do
         )
 
       Logger.debug(
-        "configure explicit options: #{inspect(opts)}, configured options: #{inspect(opts)}"
+        "configure explicit options: #{inspect(opts, pretty: true)}, " <>
+          "configured options: #{inspect(configured_opts, pretty: true)}"
       )
 
       %{opts: configured_opts}
@@ -127,20 +134,20 @@ if File.exists?(testcases_file) do
       raise RuntimeError,
         message:
           ~s(invalid test case: either "result" or "error" key to be specified, ) <>
-            "testcase: #{inspect(testcase)}"
+            "testcase: #{inspect(testcase, pretty: true)}"
     end
 
     defp setup_error(%{testcase: %{"error" => %{"type" => type}} = testcase})
          when type not in @known_case_errors do
       raise RuntimeError,
-        message: "unknown error type: #{type}, testcase: #{inspect(testcase)}"
+        message: "unknown error type: #{type}, testcase: #{inspect(testcase, pretty: true)}"
     end
 
     defp setup_error(%{testcase: %{"error" => %{"type" => error_type}}}) do
       {error, opts} = @case_to_driver_errors[error_type]
 
       Logger.debug(
-        "configure expected error (#{inspect(error_type)}): #{inspect(error)}, opts: #{inspect(opts)}"
+        "configure expected error (#{inspect(error_type)}): #{inspect(error)}, opts: #{inspect(opts, pretty: true)}"
       )
 
       expected_to_fail_callback = fn callback ->
@@ -151,7 +158,7 @@ if File.exists?(testcases_file) do
             callback.()
           end
 
-        Logger.debug("raised error: #{inspect(raised_error)}")
+        Logger.debug("raised error: #{inspect(raised_error, pretty: true)}")
 
         for {attribute, value} <- opts do
           assert Map.get(raised_error, attribute) == value
@@ -169,7 +176,7 @@ if File.exists?(testcases_file) do
       raise RuntimeError,
         message:
           ~s(invalid test case: either "result" or "error" key has to be specified, ) <>
-            "got both, testcase: #{inspect(testcase)}"
+            "got both, testcase: #{inspect(testcase, pretty: true)}"
     end
 
     defp setup_result(%{testcase: %{"result" => result} = testcase}) do
@@ -182,7 +189,7 @@ if File.exists?(testcases_file) do
             database: result["database"],
             user: result["user"],
             password: result["password"],
-            tls_ca_data: result["tlsCAData"],
+            tls_ca: result["tlsCAData"],
             tls_verify_hostname: result["tlsVerifyHostname"],
             server_settings: result["serverSettings"]
           ],
@@ -192,7 +199,7 @@ if File.exists?(testcases_file) do
         )
 
       Logger.debug(
-        "passed result: #{inspect(result)}, expected_result: #{inspect(expected_result)}"
+        "passed result: #{inspect(result, pretty: true)}, expected_result: #{inspect(expected_result, pretty: true)}"
       )
 
       expected_to_success_callback = fn callback ->
@@ -201,8 +208,8 @@ if File.exists?(testcases_file) do
         parsed_opts = Keyword.take(parsed_opts, Keyword.keys(expected_result))
 
         assert Keyword.equal?(parsed_opts, expected_result),
-               "wrong parsed connect opts, expected: #{inspect(expected_result)}, " <>
-                 "got: #{inspect(parsed_opts)}, failed testcase: #{inspect(testcase)}"
+               "wrong parsed connect opts, expected: #{inspect(expected_result, pretty: true)}, " <>
+                 "got: #{inspect(parsed_opts, pretty: true)}, failed testcase: #{inspect(testcase, pretty: true)}"
       end
 
       %{execution_callback: expected_to_success_callback}
