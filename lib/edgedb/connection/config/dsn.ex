@@ -90,7 +90,7 @@ defmodule EdgeDB.Connection.Config.DSN do
 
     {user, query} = handle_dsn_part(:user, opts[:user], user, query)
     {password, query} = handle_dsn_part(:password, opts[:password], password, query)
-    {tls_ca_file, query} = handle_dsn_part(:tls_cert_file, opts[:tls_ca_file], nil, query)
+    {tls_ca_file, query} = handle_dsn_part(:tls_ca_file, opts[:tls_ca_file], nil, query)
 
     {tls_security, query} = handle_dsn_part(:tls_security, opts[:tls_security], nil, query)
 
