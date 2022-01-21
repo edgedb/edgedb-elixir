@@ -58,7 +58,7 @@ defmodule EdgeDB.Connection.Config do
         security == :default and tls_security != :default ->
           tls_security
 
-        security == :default and opts[:tls_ca_data] ->
+        security == :default and opts[:tls_ca] ->
           :no_host_verification
 
         security == :insecure_dev_mode and tls_security == :default ->
@@ -71,11 +71,16 @@ defmodule EdgeDB.Connection.Config do
             (tls_security == :no_host_verification or tls_security == :insecure) ->
           raise RuntimeError,
             message:
-              "EDGEDB_CLIENT_SECURITY=#{security} but tls_security=#{tls_security}, tls_security must be set to strict when EDGEDB_CLIENT_SECURITY is strict"
+              "EDGEDB_CLIENT_SECURITY=#{security} but tls_security=#{tls_security}, " <>
+                "tls_security must be set to strict when EDGEDB_CLIENT_SECURITY is strict"
 
         true ->
           :strict
       end
+
+    if opts[:tls_ca] && opts[:tls_ca_file] do
+      raise Error.client_connection_error("tls_ca and tls_ca_file are mutually exclusive")
+    end
 
     opts
     |> Keyword.put_new_lazy(:address, fn ->
@@ -87,7 +92,7 @@ defmodule EdgeDB.Connection.Config do
     |> Keyword.update(:user, @default_user, fn user ->
       user || @default_user
     end)
-    |> Keyword.put_new_lazy(:tls_ca_data, fn ->
+    |> Keyword.put_new_lazy(:tls_ca, fn ->
       if tls_ca_file = opts[:tls_ca_file] do
         @file_module.read!(tls_ca_file)
       else
@@ -109,7 +114,7 @@ defmodule EdgeDB.Connection.Config do
       _other ->
         raise Error.client_connection_error(
                 "can not have more than one of the following connection options: " <>
-                  ":dsn, :credentials_file or :host/:port"
+                  ":dsn, :credentials, :credentials_file or :host/:port"
               )
     end
   end
@@ -194,6 +199,7 @@ defmodule EdgeDB.Connection.Config do
       [
         opts[:dsn],
         opts[:instance_name],
+        opts[:credentials],
         opts[:credentials_file],
         opts[:host] || opts[:port]
       ]
@@ -236,10 +242,7 @@ defmodule EdgeDB.Connection.Config do
           DSN.parse_dsn_into_opts(dsn, resolved_opts)
 
         compound_params_count == 1 ->
-          credentials_file =
-            opts[:credentials_file] || Credentials.get_credentials_path(opts[:instance_name])
-
-          credentials = Credentials.read_creadentials(credentials_file)
+          credentials = parse_credentials(opts)
           Keyword.merge(credentials, resolved_opts)
 
         true ->
@@ -250,16 +253,33 @@ defmodule EdgeDB.Connection.Config do
     {resolved_opts, compound_params_count}
   end
 
+  defp parse_credentials(opts) do
+    cond do
+      credentials_file = opts[:credentials_file] ->
+        Credentials.read_creadentials(credentials_file)
+
+      credentials = opts[:credentials] ->
+        Credentials.parse_credentials(credentials)
+
+      true ->
+        opts[:instance_name]
+        |> Credentials.get_credentials_path()
+        |> Credentials.read_creadentials()
+    end
+  end
+
   defp config_opts do
     clear_opts(
       dsn: from_config(:dsn),
       instance_name: from_config(:instance_name),
+      credentials: from_config(:credentials),
       credentials_file: from_config(:credentials_file),
       host: from_config(:host),
       port: from_config(:port),
       database: from_config(:database),
       user: from_config(:user),
       password: from_config(:password),
+      tls_ca: from_config(:tls_ca),
       tls_ca_file: from_config(:tls_ca_file),
       tls_security: from_config(:tls_security),
       timeout: from_config(:timeout),
@@ -295,6 +315,7 @@ defmodule EdgeDB.Connection.Config do
       database: from_env("EDGEDB_DATABASE"),
       user: from_env("EDGEDB_USER"),
       password: from_env("EDGEDB_PASSWORD"),
+      tls_ca: from_env("EDGEDB_TLS_CA"),
       tls_ca_file: from_env("EDGEDB_TLS_CA_FILE"),
       tls_security: from_env("EDGEDB_CLIENT_TLS_SECURITY"),
       security: security
