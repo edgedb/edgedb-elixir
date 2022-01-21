@@ -25,8 +25,22 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
   @spec read_creadentials(String.t()) :: Keyword.t()
   def read_creadentials(credentials_path) do
-    credentials_path
-    |> @file_module.read!()
+    credentials_data =
+      try do
+        @file_module.read!(credentials_path)
+      rescue
+        e in File.Error ->
+          reraise RuntimeError,
+                  [message: "invalid credentials: #{Exception.message(e)}"],
+                  __STACKTRACE__
+      end
+
+    parse_credentials(credentials_data)
+  end
+
+  @spec parse_credentials(String.t()) :: Keyword.t()
+  def parse_credentials(credentials) do
+    credentials
     |> Jason.decode!()
     |> Enum.reduce([], fn
       {"host", value}, opts ->
@@ -45,7 +59,30 @@ defmodule EdgeDB.Connection.Config.Credentials do
         Keyword.put(opts, :password, value)
 
       {"tls_cert_data", value}, opts ->
-        Keyword.put(opts, :tls_ca_data, value)
+        case opts[:tls_ca] do
+          nil ->
+            Keyword.put(opts, :tls_ca, value)
+
+          tls_ca when tls_ca != value ->
+            raise RuntimeError,
+              message: "tls_ca and tls_cert_data are both set and disagree"
+
+          _tls_ca ->
+            opts
+        end
+
+      {"tls_ca", value}, opts ->
+        case opts[:tls_ca] do
+          nil ->
+            Keyword.put(opts, :tls_ca, value)
+
+          tls_ca when tls_ca != value ->
+            raise RuntimeError,
+              message: "tls_ca and tls_cert_data are both set and disagree"
+
+          _tls_ca ->
+            opts
+        end
 
       {"tls_verify_hostname", value}, opts ->
         verify = Validation.validate_tls_verify_hostname(value)
