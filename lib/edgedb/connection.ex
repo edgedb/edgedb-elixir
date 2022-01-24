@@ -625,6 +625,10 @@ defmodule EdgeDB.Connection do
     execute_query(query, reencoded_params, opts, state)
   end
 
+  defp handle_optimistic_execute_flow(query, result, command_complete() = message, _opts, state) do
+    handle_execute_flow(query, result, message, state)
+  end
+
   defp handle_optimistic_execute_flow(query, result, data() = message, _opts, state) do
     handle_execute_flow(query, result, message, state)
   end
