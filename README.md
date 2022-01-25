@@ -7,7 +7,6 @@ How to use:
 ```elixir
 iex(1)> {:ok, conn} = EdgeDB.start_link() # NOTE: you should initialize EdgeDB project first
 iex(2)> arg = [16, 13, 2, 42]
-[16, 13, 2, 42]
 iex(3)> ^arg = EdgeDB.query_required_single!(conn, "SELECT <array<int64>>$arg", arg: arg)
 [16, 13, 2, 42]
 ```
