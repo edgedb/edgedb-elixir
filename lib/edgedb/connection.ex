@@ -44,7 +44,9 @@ defmodule EdgeDB.Connection do
       buffer: <<>>,
       server_key_data: nil,
       server_state: :not_in_transaction,
-      server_settings: %{}
+      server_settings: %{},
+      ping_interval: nil,
+      last_active: nil
     ]
 
     @type t() :: %__MODULE__{
@@ -58,7 +60,9 @@ defmodule EdgeDB.Connection do
             server_state: Enums.TransactionState.t(),
             queries_cache: QueriesCache.t(),
             codecs_storage: Codecs.Storage.t(),
-            server_settings: map()
+            server_settings: map(),
+            ping_interval: integer() | nil | :disabled,
+            last_active: integer() | nil
           }
 
     @spec new(
@@ -138,7 +142,7 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def disconnect(_exc, %State{socket: socket} = state) do
-    with :ok <- send_message(terminate(), state) do
+    with {:ok, _state} <- send_message(terminate(), state) do
       :ssl.close(socket)
     end
   end
@@ -256,9 +260,12 @@ defmodule EdgeDB.Connection do
     {status(state), state}
   end
 
+  # "Real" pings are performed according to the EdgeDB system configuration "session_idle_timeout" parameter,
+  # but by default this callback won't be called more than once per second.
+  # If "session_idle_timeout" parameter is disabled, pings will also be disabled.
   @impl DBConnection
   def ping(state) do
-    {:ok, state}
+    maybe_ping(state)
   end
 
   defp open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout) do
@@ -319,14 +326,14 @@ defmodule EdgeDB.Connection do
         extensions: []
       )
 
-    with :ok <- send_message(message, state) do
+    with {:ok, state} <- send_message(message, state) do
       handle_authentication(password, state)
     end
   end
 
   defp handle_authentication(password, state) do
-    with {:ok, {message, buffer}} <- receive_message(state) do
-      handle_authentication_flow(message, password, %State{state | buffer: buffer})
+    with {:ok, {message, state}} <- receive_message(state) do
+      handle_authentication_flow(message, password, state)
     end
   end
 
@@ -350,8 +357,8 @@ defmodule EdgeDB.Connection do
          password,
          state
        ) do
-    with {:ok, {message, buffer}} <- receive_message(state) do
-      handle_authentication_flow(message, password, %State{state | buffer: buffer})
+    with {:ok, {message, state}} <- receive_message(state) do
+      handle_authentication_flow(message, password, state)
     end
   end
 
@@ -377,9 +384,9 @@ defmodule EdgeDB.Connection do
 
     message = authentication_sasl_initial_response(method: @scram_sha_256, sasl_data: cf_data)
 
-    with :ok <- send_message(message, state),
-         {:ok, {message, buffer}} <- receive_message(state) do
-      handle_sasl_authentication_flow(message, server_first, %State{state | buffer: buffer})
+    with {:ok, state} <- send_message(message, state),
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_sasl_authentication_flow(message, server_first, state)
     end
   end
 
@@ -394,9 +401,10 @@ defmodule EdgeDB.Connection do
        ) do
     with {:ok, {server_final, client_final_data}} <-
            EdgeDB.SCRAM.handle_server_first(server_first, data),
-         :ok <- send_message(authentication_sasl_response(sasl_data: client_final_data), state),
-         {:ok, {message, buffer}} <- receive_message(state) do
-      handle_sasl_authentication_flow(message, server_final, %State{state | buffer: buffer})
+         {:ok, state} <-
+           send_message(authentication_sasl_response(sasl_data: client_final_data), state),
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_sasl_authentication_flow(message, server_final, state)
     else
       {:error, reason} ->
         exc =
@@ -415,8 +423,8 @@ defmodule EdgeDB.Connection do
          state
        ) do
     with :ok <- EdgeDB.SCRAM.handle_server_final(server_final, data),
-         {:ok, {message, buffer}} <- receive_message(state) do
-      handle_sasl_authentication_flow(message, %State{state | buffer: buffer})
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_sasl_authentication_flow(message, state)
     else
       {:error, reason} ->
         exc =
@@ -442,8 +450,8 @@ defmodule EdgeDB.Connection do
   end
 
   defp wait_for_server_ready(state) do
-    with {:ok, {message, buffer}} <- receive_message(state) do
-      handle_server_ready_flow(message, %State{state | buffer: buffer})
+    with {:ok, {message, state}} <- receive_message(state) do
+      handle_server_ready_flow(message, state)
     end
   end
 
@@ -502,9 +510,9 @@ defmodule EdgeDB.Connection do
         command: query.statement
       )
 
-    with :ok <- send_messages([message, flush()], state),
-         {:ok, {message, buffer}} <- receive_message(state) do
-      handle_prepare_query_flow(query, message, %State{state | buffer: buffer})
+    with {:ok, state} <- send_messages([message, flush()], state),
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_prepare_query_flow(query, message, state)
     end
   end
 
@@ -585,14 +593,14 @@ defmodule EdgeDB.Connection do
         arguments: params
       )
 
-    with :ok <- send_messages([message, sync()], state),
-         {:ok, {message, buffer}} <- receive_message(state) do
+    with {:ok, state} <- send_messages([message, sync()], state),
+         {:ok, {message, state}} <- receive_message(state) do
       handle_optimistic_execute_flow(
         query,
         %EdgeDB.Result{cardinality: query.cardinality},
         message,
         opts,
-        %State{state | buffer: buffer}
+        state
       )
     end
   end
@@ -647,13 +655,13 @@ defmodule EdgeDB.Connection do
         arguments: params
       )
 
-    with :ok <- send_messages([message, sync()], state),
-         {:ok, {message, buffer}} <- receive_message(state) do
+    with {:ok, state} <- send_messages([message, sync()], state),
+         {:ok, {message, state}} <- receive_message(state) do
       handle_execute_flow(
         query,
         %EdgeDB.Result{cardinality: query.cardinality},
         message,
-        %State{state | buffer: buffer}
+        state
       )
     end
   end
@@ -664,12 +672,12 @@ defmodule EdgeDB.Connection do
          data(data: [data_element(data: data)]),
          state
        ) do
-    with {:ok, {message, buffer}} <- receive_message(state) do
+    with {:ok, {message, state}} <- receive_message(state) do
       handle_execute_flow(
         query,
         %EdgeDB.Result{result | set: [data | encoded_elements]},
         message,
-        %State{state | buffer: buffer}
+        state
       )
     end
   end
@@ -695,9 +703,9 @@ defmodule EdgeDB.Connection do
   defp describe_codecs_from_query(query, state) do
     message = describe_statement(aspect: :data_description)
 
-    with :ok <- send_messages([message, flush()], state),
-         {:ok, {message, buffer}} <- receive_message(state) do
-      handle_prepare_query_flow(query, message, %State{state | buffer: buffer})
+    with {:ok, state} <- send_messages([message, flush()], state),
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_prepare_query_flow(query, message, state)
     end
   end
 
@@ -747,9 +755,9 @@ defmodule EdgeDB.Connection do
   defp execute_script_query(statement, headers, state) do
     message = execute_script(headers: headers, script: statement)
 
-    with :ok <- send_message(message, state),
-         {:ok, {message, buffer}} <- receive_message(state) do
-      handle_execute_script_flow(message, %State{state | buffer: buffer})
+    with {:ok, state} <- send_message(message, state),
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_execute_script_flow(message, state)
     end
   end
 
@@ -788,8 +796,47 @@ defmodule EdgeDB.Connection do
     state
   end
 
+  defp maybe_ping(%State{ping_interval: :disabled} = state) do
+    {:ok, state}
+  end
+
+  defp maybe_ping(
+         %State{
+           ping_interval: nil,
+           server_settings: %{
+             system_config: config
+           }
+         } = state
+       ) do
+    case config[:session_idle_timeout] do
+      nil ->
+        {:ok, state}
+
+      0 ->
+        {:ok, %State{state | ping_interval: :disabled}}
+
+      session_idle_timeout ->
+        ping_interval = System.convert_time_unit(session_idle_timeout, :microsecond, :second)
+        maybe_ping(%State{state | ping_interval: ping_interval})
+    end
+  end
+
+  defp maybe_ping(%State{ping_interval: interval, last_active: last_active} = state) do
+    if System.monotonic_time(:second) - last_active >= interval do
+      do_ping(state)
+    else
+      {:ok, state}
+    end
+  end
+
+  defp do_ping(%State{} = state) do
+    with {:ok, state} <- send_message(sync(), state) do
+      wait_for_server_ready(state)
+    end
+  end
+
   defp restore_server_state_from_error(state) do
-    with :ok <- send_message(sync(), state) do
+    with {:ok, state} <- send_message(sync(), state) do
       wait_for_server_ready(state)
     end
   end
@@ -885,8 +932,14 @@ defmodule EdgeDB.Connection do
         state = handle_log_message(message, %State{state | buffer: buffer})
         receive_message(state)
 
-      {:ok, _res} = result ->
-        result
+      {:ok, {message, buffer}} ->
+        {:ok,
+         {message,
+          %State{
+            state
+            | last_active: System.monotonic_time(:second),
+              buffer: buffer
+          }}}
 
       {:error, {:not_enough_size, size}} ->
         receive_message_data_from_socket(size, state)
@@ -923,7 +976,7 @@ defmodule EdgeDB.Connection do
   defp send_data_into_socket(data, %State{socket: socket} = state) do
     case :ssl.send(socket, data) do
       :ok ->
-        :ok
+        {:ok, %State{state | last_active: System.monotonic_time(:second)}}
 
       {:error, :closed} ->
         exc = Error.client_connection_closed_error("connection has been closed")
