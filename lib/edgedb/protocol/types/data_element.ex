@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Types.DataElement do
   alias EdgeDB.Protocol.Datatypes
 
   deftype(
-    name: :data_element,
     encode: false,
     fields: [
       data: Datatypes.Bytes.t()
@@ -16,6 +15,6 @@ defmodule EdgeDB.Protocol.Types.DataElement do
     {data, rest} = Datatypes.UInt8.decode(num_data, rest)
 
     data = Datatypes.UInt8.encode(data, datatype: Datatypes.UInt32)
-    {data_element(data: IO.iodata_to_binary(data)), rest}
+    {%__MODULE__{data: IO.iodata_to_binary(data)}, rest}
   end
 end

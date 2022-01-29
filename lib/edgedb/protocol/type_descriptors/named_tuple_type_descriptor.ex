@@ -1,8 +1,6 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.NamedTupleTypeDescriptor do
   use EdgeDB.Protocol.TypeDescriptor
 
-  import EdgeDB.Protocol.Types.NamedTupleDescriptorElement
-
   alias EdgeDB.Protocol.{
     Codecs,
     Types
@@ -15,7 +13,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors.NamedTupleTypeDescriptor do
     {elements, rest} = Types.NamedTupleDescriptorElement.decode(element_count, rest)
 
     codecs =
-      Enum.map(elements, fn named_tuple_descriptor_element(type_pos: type_pos) ->
+      Enum.map(elements, fn %Types.NamedTupleDescriptorElement{type_pos: type_pos} ->
         codec_by_index(codecs, type_pos)
       end)
 

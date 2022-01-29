@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Messages.Server.ParameterStatus do
   alias EdgeDB.Protocol.Datatypes
 
   defmessage(
-    name: :parameter_status,
     server: true,
     mtype: 0x53,
     fields: [
@@ -17,6 +16,10 @@ defmodule EdgeDB.Protocol.Messages.Server.ParameterStatus do
   def decode_message(<<data::binary>>) do
     {name, rest} = Datatypes.Bytes.decode(data)
     {value, <<>>} = Datatypes.Bytes.decode(rest)
-    parameter_status(name: name, value: value)
+
+    %__MODULE__{
+      name: name,
+      value: value
+    }
   end
 end

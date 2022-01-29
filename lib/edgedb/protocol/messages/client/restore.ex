@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Messages.Client.Restore do
   }
 
   defmessage(
-    name: :restore,
     client: true,
     mtype: 0x3C,
     fields: [
@@ -18,13 +17,11 @@ defmodule EdgeDB.Protocol.Messages.Client.Restore do
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(
-        restore(
-          headers: headers,
-          jobs: jobs,
-          header_data: header_data
-        )
-      ) do
+  def encode_message(%__MODULE__{
+        headers: headers,
+        jobs: jobs,
+        header_data: header_data
+      }) do
     headers = handle_headers(headers)
 
     [

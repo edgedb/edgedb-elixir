@@ -8,7 +8,6 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
   }
 
   defmessage(
-    name: :execute_script,
     client: true,
     mtype: 0x51,
     fields: [
@@ -24,7 +23,7 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(execute_script(headers: headers, script: script)) do
+  def encode_message(%__MODULE__{headers: headers, script: script}) do
     headers = handle_headers(headers)
 
     [

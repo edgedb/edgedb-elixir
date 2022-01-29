@@ -1,8 +1,6 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.ObjectShapeDescriptor do
   use EdgeDB.Protocol.TypeDescriptor
 
-  import EdgeDB.Protocol.Types.ShapeElement
-
   alias EdgeDB.Protocol.{
     Codecs,
     Types
@@ -15,7 +13,7 @@ defmodule EdgeDB.Protocol.TypeDescriptors.ObjectShapeDescriptor do
     {elements, rest} = Types.ShapeElement.decode(elements_count, rest)
 
     codecs =
-      Enum.map(elements, fn shape_element(type_pos: pos) ->
+      Enum.map(elements, fn %Types.ShapeElement{type_pos: pos} ->
         codec_by_index(codecs, pos)
       end)
 

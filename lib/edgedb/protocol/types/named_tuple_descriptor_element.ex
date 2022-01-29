@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Types.NamedTupleDescriptorElement do
   alias EdgeDB.Protocol.Datatypes
 
   deftype(
-    name: :named_tuple_descriptor_element,
     encode: false,
     fields: [
       name: Datatypes.String.t(),
@@ -17,6 +16,6 @@ defmodule EdgeDB.Protocol.Types.NamedTupleDescriptorElement do
     {name, rest} = Datatypes.String.decode(data)
     {type_pos, rest} = Datatypes.Int16.decode(rest)
 
-    {named_tuple_descriptor_element(name: name, type_pos: type_pos), rest}
+    {%__MODULE__{name: name, type_pos: type_pos}, rest}
   end
 end

@@ -10,7 +10,6 @@ defmodule EdgeDB.Protocol.Messages.Server.LogMessage do
   require Enums.MessageSeverity
 
   defmessage(
-    name: :log_message,
     server: true,
     mtype: 0x4C,
     fields: [
@@ -28,11 +27,11 @@ defmodule EdgeDB.Protocol.Messages.Server.LogMessage do
     {num_attributes, rest} = Datatypes.UInt16.decode(rest)
     {attributes, <<>>} = Types.Header.decode(num_attributes, rest)
 
-    log_message(
+    %__MODULE__{
       severity: Enums.MessageSeverity.to_atom(severity),
       code: code,
       text: text,
       attributes: handle_headers(attributes)
-    )
+    }
   end
 end

@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationSASL do
   alias EdgeDB.Protocol.Datatypes
 
   defmessage(
-    name: :authentication_sasl,
     server: true,
     mtype: 0x52,
     fields: [
@@ -16,6 +15,6 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationSASL do
   @impl EdgeDB.Protocol.Message
   def decode_message(<<0xA::uint32, num_methods::uint32, rest::binary>>) do
     {methods, <<>>} = Datatypes.String.decode(num_methods, rest)
-    authentication_sasl(auth_status: 0xA, methods: methods)
+    %__MODULE__{auth_status: 0xA, methods: methods}
   end
 end

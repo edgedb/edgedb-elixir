@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationOK do
   alias EdgeDB.Protocol.Datatypes
 
   defmessage(
-    name: :authentication_ok,
     server: true,
     mtype: 0x52,
     fields: [
@@ -14,6 +13,6 @@ defmodule EdgeDB.Protocol.Messages.Server.Authentication.AuthenticationOK do
 
   @impl EdgeDB.Protocol.Message
   def decode_message(<<auth_status::uint32>>) do
-    authentication_ok(auth_status: auth_status)
+    %__MODULE__{auth_status: auth_status}
   end
 end

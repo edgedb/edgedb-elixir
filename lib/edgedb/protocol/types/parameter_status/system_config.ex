@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Types.ParameterStatus.SystemConfig do
   }
 
   deftype(
-    name: :system_config,
     encode: false,
     fields: [
       typedesc_id: Datatypes.UUID.t(),
@@ -30,10 +29,10 @@ defmodule EdgeDB.Protocol.Types.ParameterStatus.SystemConfig do
       |> Datatypes.UInt8.encode(raw: true)
       |> IO.iodata_to_binary()
 
-    {system_config(
+    {%__MODULE__{
        typedesc_id: typedesc_id,
        typedesc: typedesc,
        data: data
-     ), rest}
+     }, rest}
   end
 end

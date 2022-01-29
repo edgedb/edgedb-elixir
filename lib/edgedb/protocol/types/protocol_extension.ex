@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Types.ProtocolExtension do
   }
 
   deftype(
-    name: :protocol_extension,
     fields: [
       name: Datatypes.String.t(),
       headers: list(Types.Header.t())
@@ -15,7 +14,7 @@ defmodule EdgeDB.Protocol.Types.ProtocolExtension do
   )
 
   @impl EdgeDB.Protocol.Type
-  def encode_type(protocol_extension(name: name, headers: headers)) do
+  def encode_type(%__MODULE__{name: name, headers: headers}) do
     [
       Datatypes.String.encode(name),
       Datatypes.UInt16.encode(length(headers)),
@@ -29,6 +28,6 @@ defmodule EdgeDB.Protocol.Types.ProtocolExtension do
     {num_headers, rest} = Datatypes.UInt64.decode(rest)
     {headers, rest} = Types.Header.decode(num_headers, rest)
 
-    {protocol_extension(name: name, headers: headers), rest}
+    {%__MODULE__{name: name, headers: headers}, rest}
   end
 end

@@ -12,23 +12,19 @@ defmodule EdgeDB.Protocol.Type do
   end
 
   defmacro deftype(opts) do
-    record_name = Keyword.fetch!(opts, :name)
     fields = Keyword.get(opts, :fields, [])
-    record_def = EdgeDB.Protocol.Utils.define_record(record_name, fields)
-
-    type_name_access_fun_def = define_type_name_access_fun(record_name)
+    struct_def = EdgeDB.Protocol.Utils.define_struct(fields)
 
     define_encoder? = Keyword.get(opts, :encode, true)
     define_decoder? = Keyword.get(opts, :decode, true)
 
-    encoder_def = define_type_encoder(record_name)
+    encoder_def = define_type_encoder()
     decoder_def = define_type_decoder()
 
     quote do
       @behaviour unquote(__MODULE__)
 
-      unquote(record_def)
-      unquote(type_name_access_fun_def)
+      unquote(struct_def)
 
       if unquote(define_encoder?) do
         unquote(encoder_def)
@@ -49,11 +45,11 @@ defmodule EdgeDB.Protocol.Type do
     end
   end
 
-  defp define_type_encoder(record_name) do
+  defp define_type_encoder do
     quote do
       @spec encode(t() | list(t())) :: iodata()
 
-      def encode(unquote(record_name)() = type) do
+      def encode(%__MODULE__{} = type) do
         encode_type(type)
       end
 

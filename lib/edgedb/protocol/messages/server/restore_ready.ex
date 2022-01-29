@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
   }
 
   defmessage(
-    name: :restore_ready,
     server: true,
     mtype: 0x2B,
     fields: [
@@ -21,9 +20,9 @@ defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
     {headers, rest} = Types.Header.decode(num_headers, rest)
     {jobs, <<>>} = Datatypes.UInt16.decode(rest)
 
-    restore_ready(
+    %__MODULE__{
       headers: handle_headers(headers),
       jobs: jobs
-    )
+    }
   end
 end

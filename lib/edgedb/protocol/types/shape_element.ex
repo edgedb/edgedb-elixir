@@ -11,7 +11,6 @@ defmodule EdgeDB.Protocol.Types.ShapeElement do
   @field_is_link Bitwise.bsl(1, 2)
 
   deftype(
-    name: :shape_element,
     encode: false,
     fields: [
       flags: Datatypes.UInt8.t(),
@@ -22,17 +21,17 @@ defmodule EdgeDB.Protocol.Types.ShapeElement do
   )
 
   @spec link?(t()) :: boolean()
-  def link?(shape_element(flags: flags)) do
+  def link?(%__MODULE__{flags: flags}) do
     Bitwise.band(flags, @field_is_link) != 0
   end
 
   @spec link_property?(t()) :: boolean()
-  def link_property?(shape_element(flags: flags)) do
+  def link_property?(%__MODULE__{flags: flags}) do
     Bitwise.band(flags, @field_is_link_property) != 0
   end
 
   @spec implicit?(t()) :: boolean()
-  def implicit?(shape_element(flags: flags)) do
+  def implicit?(%__MODULE__{flags: flags}) do
     Bitwise.band(flags, @field_is_implicit) != 0
   end
 
@@ -42,11 +41,11 @@ defmodule EdgeDB.Protocol.Types.ShapeElement do
     {name, rest} = Datatypes.String.decode(rest)
     {type_pos, rest} = Datatypes.UInt16.decode(rest)
 
-    {shape_element(
+    {%__MODULE__{
        flags: flags,
        cardinality: cardinality,
        name: name,
        type_pos: type_pos
-     ), rest}
+     }, rest}
   end
 end

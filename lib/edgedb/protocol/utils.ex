@@ -46,16 +46,50 @@ defmodule EdgeDB.Protocol.Utils do
     {entities, rest}
   end
 
-  @spec define_record(atom(), Keyword.t()) :: Macro.t()
-  def define_record(record_name, fields) do
-    record_fields = Keyword.keys(fields)
+  @spec define_struct(Keyword.t()) :: Macro.t()
+  def define_struct(fields) do
+    struct_fields =
+      Enum.reduce(fields, [], fn
+        {name, {_type, opts}}, acc ->
+          case Keyword.fetch(opts, :default) do
+            {:ok, default} ->
+              [{name, default} | acc]
+
+            :error ->
+              [name | acc]
+          end
+
+        {name, _type}, acc ->
+          [name | acc]
+      end)
+
+    fields_typespec =
+      Enum.map(fields, fn
+        {name, {type, _opts}} ->
+          {name, type}
+
+        {name, type} ->
+          {name, type}
+      end)
+
+    required_fields =
+      Enum.reduce(fields, [], fn
+        {name, {_type, opts}}, acc ->
+          if Keyword.has_key?(opts, :default) do
+            acc
+          else
+            [name | acc]
+          end
+
+        {name, _type}, acc ->
+          [name | acc]
+      end)
 
     quote do
-      require Record
+      @enforce_keys unquote(required_fields)
+      defstruct unquote(struct_fields)
 
-      @type t() :: record(unquote(record_name), unquote(fields))
-
-      Record.defrecord(unquote(record_name), unquote(record_fields))
+      @type t() :: %__MODULE__{unquote_splicing(fields_typespec)}
     end
   end
 end

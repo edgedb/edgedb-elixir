@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Types.ConnectionParam do
   alias EdgeDB.Protocol.Datatypes
 
   deftype(
-    name: :connection_param,
     decode: false,
     fields: [
       name: Datatypes.String.t(),
@@ -13,7 +12,7 @@ defmodule EdgeDB.Protocol.Types.ConnectionParam do
   )
 
   @impl EdgeDB.Protocol.Type
-  def encode_type(connection_param(name: name, value: value)) do
+  def encode_type(%__MODULE__{name: name, value: value}) do
     [Datatypes.String.encode(name), Datatypes.String.encode(value)]
   end
 end

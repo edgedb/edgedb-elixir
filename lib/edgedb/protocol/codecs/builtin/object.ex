@@ -1,11 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.{
-    TupleElement,
-    ShapeElement
-  }
-
   alias EdgeDB.Protocol.{
     Datatypes,
     Error,
@@ -79,7 +74,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
   defp encode_arguments(arguments, elements_descriptors, codecs) do
     elements_descriptors
     |> Enum.zip(codecs)
-    |> Enum.map(fn {shape_element(name: name, cardinality: cardinality), codec} ->
+    |> Enum.map(fn {%Types.ShapeElement{name: name, cardinality: cardinality}, codec} ->
       value = arguments[name]
 
       if is_nil(value) and (cardinality == :one or cardinality == :at_least_one) do
@@ -90,11 +85,11 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
     end)
     |> Enum.map(fn
       {nil, _codec} ->
-        tuple_element(data: :empty_set)
+        %Types.TupleElement{data: :empty_set}
 
       {value, codec} ->
         element_data = Codec.encode(codec, value)
-        tuple_element(data: element_data)
+        %Types.TupleElement{data: element_data}
     end)
     |> Types.TupleElement.encode(raw: true)
   end
@@ -107,25 +102,33 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
     end)
   end
 
-  defp decode_field_data(tuple_element(data: :empty_set), shape_element(name: name) = se, _codec) do
+  defp decode_field_data(
+         %Types.TupleElement{data: :empty_set},
+         %Types.ShapeElement{name: name} = se,
+         _codec
+       ) do
     %EdgeDB.Object.Field{
       name: name,
       value: @empty_set,
-      is_link: link?(se),
-      is_link_property: link_property?(se),
-      is_implicit: implicit?(se)
+      is_link: Types.ShapeElement.link?(se),
+      is_link_property: Types.ShapeElement.link_property?(se),
+      is_implicit: Types.ShapeElement.implicit?(se)
     }
   end
 
-  defp decode_field_data(tuple_element(data: data), shape_element(name: name) = se, codec) do
+  defp decode_field_data(
+         %Types.TupleElement{data: data},
+         %Types.ShapeElement{name: name} = se,
+         codec
+       ) do
     decoded_element = Codec.decode(codec, data)
 
     %EdgeDB.Object.Field{
       name: name,
       value: decoded_element,
-      is_link: link?(se),
-      is_link_property: link_property?(se),
-      is_implicit: implicit?(se)
+      is_link: Types.ShapeElement.link?(se),
+      is_link_property: Types.ShapeElement.link_property?(se),
+      is_implicit: Types.ShapeElement.implicit?(se)
     }
   end
 
@@ -136,7 +139,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
       |> MapSet.new()
 
     required_keys =
-      Enum.into(elements, MapSet.new(), fn shape_element(name: name) ->
+      Enum.into(elements, MapSet.new(), fn %Types.ShapeElement{name: name} ->
         name
       end)
 
@@ -156,9 +159,9 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
   end
 
   defp transform_shape_elements(shape_elements) do
-    Enum.map(shape_elements, fn shape_element(name: name) = e ->
-      if link_property?(e) do
-        shape_element(e, name: "@#{name}")
+    Enum.map(shape_elements, fn %Types.ShapeElement{name: name} = e ->
+      if Types.ShapeElement.link_property?(e) do
+        %Types.ShapeElement{e | name: "@#{name}"}
       else
         e
       end

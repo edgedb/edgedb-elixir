@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpBlock do
   }
 
   defmessage(
-    name: :dump_block,
     server: true,
     mtype: 0x3D,
     fields: [
@@ -34,6 +33,6 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpBlock do
   def decode_message(<<num_headers::uint16, rest::binary>>) do
     {headers, <<>>} = Types.Header.decode(num_headers, rest)
 
-    dump_block(headers: handle_headers(headers))
+    %__MODULE__{headers: handle_headers(headers)}
   end
 end

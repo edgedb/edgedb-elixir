@@ -1,11 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.Array do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.{
-    ArrayElement,
-    Dimension
-  }
-
   alias EdgeDB.Protocol.{
     Datatypes,
     Error,
@@ -90,20 +85,20 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Array do
   defp encode_data_into_array_elements(list, codec) do
     Enum.map(list, fn element ->
       encoded_data = Codec.encode(codec, element)
-      array_element(data: encoded_data)
+      %Types.ArrayElement{data: encoded_data}
     end)
   end
 
   defp decode_array_elements_into_list(elements, dimensions, codec) do
     elements
-    |> Enum.into([], fn array_element(data: data) ->
+    |> Enum.into([], fn %Types.ArrayElement{data: data} ->
       Codec.decode(codec, data)
     end)
     |> transform_in_dimensions(dimensions)
   end
 
   defp get_dimensions_for_list(1, list) do
-    get_dimensions_for_list(0, [], [dimension(upper: length(list))])
+    get_dimensions_for_list(0, [], [%Types.Dimension{upper: length(list)}])
   end
 
   defp get_dimensions_for_list(ndims, list) do
@@ -115,22 +110,23 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Array do
   end
 
   defp get_dimensions_for_list(ndims, [list | rest], dimensions) when is_list(list) do
-    get_dimensions_for_list(ndims - 1, rest, [dimension(upper: length(list)) | dimensions])
+    get_dimensions_for_list(ndims - 1, rest, [%Types.Dimension{upper: length(list)} | dimensions])
   end
 
   defp count_elements_in_array(dimensions) do
-    Enum.reduce(dimensions, 0, fn dimension(upper: upper, lower: lower), acc ->
+    Enum.reduce(dimensions, 0, fn %Types.Dimension{upper: upper, lower: lower}, acc ->
       acc + upper - lower + 1
     end)
   end
 
-  defp transform_in_dimensions(list, [dimension()]) do
+  defp transform_in_dimensions(list, [%Types.Dimension{}]) do
     list
   end
 
   defp transform_in_dimensions(list, dimensions) do
     {list, []} =
-      Enum.reduce(dimensions, {[], list}, fn dimension(upper: upper), {md_list, elements} ->
+      Enum.reduce(dimensions, {[], list}, fn %Types.Dimension{upper: upper},
+                                             {md_list, elements} ->
         {new_dim_list, rest} = Enum.split(elements, upper)
         {[new_dim_list | md_list], rest}
       end)

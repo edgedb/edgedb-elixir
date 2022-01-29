@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Messages.Client.ClientHandshake do
   }
 
   defmessage(
-    name: :client_handshake,
     client: true,
     mtype: 0x56,
     fields: [
@@ -19,14 +18,12 @@ defmodule EdgeDB.Protocol.Messages.Client.ClientHandshake do
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(
-        client_handshake(
-          major_ver: major_ver,
-          minor_ver: minor_ver,
-          params: params,
-          extensions: extensions
-        )
-      ) do
+  def encode_message(%__MODULE__{
+        major_ver: major_ver,
+        minor_ver: minor_ver,
+        params: params,
+        extensions: extensions
+      }) do
     [
       Datatypes.UInt16.encode(major_ver),
       Datatypes.UInt16.encode(minor_ver),
