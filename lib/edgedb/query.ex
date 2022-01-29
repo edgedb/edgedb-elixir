@@ -36,8 +36,8 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
   @empty_set %EdgeDB.Set{__items__: MapSet.new()}
 
   @impl DBConnection.Query
-  def decode(%EdgeDB.Query{}, %EdgeDB.Result{set: %EdgeDB.Set{}}, _opts) do
-    raise Error.interface_error("result has been decoded")
+  def decode(%EdgeDB.Query{}, %EdgeDB.Result{set: %EdgeDB.Set{}} = result, _opts) do
+    result
   end
 
   @impl DBConnection.Query

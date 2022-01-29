@@ -47,6 +47,21 @@ defmodule EdgeDB.Connection.QueryBuilder do
     "ROLLBACK"
   end
 
+  @spec declare_savepoint_statement(String.t()) :: statement()
+  def declare_savepoint_statement(savepoint_name) do
+    "DECLARE SAVEPOINT #{savepoint_name}"
+  end
+
+  @spec release_savepoint_statement(String.t()) :: statement()
+  def release_savepoint_statement(savepoint_name) do
+    "RELEASE SAVEPOINT #{savepoint_name}"
+  end
+
+  @spec rollback_to_savepoint_statement(String.t()) :: statement()
+  def rollback_to_savepoint_statement(savepoint_name) do
+    "ROLLBACK TO SAVEPOINT #{savepoint_name}"
+  end
+
   @spec scalars_type_ids_by_names_statement() :: statement()
   def scalars_type_ids_by_names_statement do
     """

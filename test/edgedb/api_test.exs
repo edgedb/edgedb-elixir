@@ -139,6 +139,184 @@ defmodule Tests.APITest do
 
       assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "SELECT User"))
     end
+
+    test "nested transactions raises borrow error", %{conn: conn} do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.transaction(conn, fn conn ->
+            EdgeDB.transaction(conn, fn conn ->
+              EdgeDB.query!(conn, "SELECT 1")
+            end)
+          end)
+        end
+
+      assert exc.message =~ "borrowed for transaction"
+    end
+
+    test "forbids using original connection inside", %{conn: conn} do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.transaction(conn, fn _tx_conn ->
+            EdgeDB.query!(conn, "SELECT 1")
+          end)
+        end
+
+      assert "ok" = EdgeDB.query_required_single!(conn, ~s(SELECT "ok"))
+
+      assert exc.message =~ "borrowed for transaction"
+    end
+  end
+
+  describe "EdgeDB.subtransaction/3" do
+    test "allowed only on connections in transactions", %{conn: conn} do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.subtransaction(conn, fn _subtx_conn ->
+            :ok
+          end)
+        end
+
+      assert exc.message =~ "already in transaction"
+      assert exc.message =~ "another subtransaction"
+    end
+
+    test "rollbacks nested transaction without breaking the outer", %{conn: conn} do
+      EdgeDB.transaction(conn, fn tx_conn ->
+        assert {:error, :subtx_rollback} =
+                 EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
+                   EdgeDB.query!(subtx_conn, "INSERT Ticket{ number := 1 }")
+
+                   assert %EdgeDB.Object{} =
+                            EdgeDB.query_required_single!(subtx_conn, "SELECT Ticket LIMIT 1")
+
+                   EdgeDB.rollback(subtx_conn, reason: :subtx_rollback)
+                 end)
+
+        assert 0 == EdgeDB.query_required_single!(tx_conn, "SELECT count(Ticket)")
+      end)
+    end
+
+    test "not rollbacked changes from inner subtransactions seen to outer and to main transaction",
+         %{conn: conn} do
+      EdgeDB.transaction(conn, fn tx_conn ->
+        assert {:ok, :ok} =
+                 EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
+                   {:ok, %EdgeDB.Set{}} =
+                     EdgeDB.subtransaction(subtx_conn_1, fn subtx_conn_2 ->
+                       EdgeDB.query!(subtx_conn_2, "INSERT Ticket{ number := 1 }")
+                     end)
+
+                   assert 1 == EdgeDB.query_required_single!(subtx_conn_1, "SELECT count(Ticket)")
+
+                   {:error, :rollback} =
+                     EdgeDB.subtransaction(subtx_conn_1, fn subtx_conn_2 ->
+                       EdgeDB.query!(subtx_conn_2, "INSERT Ticket{ number := 2 }")
+                       EdgeDB.rollback(subtx_conn_2)
+                     end)
+
+                   assert 1 == EdgeDB.query_required_single!(subtx_conn_1, "SELECT count(Ticket)")
+
+                   {:ok, %EdgeDB.Set{}} =
+                     EdgeDB.subtransaction(subtx_conn_1, fn subtx_conn_2 ->
+                       EdgeDB.query!(subtx_conn_2, "INSERT Ticket{ number := 3 }")
+                     end)
+
+                   assert 2 == EdgeDB.query_required_single!(subtx_conn_1, "SELECT count(Ticket)")
+
+                   :ok
+                 end)
+
+        assert 2 == EdgeDB.query_required_single!(tx_conn, "SELECT count(Ticket)")
+
+        EdgeDB.rollback(tx_conn)
+      end)
+
+      assert 0 == EdgeDB.query_required_single!(conn, "SELECT count(Ticket)")
+    end
+
+    test "not rollbacked changes applied after exiting from main transaction",
+         %{conn: conn} do
+      EdgeDB.transaction(conn, fn tx_conn ->
+        assert {:ok, :ok} =
+                 EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
+                   {:ok, %EdgeDB.Set{}} =
+                     EdgeDB.subtransaction(subtx_conn_1, fn subtx_conn_2 ->
+                       EdgeDB.query!(subtx_conn_2, "INSERT Ticket{ number := 1 }")
+                     end)
+
+                   assert 1 == EdgeDB.query_required_single!(subtx_conn_1, "SELECT count(Ticket)")
+
+                   {:error, :rollback} =
+                     EdgeDB.subtransaction(subtx_conn_1, fn subtx_conn_2 ->
+                       EdgeDB.query!(subtx_conn_2, "INSERT Ticket{ number := 2 }")
+                       EdgeDB.rollback(subtx_conn_2)
+                     end)
+
+                   assert 1 == EdgeDB.query_required_single!(subtx_conn_1, "SELECT count(Ticket)")
+
+                   {:ok, %EdgeDB.Set{}} =
+                     EdgeDB.subtransaction(subtx_conn_1, fn subtx_conn_2 ->
+                       EdgeDB.query!(subtx_conn_2, "INSERT Ticket{ number := 3 }")
+                     end)
+
+                   assert 2 == EdgeDB.query_required_single!(subtx_conn_1, "SELECT count(Ticket)")
+
+                   :ok
+                 end)
+
+        assert 2 == EdgeDB.query_required_single!(tx_conn, "SELECT count(Ticket)")
+
+        :ok
+      end)
+
+      assert 2 == EdgeDB.query_required_single!(conn, "SELECT count(Ticket)")
+
+      EdgeDB.query!(conn, "DELETE Ticket")
+    end
+
+    test "can be continued after rollback", %{conn: conn} do
+      EdgeDB.transaction(conn, fn tx_conn ->
+        assert {:ok, "ok"} =
+                 EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
+                   EdgeDB.query!(subtx_conn, "INSERT Ticket{ number := 1 }")
+
+                   assert %EdgeDB.Object{} =
+                            EdgeDB.query_required_single!(subtx_conn, "SELECT Ticket LIMIT 1")
+
+                   EdgeDB.rollback(subtx_conn, continue: true)
+
+                   assert "ok" = EdgeDB.query_required_single!(subtx_conn, ~s(SELECT "ok"))
+                 end)
+
+        assert 0 == EdgeDB.query_required_single!(tx_conn, "SELECT count(Ticket)")
+      end)
+    end
+
+    test "forbids applying borrowed connections", %{conn: conn} do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.transaction(conn, fn tx_conn ->
+            EdgeDB.subtransaction(tx_conn, fn _subtx_conn ->
+              EdgeDB.query!(tx_conn, "SELECT 1")
+            end)
+          end)
+        end
+
+      assert exc.message =~ "borrowed for subtransaction"
+
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.transaction(conn, fn tx_conn ->
+            EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
+              EdgeDB.subtransaction(subtx_conn_1, fn _subtx_conn_2 ->
+                EdgeDB.query!(subtx_conn_1, "SELECT 1")
+              end)
+            end)
+          end)
+        end
+
+      assert exc.message =~ "borrowed for subtransaction"
+    end
   end
 
   describe "EdgeDB.rollback/2" do
@@ -146,7 +324,7 @@ defmodule Tests.APITest do
       {:error, :rollback} =
         EdgeDB.transaction(conn, fn conn ->
           EdgeDB.query!(conn, "INSERT User { image := '', name := 'username' }")
-          EdgeDB.rollback(conn, :rollback)
+          EdgeDB.rollback(conn, reason: :rollback)
         end)
     end
   end
