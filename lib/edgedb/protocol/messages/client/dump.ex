@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Messages.Client.Dump do
   alias EdgeDB.Protocol.Types
 
   defmessage(
-    name: :dump,
     client: true,
     mtype: 0x3E,
     fields: [
@@ -13,7 +12,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Dump do
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(dump(headers: headers)) do
+  def encode_message(%__MODULE__{headers: headers}) do
     headers = handle_headers(headers)
 
     [Types.Header.encode(headers)]

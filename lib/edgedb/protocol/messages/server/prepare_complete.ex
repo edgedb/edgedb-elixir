@@ -8,7 +8,6 @@ defmodule EdgeDB.Protocol.Messages.Server.PrepareComplete do
   }
 
   defmessage(
-    name: :prepare_complete,
     server: true,
     mtype: 0x31,
     fields: [
@@ -32,11 +31,11 @@ defmodule EdgeDB.Protocol.Messages.Server.PrepareComplete do
     {input_typedesc_id, rest} = Datatypes.UUID.decode(rest)
     {output_typedesc_id, <<>>} = Datatypes.UUID.decode(rest)
 
-    prepare_complete(
+    %__MODULE__{
       headers: handle_headers(headers),
       cardinality: cardinality,
       input_typedesc_id: input_typedesc_id,
       output_typedesc_id: output_typedesc_id
-    )
+    }
   end
 end

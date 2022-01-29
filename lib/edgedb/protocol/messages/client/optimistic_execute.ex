@@ -8,7 +8,6 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
   }
 
   defmessage(
-    name: :optimistic_execute,
     client: true,
     mtype: 0x4F,
     fields: [
@@ -41,17 +40,15 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(
-        optimistic_execute(
-          headers: headers,
-          io_format: io_format,
-          expected_cardinality: expected_cardinality,
-          command_text: command_text,
-          input_typedesc_id: input_typedesc_id,
-          output_typedesc_id: output_typedesc_id,
-          arguments: arguments
-        )
-      ) do
+  def encode_message(%__MODULE__{
+        headers: headers,
+        io_format: io_format,
+        expected_cardinality: expected_cardinality,
+        command_text: command_text,
+        input_typedesc_id: input_typedesc_id,
+        output_typedesc_id: output_typedesc_id,
+        arguments: arguments
+      }) do
     headers = handle_headers(headers)
 
     [

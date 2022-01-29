@@ -10,12 +10,11 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
   @anonymous_statement ""
 
   defmessage(
-    name: :execute,
     client: true,
     mtype: 0x45,
     fields: [
       headers: Keyword.t(),
-      statement_name: Datatypes.Bytes.t(),
+      statement_name: {Datatypes.Bytes.t(), default: @anonymous_statement},
       arguments: iodata()
     ],
     known_headers: %{
@@ -27,13 +26,11 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(
-        execute(
-          headers: headers,
-          statement_name: statement_name,
-          arguments: arguments
-        )
-      ) do
+  def encode_message(%__MODULE__{
+        headers: headers,
+        statement_name: statement_name,
+        arguments: arguments
+      }) do
     headers = handle_headers(headers)
 
     [

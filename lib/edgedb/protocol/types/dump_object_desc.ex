@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Types.DumpObjectDesc do
   alias EdgeDB.Protocol.Datatypes
 
   deftype(
-    name: :dump_object_desc,
     encode: false,
     fields: [
       object_id: Datatypes.UUID.t(),
@@ -20,11 +19,11 @@ defmodule EdgeDB.Protocol.Types.DumpObjectDesc do
     {dependencies, rest} = Datatypes.UUID.decode(num_dependencies, rest)
 
     {
-      dump_object_desc(
+      %__MODULE__{
         object_id: Datatypes.UUID.to_string(object_id),
         description: description,
         dependencies: dependencies
-      ),
+      },
       rest
     }
   end

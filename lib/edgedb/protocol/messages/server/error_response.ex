@@ -10,7 +10,6 @@ defmodule EdgeDB.Protocol.Messages.Server.ErrorResponse do
   require Enums.ErrorSeverity
 
   defmessage(
-    name: :error_response,
     server: true,
     mtype: 0x45,
     fields: [
@@ -69,11 +68,11 @@ defmodule EdgeDB.Protocol.Messages.Server.ErrorResponse do
     {num_attributes, rest} = Datatypes.UInt16.decode(rest)
     {attributes, <<>>} = Types.Header.decode(num_attributes, rest)
 
-    error_response(
+    %__MODULE__{
       severity: Enums.ErrorSeverity.to_atom(severity),
       error_code: error_code,
       message: message,
       attributes: handle_headers(attributes)
-    )
+    }
   end
 end

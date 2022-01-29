@@ -8,7 +8,6 @@ defmodule EdgeDB.Protocol.Messages.Server.ReadyForCommand do
   }
 
   defmessage(
-    name: :ready_for_command,
     server: true,
     mtype: 0x5A,
     fields: [
@@ -23,9 +22,9 @@ defmodule EdgeDB.Protocol.Messages.Server.ReadyForCommand do
     {headers, rest} = Types.Header.decode(num_headers, rest)
     {transaction_state, <<>>} = Datatypes.UInt8.decode(rest)
 
-    ready_for_command(
+    %__MODULE__{
       headers: handle_headers(headers),
       transaction_state: Enums.TransactionState.to_atom(transaction_state)
-    )
+    }
   end
 end

@@ -16,8 +16,6 @@ defmodule EdgeDB.Connection do
     Error
   }
 
-  alias EdgeDB.Protocol.Types.ParameterStatus
-
   alias EdgeDB.SCRAM
 
   require Logger
@@ -142,7 +140,7 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def disconnect(_exc, %State{socket: socket} = state) do
-    with {:ok, _state} <- send_message(terminate(), state) do
+    with {:ok, _state} <- send_message(%Terminate{}, state) do
       :ssl.close(socket)
     end
   end
@@ -247,7 +245,7 @@ defmodule EdgeDB.Connection do
   @impl DBConnection
   def handle_rollback(_opts, %State{server_state: server_state} = state)
       when server_state == :not_in_transaction do
-    {server_state, state}
+    {status(state), state}
   end
 
   @impl DBConnection
@@ -315,16 +313,21 @@ defmodule EdgeDB.Connection do
   end
 
   defp handshake(password, %State{} = state) do
-    message =
-      client_handshake(
-        major_ver: @major_ver,
-        minor_ver: @minor_ver,
-        params: [
-          connection_param(name: "user", value: state.user),
-          connection_param(name: "database", value: state.database)
-        ],
-        extensions: []
-      )
+    message = %ClientHandshake{
+      major_ver: @major_ver,
+      minor_ver: @minor_ver,
+      params: [
+        %ConnectionParam{
+          name: "user",
+          value: state.user
+        },
+        %ConnectionParam{
+          name: "database",
+          value: state.database
+        }
+      ],
+      extensions: []
+    }
 
     with {:ok, state} <- send_message(message, state) do
       handle_authentication(password, state)
@@ -338,7 +341,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_authentication_flow(
-         server_handshake(major_ver: major_ver, minor_ver: minor_ver),
+         %ServerHandshake{major_ver: major_ver, minor_ver: minor_ver},
          _password,
          state
        )
@@ -353,7 +356,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_authentication_flow(
-         server_handshake(),
+         %ServerHandshake{},
          password,
          state
        ) do
@@ -362,11 +365,11 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_authentication_flow(authentication_ok(), _password, state) do
+  defp handle_authentication_flow(%AuthenticationOK{}, _password, state) do
     {:ok, state}
   end
 
-  defp handle_authentication_flow(authentication_sasl(), nil, %State{} = state) do
+  defp handle_authentication_flow(%AuthenticationSASL{}, nil, %State{} = state) do
     exc =
       Error.authentication_error(
         "password should be provided for #{inspect(state.user)} authentication authentication"
@@ -376,13 +379,16 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_authentication_flow(
-         authentication_sasl(methods: [@scram_sha_256]),
+         %AuthenticationSASL{methods: [@scram_sha_256]},
          password,
          %State{} = state
        ) do
     {server_first, cf_data} = EdgeDB.SCRAM.handle_client_first(state.user, password)
 
-    message = authentication_sasl_initial_response(method: @scram_sha_256, sasl_data: cf_data)
+    message = %AuthenticationSASLInitialResponse{
+      method: @scram_sha_256,
+      sasl_data: cf_data
+    }
 
     with {:ok, state} <- send_message(message, state),
          {:ok, {message, state}} <- receive_message(state) do
@@ -390,19 +396,19 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_authentication_flow(error_response() = message, _password, state) do
+  defp handle_authentication_flow(%ErrorResponse{} = message, _password, state) do
     handle_error_response(message, state)
   end
 
   defp handle_sasl_authentication_flow(
-         authentication_sasl_continue(sasl_data: data),
+         %AuthenticationSASLContinue{sasl_data: data},
          %SCRAM.ServerFirst{} = server_first,
          state
        ) do
     with {:ok, {server_final, client_final_data}} <-
            EdgeDB.SCRAM.handle_server_first(server_first, data),
          {:ok, state} <-
-           send_message(authentication_sasl_response(sasl_data: client_final_data), state),
+           send_message(%AuthenticationSASLResponse{sasl_data: client_final_data}, state),
          {:ok, {message, state}} <- receive_message(state) do
       handle_sasl_authentication_flow(message, server_final, state)
     else
@@ -418,7 +424,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_sasl_authentication_flow(
-         authentication_sasl_final(sasl_data: data),
+         %AuthenticationSASLFinal{sasl_data: data},
          %SCRAM.ServerFinal{} = server_final,
          state
        ) do
@@ -437,15 +443,15 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_sasl_authentication_flow(error_response() = message, _scram_data, state) do
+  defp handle_sasl_authentication_flow(%ErrorResponse{} = message, _scram_data, state) do
     handle_error_response(message, state)
   end
 
-  defp handle_sasl_authentication_flow(authentication_ok(), state) do
+  defp handle_sasl_authentication_flow(%AuthenticationOK{}, state) do
     {:ok, state}
   end
 
-  defp handle_sasl_authentication_flow(error_response() = message, state) do
+  defp handle_sasl_authentication_flow(%ErrorResponse{} = message, state) do
     handle_error_response(message, state)
   end
 
@@ -455,13 +461,13 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_server_ready_flow(server_key_data(data: data), state) do
+  defp handle_server_ready_flow(%ServerKeyData{data: data}, state) do
     wait_for_server_ready(%State{state | server_key_data: data})
   end
 
   # TODO: maybe use it somehow, but right now just ignore it
   defp handle_server_ready_flow(
-         parameter_status(name: "suggested_pool_concurrency", value: value),
+         %ParameterStatus{name: "suggested_pool_concurrency", value: value},
          state
        ) do
     {pool_concurrency, ""} = Integer.parse(value)
@@ -477,7 +483,7 @@ defmodule EdgeDB.Connection do
     })
   end
 
-  defp handle_server_ready_flow(parameter_status(name: "system_config", value: value), state) do
+  defp handle_server_ready_flow(%ParameterStatus{name: "system_config", value: value}, state) do
     wait_for_server_ready(%State{
       state
       | server_settings:
@@ -489,28 +495,27 @@ defmodule EdgeDB.Connection do
     })
   end
 
-  defp handle_server_ready_flow(parameter_status(), state) do
+  defp handle_server_ready_flow(%ParameterStatus{}, state) do
     wait_for_server_ready(state)
   end
 
-  defp handle_server_ready_flow(ready_for_command(transaction_state: transaction_state), state) do
+  defp handle_server_ready_flow(%ReadyForCommand{transaction_state: transaction_state}, state) do
     {:ok, %State{state | server_state: transaction_state}}
   end
 
-  defp handle_server_ready_flow(error_response() = message, state) do
+  defp handle_server_ready_flow(%ErrorResponse{} = message, state) do
     handle_error_response(message, state)
   end
 
   defp prepare_query(%EdgeDB.Query{} = query, opts, state) do
-    message =
-      prepare(
-        headers: prepare_headers(opts, state),
-        io_format: query.io_format,
-        expected_cardinality: query.cardinality,
-        command: query.statement
-      )
+    message = %Prepare{
+      headers: prepare_headers(opts, state),
+      io_format: query.io_format,
+      expected_cardinality: query.cardinality,
+      command: query.statement
+    }
 
-    with {:ok, state} <- send_messages([message, flush()], state),
+    with {:ok, state} <- send_messages([message, %Flush{}], state),
          {:ok, {message, state}} <- receive_message(state) do
       handle_prepare_query_flow(query, message, state)
     end
@@ -518,7 +523,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_prepare_query_flow(
          %EdgeDB.Query{cardinality: :one},
-         prepare_complete(cardinality: :no_result),
+         %PrepareComplete{cardinality: :no_result},
          state
        ) do
     exc =
@@ -531,10 +536,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_prepare_query_flow(
          query,
-         prepare_complete(
-           input_typedesc_id: in_id,
-           output_typedesc_id: out_id
-         ),
+         %PrepareComplete{input_typedesc_id: in_id, output_typedesc_id: out_id},
          %State{queries_cache: qc, codecs_storage: cs} = state
        ) do
     input_codec = Codecs.Storage.get(cs, in_id)
@@ -551,7 +553,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_prepare_query_flow(
          %EdgeDB.Query{cardinality: :one},
-         command_data_description(result_cardinality: :no_result),
+         %CommandDataDescription{result_cardinality: :no_result},
          state
        ) do
     exc =
@@ -564,7 +566,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_prepare_query_flow(
          query,
-         command_data_description() = message,
+         %CommandDataDescription{} = message,
          %State{codecs_storage: cs, queries_cache: qc} = state
        ) do
     {input_codec, output_codec} = parse_description_message(message, cs)
@@ -574,7 +576,7 @@ defmodule EdgeDB.Connection do
     {:ok, query, state}
   end
 
-  defp handle_prepare_query_flow(_query, error_response() = message, state) do
+  defp handle_prepare_query_flow(_query, %ErrorResponse{} = message, state) do
     with {:error, exc, state} <- handle_error_response(message, state),
          {:ok, state} <- restore_server_state_from_error(state) do
       {:error, exc, state}
@@ -582,18 +584,17 @@ defmodule EdgeDB.Connection do
   end
 
   defp optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
-    message =
-      optimistic_execute(
-        headers: prepare_headers(opts, state),
-        io_format: query.io_format,
-        expected_cardinality: query.cardinality,
-        command_text: query.statement,
-        input_typedesc_id: query.input_codec.type_id,
-        output_typedesc_id: query.output_codec.type_id,
-        arguments: params
-      )
+    message = %OptimisticExecute{
+      headers: prepare_headers(opts, state),
+      io_format: query.io_format,
+      expected_cardinality: query.cardinality,
+      command_text: query.statement,
+      input_typedesc_id: query.input_codec.type_id,
+      output_typedesc_id: query.output_codec.type_id,
+      arguments: params
+    }
 
-    with {:ok, state} <- send_messages([message, sync()], state),
+    with {:ok, state} <- send_messages([message, %Sync{}], state),
          {:ok, {message, state}} <- receive_message(state) do
       handle_optimistic_execute_flow(
         query,
@@ -608,7 +609,7 @@ defmodule EdgeDB.Connection do
   defp handle_optimistic_execute_flow(
          %EdgeDB.Query{cardinality: :one},
          _result,
-         command_data_description(result_cardinality: :no_result),
+         %CommandDataDescription{result_cardinality: :no_result},
          _opts,
          state
        ) do
@@ -623,7 +624,7 @@ defmodule EdgeDB.Connection do
   defp handle_optimistic_execute_flow(
          query,
          _result,
-         command_data_description() = message,
+         %CommandDataDescription{} = message,
          opts,
          %State{codecs_storage: cs, queries_cache: qc} = state
        ) do
@@ -633,15 +634,15 @@ defmodule EdgeDB.Connection do
     execute_query(query, reencoded_params, opts, state)
   end
 
-  defp handle_optimistic_execute_flow(query, result, command_complete() = message, _opts, state) do
+  defp handle_optimistic_execute_flow(query, result, %CommandComplete{} = message, _opts, state) do
     handle_execute_flow(query, result, message, state)
   end
 
-  defp handle_optimistic_execute_flow(query, result, data() = message, _opts, state) do
+  defp handle_optimistic_execute_flow(query, result, %Data{} = message, _opts, state) do
     handle_execute_flow(query, result, message, state)
   end
 
-  defp handle_optimistic_execute_flow(_query, _result, error_response() = message, _opts, state) do
+  defp handle_optimistic_execute_flow(_query, _result, %ErrorResponse{} = message, _opts, state) do
     with {:error, exc, state} <- handle_error_response(message, state),
          {:ok, state} <- restore_server_state_from_error(state) do
       {:error, exc, state}
@@ -649,13 +650,12 @@ defmodule EdgeDB.Connection do
   end
 
   defp execute_query(%EdgeDB.Query{} = query, params, opts, state) do
-    message =
-      execute(
-        headers: prepare_headers(opts, state),
-        arguments: params
-      )
+    message = %Execute{
+      headers: prepare_headers(opts, state),
+      arguments: params
+    }
 
-    with {:ok, state} <- send_messages([message, sync()], state),
+    with {:ok, state} <- send_messages([message, %Sync{}], state),
          {:ok, {message, state}} <- receive_message(state) do
       handle_execute_flow(
         query,
@@ -669,7 +669,7 @@ defmodule EdgeDB.Connection do
   defp handle_execute_flow(
          query,
          %EdgeDB.Result{set: encoded_elements} = result,
-         data(data: [data_element(data: data)]),
+         %Data{data: [%DataElement{data: data}]},
          state
        ) do
     with {:ok, {message, state}} <- receive_message(state) do
@@ -685,7 +685,7 @@ defmodule EdgeDB.Connection do
   defp handle_execute_flow(
          query,
          %EdgeDB.Result{} = result,
-         command_complete(status: status),
+         %CommandComplete{status: status},
          state
        ) do
     with {:ok, state} <- wait_for_server_ready(state) do
@@ -693,7 +693,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_execute_flow(_query, _result, error_response() = message, state) do
+  defp handle_execute_flow(_query, _result, %ErrorResponse{} = message, state) do
     with {:error, exc, state} <- handle_error_response(message, state),
          {:ok, state} <- restore_server_state_from_error(state) do
       {:error, exc, state}
@@ -701,21 +701,21 @@ defmodule EdgeDB.Connection do
   end
 
   defp describe_codecs_from_query(query, state) do
-    message = describe_statement(aspect: :data_description)
+    message = %DescribeStatement{aspect: :data_description}
 
-    with {:ok, state} <- send_messages([message, flush()], state),
+    with {:ok, state} <- send_messages([message, %Flush{}], state),
          {:ok, {message, state}} <- receive_message(state) do
       handle_prepare_query_flow(query, message, state)
     end
   end
 
   defp parse_description_message(
-         command_data_description(
+         %CommandDataDescription{
            input_typedesc_id: input_typedesc_id,
            input_typedesc: input_typedesc,
            output_typedesc_id: output_typedesc_id,
            output_typedesc: output_typedesc
-         ),
+         },
          codecs_storage
        ) do
     input_codec =
@@ -753,7 +753,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp execute_script_query(statement, headers, state) do
-    message = execute_script(headers: headers, script: statement)
+    message = %ExecuteScript{headers: headers, script: statement}
 
     with {:ok, state} <- send_message(message, state),
          {:ok, {message, state}} <- receive_message(state) do
@@ -761,7 +761,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_execute_script_flow(command_complete(status: status), state) do
+  defp handle_execute_script_flow(%CommandComplete{status: status}, state) do
     result = %EdgeDB.Result{
       cardinality: :no_result,
       statement: status
@@ -772,7 +772,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_execute_script_flow(error_response() = message, state) do
+  defp handle_execute_script_flow(%ErrorResponse{} = message, state) do
     with {:error, exc, state} <- handle_error_response(message, state),
          {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
@@ -780,18 +780,18 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_error_response(
-         error_response(
+         %ErrorResponse{
            error_code: code,
            message: message,
            attributes: attributes
-         ),
+         },
          state
        ) do
     exc = Error.exception(message, code: code, attributes: Enum.into(attributes, %{}))
     {:error, exc, state}
   end
 
-  defp handle_log_message(log_message(severity: severity, text: text), state) do
+  defp handle_log_message(%LogMessage{severity: severity, text: text}, state) do
     Logger.log(severity, text)
     state
   end
@@ -830,13 +830,13 @@ defmodule EdgeDB.Connection do
   end
 
   defp do_ping(%State{} = state) do
-    with {:ok, state} <- send_message(sync(), state) do
+    with {:ok, state} <- send_message(%Sync{}, state) do
       wait_for_server_ready(state)
     end
   end
 
   defp restore_server_state_from_error(state) do
-    with {:ok, state} <- send_message(sync(), state) do
+    with {:ok, state} <- send_message(%Sync{}, state) do
       wait_for_server_ready(state)
     end
   end
@@ -901,11 +901,11 @@ defmodule EdgeDB.Connection do
   end
 
   defp parse_system_config(encoded_config, %State{} = state) do
-    {system_config(
+    {%SystemConfig{
        typedesc_id: typedesc_id,
        typedesc: type_descriptor,
-       data: data_element(data: data)
-     ), <<>>} = ParameterStatus.SystemConfig.decode(encoded_config)
+       data: %DataElement{data: data}
+     }, <<>>} = Types.ParameterStatus.SystemConfig.decode(encoded_config)
 
     state.codecs_storage
     |> Codecs.Storage.get_or_create(typedesc_id, fn ->
@@ -928,7 +928,7 @@ defmodule EdgeDB.Connection do
 
   defp receive_message(state) do
     case EdgeDB.Protocol.decode_message(state.buffer) do
-      {:ok, {log_message() = message, buffer}} ->
+      {:ok, {%LogMessage{} = message, buffer}} ->
         state = handle_log_message(message, %State{state | buffer: buffer})
         receive_message(state)
 

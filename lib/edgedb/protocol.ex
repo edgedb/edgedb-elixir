@@ -83,20 +83,22 @@ defmodule EdgeDB.Protocol do
   ]
 
   defmacro __using__(_opts \\ []) do
-    types_import_def = define_types_import()
-    client_messages_import_def = define_client_messages_import()
-    server_messages_import_def = define_server_messages_import()
+    types_aliases_def = define_types_aliasing()
+    client_messages_aliases_def = define_client_messages_aliasing()
+    server_messages_aliases_def = define_server_messages_aliasing()
 
     quote do
-      unquote(types_import_def)
-      unquote(client_messages_import_def)
-      unquote(server_messages_import_def)
+      alias EdgeDB.Protocol.Types
+
+      unquote(types_aliases_def)
+      unquote(client_messages_aliases_def)
+      unquote(server_messages_aliases_def)
     end
   end
 
   for client_message_mod <- @client_messages do
     @spec encode_message(unquote(client_message_mod).t()) :: iodata()
-    def encode_message(message) when elem(message, 0) == unquote(client_message_mod.name()) do
+    def encode_message(%unquote(client_message_mod){} = message) do
       unquote(client_message_mod).encode(message)
     end
   end
@@ -177,19 +179,23 @@ defmodule EdgeDB.Protocol do
     )
   end
 
-  defp define_types_import do
+  defp define_types_aliasing do
     for type_mod <- @types do
-      define_record_import(type_mod)
+      quote do
+        alias unquote(type_mod)
+      end
     end
   end
 
-  defp define_client_messages_import do
+  defp define_client_messages_aliasing do
     for client_message_mod <- @client_messages do
-      define_record_import(client_message_mod)
+      quote do
+        alias unquote(client_message_mod)
+      end
     end
   end
 
-  defp define_server_messages_import do
+  defp define_server_messages_aliasing do
     server_messages = @server_messages -- [EdgeDB.Protocol.Messages.Server.Authentication]
 
     server_messages = [
@@ -201,15 +207,9 @@ defmodule EdgeDB.Protocol do
     ]
 
     for server_message_mod <- server_messages do
-      define_record_import(server_message_mod)
-    end
-  end
-
-  defp define_record_import(mod) do
-    name = mod.name()
-
-    quote do
-      import unquote(mod), only: [{unquote(name), 0}, {unquote(name), 1}]
+      quote do
+        alias unquote(server_message_mod)
+      end
     end
   end
 end

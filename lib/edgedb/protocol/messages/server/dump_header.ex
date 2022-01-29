@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpHeader do
   }
 
   defmessage(
-    name: :dump_header,
     server: true,
     mtype: 0x40,
     fields: [
@@ -42,13 +41,13 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpHeader do
     {num_descriptors, rest} = Datatypes.UInt32.decode(rest)
     {descriptors, <<>>} = Types.DumpObjectDesc.decode(num_descriptors, rest)
 
-    dump_header(
+    %__MODULE__{
       headers: handle_headers(headers),
       major_ver: major_ver,
       minor_ver: minor_ver,
       schema_ddl: schema_ddl,
       types: types,
       descriptors: descriptors
-    )
+    }
   end
 end

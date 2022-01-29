@@ -8,7 +8,6 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandDataDescription do
   }
 
   defmessage(
-    name: :command_data_description,
     server: true,
     mtype: 0x54,
     fields: [
@@ -30,13 +29,13 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandDataDescription do
     {output_typedesc_id, rest} = Datatypes.UUID.decode(rest)
     {output_typedesc, <<>>} = Datatypes.Bytes.decode(rest)
 
-    command_data_description(
+    %__MODULE__{
       headers: handle_headers(headers),
       result_cardinality: cardinality,
       input_typedesc_id: input_typedesc_id,
       input_typedesc: input_typedesc,
       output_typedesc_id: output_typedesc_id,
       output_typedesc: output_typedesc
-    )
+    }
   end
 end

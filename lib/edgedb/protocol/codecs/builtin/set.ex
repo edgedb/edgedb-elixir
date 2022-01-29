@@ -1,12 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.{
-    Dimension,
-    Envelope,
-    ArrayElement
-  }
-
   alias EdgeDB.Protocol.{
     Codecs,
     Datatypes,
@@ -46,7 +40,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
     {dimensions, rest} = Types.Dimension.decode(ndims, rest)
 
     elements_count =
-      Enum.reduce(dimensions, 0, fn dimension(upper: upper, lower: lower), acc ->
+      Enum.reduce(dimensions, 0, fn %Types.Dimension{upper: upper, lower: lower}, acc ->
         acc + upper - lower + 1
       end)
 
@@ -65,8 +59,8 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
   defp decode_envelopes(codec, elements_count, data) do
     {envelopes, <<>>} = Types.Envelope.decode(elements_count, data)
 
-    Enum.into(envelopes, [], fn envelope(elements: elements) ->
-      Enum.into(elements, [], fn array_element(data: data) ->
+    Enum.into(envelopes, [], fn %Types.Envelope{elements: elements} ->
+      Enum.into(elements, [], fn %Types.ArrayElement{data: data} ->
         Codec.decode(codec, data)
       end)
     end)
@@ -75,7 +69,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
   defp decode_elements(codec, elements_count, data) do
     {raw_elements, <<>>} = Types.ArrayElement.decode(elements_count, data)
 
-    Enum.into(raw_elements, [], fn array_element(data: data) ->
+    Enum.into(raw_elements, [], fn %Types.ArrayElement{data: data} ->
       Codec.decode(codec, data)
     end)
   end

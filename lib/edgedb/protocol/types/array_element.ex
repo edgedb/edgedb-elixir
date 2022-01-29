@@ -4,14 +4,13 @@ defmodule EdgeDB.Protocol.Types.ArrayElement do
   alias EdgeDB.Protocol.Datatypes
 
   deftype(
-    name: :array_element,
     fields: [
       data: Datatypes.Bytes.t()
     ]
   )
 
   @impl EdgeDB.Protocol.Type
-  def encode_type(array_element(data: data)) do
+  def encode_type(%__MODULE__{data: data}) do
     data =
       data
       |> IO.iodata_to_binary()
@@ -26,6 +25,6 @@ defmodule EdgeDB.Protocol.Types.ArrayElement do
 
     data = Datatypes.UInt8.encode(data, datatype: Datatypes.UInt32)
 
-    {array_element(data: IO.iodata_to_binary(data)), rest}
+    {%__MODULE__{data: IO.iodata_to_binary(data)}, rest}
   end
 end

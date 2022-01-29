@@ -7,7 +7,6 @@ defmodule EdgeDB.Protocol.Messages.Server.ServerHandshake do
   }
 
   defmessage(
-    name: :server_handshake,
     server: true,
     mtype: 0x76,
     fields: [
@@ -23,10 +22,10 @@ defmodule EdgeDB.Protocol.Messages.Server.ServerHandshake do
       ) do
     {extensions, <<>>} = Types.ProtocolExtension.decode(num_extensions, rest)
 
-    server_handshake(
+    %__MODULE__{
       major_ver: major_ver,
       minor_ver: minor_ver,
       extensions: extensions
-    )
+    }
   end
 end

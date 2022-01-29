@@ -1,11 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.{
-    TupleElement,
-    NamedTupleDescriptorElement
-  }
-
   alias EdgeDB.Protocol.{
     Datatypes,
     Error,
@@ -74,16 +69,16 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
   defp encode_elements(instance, elements_descriptors, codecs) do
     elements_descriptors
     |> Enum.zip(codecs)
-    |> Enum.map(fn {named_tuple_descriptor_element(name: name), codec} ->
+    |> Enum.map(fn {%Types.NamedTupleDescriptorElement{name: name}, codec} ->
       {instance[name], codec}
     end)
     |> Enum.map(fn
       {nil, _codec} ->
-        tuple_element(data: :empty_set)
+        %Types.TupleElement{data: :empty_set}
 
       {value, codec} ->
         element_data = Codec.encode(codec, value)
-        tuple_element(data: element_data)
+        %Types.TupleElement{data: element_data}
     end)
     |> Types.TupleElement.encode(raw: true)
   end
@@ -91,8 +86,11 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
   defp decode_elements(tuple_elements, descriptor_elements, codecs) do
     [tuple_elements, descriptor_elements, codecs]
     |> Enum.zip()
-    |> Enum.into(%{}, fn {tuple_element(data: data), named_tuple_descriptor_element(name: name),
-                          codec} ->
+    |> Enum.into(%{}, fn {
+                           %Types.TupleElement{data: data},
+                           %Types.NamedTupleDescriptorElement{name: name},
+                           codec
+                         } ->
       {name, Codec.decode(codec, data)}
     end)
     |> create_named_tuple()
@@ -105,7 +103,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
       |> MapSet.new()
 
     required_keys =
-      Enum.into(elements, MapSet.new(), fn named_tuple_descriptor_element(name: name) ->
+      Enum.into(elements, MapSet.new(), fn %Types.NamedTupleDescriptorElement{name: name} ->
         name
       end)
 

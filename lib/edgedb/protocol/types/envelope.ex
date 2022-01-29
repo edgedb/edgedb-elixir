@@ -6,7 +6,6 @@ defmodule EdgeDB.Protocol.Types.Envelope do
   @nelems 1
 
   deftype(
-    name: :envelope,
     encode: false,
     fields: [
       elements: list(Types.ArrayElement.t())
@@ -17,6 +16,6 @@ defmodule EdgeDB.Protocol.Types.Envelope do
   def decode_type(<<len::int32, @nelems::int32, _reserved::int32, rest::binary>>) do
     {elements, rest} = Types.ArrayElement.decode(len, rest)
 
-    {envelope(elements: elements), rest}
+    {%__MODULE__{elements: elements}, rest}
   end
 end

@@ -1,8 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.Tuple do
   use EdgeDB.Protocol.Codec
 
-  import EdgeDB.Protocol.Types.TupleElement
-
   alias EdgeDB.Protocol.{
     Datatypes,
     Error,
@@ -58,11 +56,11 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Tuple do
       |> Enum.zip(codecs)
       |> Enum.map(fn
         {nil, _codec} ->
-          tuple_element(data: :empty_set)
+          %Types.TupleElement{data: :empty_set}
 
         {value, codec} ->
           element_data = Codec.encode(codec, value)
-          tuple_element(data: element_data)
+          %Types.TupleElement{data: element_data}
       end)
       |> Types.TupleElement.encode(raw: true)
 
@@ -81,7 +79,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Tuple do
 
     encoded_elements
     |> Enum.zip(codecs)
-    |> Enum.into([], fn {tuple_element(data: data), codec} ->
+    |> Enum.into([], fn {%Types.TupleElement{data: data}, codec} ->
       Codec.decode(codec, data)
     end)
     |> List.to_tuple()

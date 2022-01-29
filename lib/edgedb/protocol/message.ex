@@ -1,8 +1,10 @@
 defmodule EdgeDB.Protocol.Message do
   import EdgeDB.Protocol.Converters
-  import EdgeDB.Protocol.Types.Header
 
-  alias EdgeDB.Protocol.Datatypes
+  alias EdgeDB.Protocol.{
+    Datatypes,
+    Types
+  }
 
   @callback encode_message(term()) :: iodata()
   @callback decode_message(bitstring()) :: term()
@@ -18,11 +20,8 @@ defmodule EdgeDB.Protocol.Message do
   end
 
   defmacro defmessage(opts) do
-    record_name = Keyword.fetch!(opts, :name)
     fields = Keyword.get(opts, :fields, [])
-    record_def = EdgeDB.Protocol.Utils.define_record(record_name, fields)
-
-    message_name_access_fun_def = define_message_name_access_fun(record_name)
+    struct_def = EdgeDB.Protocol.Utils.define_struct(fields)
 
     mtype = Keyword.fetch!(opts, :mtype)
     mtype_access_fun_def = define_mtype_access_fun(mtype)
@@ -30,7 +29,7 @@ defmodule EdgeDB.Protocol.Message do
     define_client_message? = Keyword.get(opts, :client, false)
     define_server_message? = Keyword.get(opts, :server, false)
 
-    encoder_def = define_message_encoder(mtype, record_name, fields)
+    encoder_def = define_message_encoder(mtype, fields)
     decoder_def = define_message_decoder(mtype)
 
     known_headers = opts[:known_headers]
@@ -44,8 +43,7 @@ defmodule EdgeDB.Protocol.Message do
       @behaviour unquote(__MODULE__)
 
       unquote(known_headers_typespec)
-      unquote(record_def)
-      unquote(message_name_access_fun_def)
+      unquote(struct_def)
       unquote(mtype_access_fun_def)
 
       if unquote(define_client_message?) do
@@ -60,7 +58,7 @@ defmodule EdgeDB.Protocol.Message do
     end
   end
 
-  @spec encode((tuple() -> iodata()), integer(), tuple()) :: iodata()
+  @spec encode((tuple() -> iodata()), integer(), struct()) :: iodata()
   def encode(encoder, mtype, message) do
     message_payload = encoder.(message)
     payload_length = IO.iodata_length(message_payload) + 4
@@ -76,7 +74,7 @@ defmodule EdgeDB.Protocol.Message do
           (bitstring() -> tuple()),
           integer(),
           bitstring()
-        ) :: {:ok, {tuple(), bitstring()}} | {:error, {:not_enough_size, integer()}}
+        ) :: {:ok, {struct(), bitstring()}} | {:error, {:not_enough_size, integer()}}
 
   def decode(_decoder, _mtype, <<data::binary>>) when byte_size(data) < 5 do
     {:error, {:not_enough_size, 0}}
@@ -94,15 +92,6 @@ defmodule EdgeDB.Protocol.Message do
     end
   end
 
-  defp define_message_name_access_fun(name) do
-    quote do
-      @spec name() :: unquote(name)
-      def name do
-        unquote(name)
-      end
-    end
-  end
-
   defp define_mtype_access_fun(mtype) do
     quote do
       @spec mtype() :: integer()
@@ -112,18 +101,18 @@ defmodule EdgeDB.Protocol.Message do
     end
   end
 
-  defp define_message_encoder(mtype, record_name, fields) do
+  defp define_message_encoder(mtype, fields) do
     has_fields? = length(fields) != 0
 
     quote do
       @spec encode(t()) :: iodata()
-      def encode(unquote(record_name)() = message) do
+      def encode(%__MODULE__{} = message) do
         unquote(__MODULE__).encode(&__MODULE__.encode_message/1, unquote(mtype), message)
       end
 
       if not unquote(has_fields?) do
         @impl EdgeDB.Protocol.Message
-        def encode_message(unquote(record_name)()) do
+        def encode_message(%__MODULE__{}) do
           []
         end
       end
@@ -216,7 +205,7 @@ defmodule EdgeDB.Protocol.Message do
 
         quote do
           defp handle_header(unquote(header), value) do
-            header(code: unquote(code), value: unquote(do_encode))
+            %Types.Header{code: unquote(code), value: unquote(do_encode)}
           end
         end
       end
@@ -247,7 +236,7 @@ defmodule EdgeDB.Protocol.Message do
                 required(known_header()) => term()
               }
         def handle_headers(headers) do
-          for header(code: code, value: value) <- headers,
+          for %Types.Header{code: code, value: value} <- headers,
               code in unquote(known_codes),
               into: %{} do
             handle_header(code, value)

@@ -6,15 +6,14 @@ defmodule EdgeDB.Protocol.Types.Dimension do
   @lower 1
 
   deftype(
-    name: :dimension,
     fields: [
       upper: Datatypes.Int32.t(),
-      lower: Datatypes.Int32.t()
+      lower: {Datatypes.Int32.t(), default: @lower}
     ]
   )
 
   @impl EdgeDB.Protocol.Type
-  def encode_type(dimension(upper: upper)) do
+  def encode_type(%__MODULE__{upper: upper}) do
     [
       Datatypes.Int32.encode(upper),
       Datatypes.Int32.encode(@lower)
@@ -23,6 +22,6 @@ defmodule EdgeDB.Protocol.Types.Dimension do
 
   @impl EdgeDB.Protocol.Type
   def decode_type(<<upper::int32, @lower::int32, rest::binary>>) do
-    {dimension(upper: upper, lower: @lower), rest}
+    {%__MODULE__{upper: upper, lower: @lower}, rest}
   end
 end

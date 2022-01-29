@@ -11,19 +11,18 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
   ]
 
   deftype(
-    name: :tuple_element,
     fields: [
       data: Datatypes.Bytes.t() | :empty_set
     ]
   )
 
   @impl EdgeDB.Protocol.Type
-  def encode_type(tuple_element(data: :empty_set)) do
+  def encode_type(%__MODULE__{data: :empty_set}) do
     @empty_set
   end
 
   @impl EdgeDB.Protocol.Type
-  def encode_type(tuple_element(data: data)) do
+  def encode_type(%__MODULE__{data: data}) do
     data =
       data
       |> IO.iodata_to_binary()
@@ -37,7 +36,7 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
 
   @impl EdgeDB.Protocol.Type
   def decode_type(<<_reserved::int32, @empty_set_element_length::int32, rest::binary>>) do
-    {tuple_element(data: :empty_set), rest}
+    {%__MODULE__{data: :empty_set}, rest}
   end
 
   @impl EdgeDB.Protocol.Type
@@ -49,6 +48,6 @@ defmodule EdgeDB.Protocol.Types.TupleElement do
       Datatypes.UInt8.encode(data, raw: true)
     ]
 
-    {tuple_element(data: IO.iodata_to_binary(data)), rest}
+    {%__MODULE__{data: IO.iodata_to_binary(data)}, rest}
   end
 end

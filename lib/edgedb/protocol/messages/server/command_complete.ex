@@ -8,7 +8,6 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
   }
 
   defmessage(
-    name: :command_complete,
     server: true,
     mtype: 0x43,
     fields: [
@@ -28,9 +27,9 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
     {headers, rest} = Types.Header.decode(num_headers, rest)
     {status, <<>>} = Datatypes.String.decode(rest)
 
-    command_complete(
+    %__MODULE__{
       headers: handle_headers(headers),
       status: status
-    )
+    }
   end
 end

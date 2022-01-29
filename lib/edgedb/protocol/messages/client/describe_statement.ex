@@ -10,30 +10,27 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
   @anonymous_statement ""
 
   defmessage(
-    name: :describe_statement,
     client: true,
     mtype: 0x44,
     fields: [
-      headers: Keyword.t(),
+      headers: {Keyword.t(), default: []},
       aspect: Enums.DescribeAspect.t(),
-      statement_name: Datatypes.Bytes.t()
+      statement_name: {Datatypes.Bytes.t(), default: @anonymous_statement}
     ]
   )
 
   @impl EdgeDB.Protocol.Message
-  def encode_message(
-        describe_statement(
-          headers: headers,
-          aspect: aspect,
-          statement_name: statement_name
-        )
-      ) do
+  def encode_message(%__MODULE__{
+        headers: headers,
+        aspect: aspect,
+        statement_name: statement_name
+      }) do
     headers = handle_headers(headers)
 
     [
       Types.Header.encode(headers),
       Enums.DescribeAspect.encode(aspect),
-      Datatypes.Bytes.encode(statement_name || @anonymous_statement)
+      Datatypes.Bytes.encode(statement_name)
     ]
   end
 end
