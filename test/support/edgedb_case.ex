@@ -37,7 +37,7 @@ defmodule Tests.Support.EdgeDBCase do
              EdgeDB.transaction(conn, fn conn ->
                callback.(conn)
 
-               EdgeDB.rollback(conn, :expected)
+               EdgeDB.rollback(conn, reason: :expected)
              end)
 
     :ok

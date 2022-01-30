@@ -6,7 +6,8 @@ defmodule EdgeDB.Connection do
   alias EdgeDB.Connection.{
     InternalRequest,
     QueriesCache,
-    QueryBuilder
+    QueryBuilder,
+    State
   }
 
   alias EdgeDB.Protocol.{
@@ -44,7 +45,8 @@ defmodule EdgeDB.Connection do
       server_state: :not_in_transaction,
       server_settings: %{},
       ping_interval: nil,
-      last_active: nil
+      last_active: nil,
+      savepoint_id: 0
     ]
 
     @type t() :: %__MODULE__{
@@ -60,7 +62,8 @@ defmodule EdgeDB.Connection do
             codecs_storage: Codecs.Storage.t(),
             server_settings: map(),
             ping_interval: integer() | nil | :disabled,
-            last_active: integer() | nil
+            last_active: integer() | nil,
+            savepoint_id: integer()
           }
 
     @spec new(
@@ -82,8 +85,6 @@ defmodule EdgeDB.Connection do
       }
     end
   end
-
-  @type disconnection() :: {:disconnect, Exception.t(), State.t()}
 
   @impl DBConnection
   def checkout(state) do
@@ -179,13 +180,13 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
-    exc = Error.interface_error("callback handle_deallocate hasn't been implemented")
+    exc = Error.interface_error("handle_deallocate/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
-    exc = Error.interface_error("callback handle_declare hasn't been implemented")
+    exc = Error.interface_error("handle_declare/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -220,14 +221,61 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :execute_granular_flow},
+        %{query: %EdgeDB.Query{} = query, params: params},
+        opts,
+        %State{} = state
+      ) do
+    handle_execute(query, params, opts, state)
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :execute_script_flow} = request,
+        %{statement: statement, headers: headers},
+        _opts,
+        %State{} = state
+      ) do
+    case execute_script_query(statement, headers, state) do
+      {:ok, result, state} ->
+        {:ok, request, result, state}
+
+      other ->
+        other
+    end
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :next_savepoint} = request,
+        _params,
+        _opts,
+        %State{savepoint_id: savepoint_id} = state
+      ) do
+    next_savepoint = savepoint_id + 1
+    {:ok, request, next_savepoint, %State{state | savepoint_id: next_savepoint}}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :is_subtransaction} = request,
+        _params,
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, false, state}
+  end
+
+  @impl DBConnection
   def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
-    exc = Error.interface_error("unknown internal connection request #{request}")
+    exc = Error.interface_error("unknown internal request to connection: #{request}")
     {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
-    exc = Error.interface_error("callback handle_fetch hasn't been implemented")
+    exc = Error.interface_error("handle_fetch/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 

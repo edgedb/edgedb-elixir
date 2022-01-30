@@ -4,7 +4,10 @@ defmodule EdgeDB do
     InternalRequest
   }
 
-  alias EdgeDB.Protocol.Enums
+  alias EdgeDB.Protocol.{
+    Enums,
+    Error
+  }
 
   @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
   @type tls_security() :: :insecure | :no_host_verification | :strict | :default
@@ -40,6 +43,10 @@ defmodule EdgeDB do
           | DBConnection.option()
 
   @type transaction_option() :: DBConnection.option()
+
+  @type rollback_option() ::
+          {:reason, term()}
+          | {:continue, boolean()}
 
   @type as_readonly_option() :: {atom(), any()}
 
@@ -193,24 +200,72 @@ defmodule EdgeDB do
 
   def transaction(conn, callback, opts \\ [])
 
-  def transaction(%EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks}, callback, opts) do
-    transaction_callback = &transaction(&1, callback, opts)
-
-    execution_callback =
-      Enum.reduce([transaction_callback | callbacks], fn next, last ->
-        &next.(&1, last)
-      end)
-
-    execution_callback.(conn)
+  def transaction(%EdgeDB.WrappedConnection{} = conn, callback, opts) do
+    execute_wrapped_callbacks(conn, &transaction(&1, callback, opts))
   end
 
   def transaction(conn, callback, opts) do
-    DBConnection.transaction(conn, callback, opts)
+    EdgeDB.Borrower.borrow!(conn, :transaction, fn ->
+      DBConnection.transaction(conn, callback, opts)
+    end)
   end
 
-  @spec rollback(connection(), term()) :: no_return()
-  def rollback(conn, reason) do
-    DBConnection.rollback(conn, reason)
+  @spec subtransaction(connection(), (DBConnection.t() -> result())) ::
+          {:ok, result()} | {:error, term()}
+  def subtransaction(conn, callback)
+
+  def subtransaction(%EdgeDB.WrappedConnection{} = conn, callback) do
+    execute_wrapped_callbacks(conn, &subtransaction(&1, callback))
+  end
+
+  def subtransaction(%DBConnection{conn_mode: :transaction} = conn, callback) do
+    EdgeDB.Borrower.borrow!(conn, :subtransaction, fn ->
+      {:ok, subtransaction_pid} =
+        DBConnection.start_link(EdgeDB.Subtransaction, conn: conn, backoff_type: :stop)
+
+      try do
+        DBConnection.transaction(subtransaction_pid, callback)
+      rescue
+        exc ->
+          Process.unlink(subtransaction_pid)
+          Process.exit(subtransaction_pid, :kill)
+
+          reraise exc, __STACKTRACE__
+      else
+        result ->
+          Process.unlink(subtransaction_pid)
+          Process.exit(subtransaction_pid, :kill)
+
+          result
+      end
+    end)
+  end
+
+  def subtransaction(_conn, _callback) do
+    raise Error.interface_error(
+            "EdgeDB.subtransaction/3 can be used only with connection " <>
+              "that is already in transaction (check out EdgeDB.transaction/3) " <>
+              "or in another subtransaction"
+          )
+  end
+
+  @spec rollback(connection(), list(rollback_option())) :: :ok | no_return()
+  def rollback(conn, opts \\ []) do
+    reason = opts[:reason] || :rollback
+
+    with true <- opts[:continue],
+         {:ok, _query, true} <-
+           DBConnection.execute(conn, %InternalRequest{request: :is_subtransaction}, [], []),
+         {:ok, _query, _result} <-
+           DBConnection.execute(conn, %InternalRequest{request: :rollback}, [], []) do
+      :ok
+    else
+      {:error, exc} ->
+        raise exc
+
+      _other ->
+        DBConnection.rollback(conn, reason)
+    end
   end
 
   @spec as_readonly(connection(), list(as_readonly_option())) :: connection()
@@ -248,6 +303,8 @@ defmodule EdgeDB do
   end
 
   defp prepare_execute_query(conn, query, params, opts) do
+    EdgeDB.Borrower.ensure_unborrowed!(conn)
+
     with {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} <-
            DBConnection.prepare_execute(conn, query, params, opts) do
       cond do
@@ -274,6 +331,12 @@ defmodule EdgeDB do
           EdgeDB.Result.extract(r)
       end
     end
+  end
+
+  defp execute_wrapped_callbacks(%EdgeDB.WrappedConnection{} = conn, callback) do
+    Enum.reduce([callback | conn.callbacks], fn next, last ->
+      &next.(&1, last)
+    end).(conn.conn)
   end
 
   defp unwrap!(result) do

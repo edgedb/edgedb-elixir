@@ -10,11 +10,9 @@ arg = [16, 13, 2, 42]
 ```
 
 # TODO:
-1. Support for retrying transactions and subtransactions
-2. Support for pool resize and other settings through server hints (?)
+1. Support for retrying transactions
+2. Support for pool resize through server hints (?)
 3. Query builder with schema reflection
-4. Better public API
-5. Better tests and coverage
-6. Ability to configure some parts (JSON, timeouts, etc)
-7. Documentation
-8. Publish package
+4. Ability to configure some parts (JSON, timeouts, etc)
+5. Documentation
+6. Publish package
