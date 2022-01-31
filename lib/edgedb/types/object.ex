@@ -55,3 +55,30 @@ defmodule EdgeDB.Object do
     end)
   end
 end
+
+defimpl Inspect, for: EdgeDB.Object do
+  import Inspect.Algebra
+
+  @impl Inspect
+  def inspect(%EdgeDB.Object{__fields__: fields}, opts) do
+    visible_fields =
+      Enum.reject(fields, fn %EdgeDB.Object.Field{is_implicit: implicit?} ->
+        implicit?
+      end)
+
+    fields_count = Enum.count(visible_fields)
+
+    elements_docs =
+      visible_fields
+      |> Enum.with_index(1)
+      |> Enum.map(fn
+        {%EdgeDB.Object.Field{name: name, value: value}, ^fields_count} ->
+          concat([name, " := ", Inspect.inspect(value, opts)])
+
+        {%EdgeDB.Object.Field{name: name, value: value}, _index} ->
+          concat([name, " := ", Inspect.inspect(value, opts), ", "])
+      end)
+
+    concat(["#EdgeDB.Object<", concat(elements_docs), ">"])
+  end
+end

@@ -4,13 +4,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.NamedTupleTest do
   setup :edgedb_connection
 
   test "decoding named tuple value", %{conn: conn} do
-    value =
-      new_named_tuple(%{
-        "a" => 1,
-        "b" => "string",
-        "c" => true,
-        "d" => 1.0
-      })
+    value = new_named_tuple([{"a", 1}, {"b", "string"}, {"c", true}, {"d", 1.0}])
 
     assert ^value =
              EdgeDB.query_single!(conn, "SELECT (a := 1, b := \"string\", c := true, d := 1.0)")
@@ -26,15 +20,18 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.NamedTupleTest do
     assert EdgeDB.Set.empty?(set)
   end
 
-  defp new_named_tuple(%{} = elements) do
-    values =
-      elements
-      |> Map.values()
-      |> List.to_tuple()
+  defp new_named_tuple(items) do
+    fields_ordering =
+      items
+      |> Enum.with_index()
+      |> Enum.map(fn {{name, _value}, index} ->
+        {index, name}
+      end)
+      |> Enum.into(%{})
 
     %EdgeDB.NamedTuple{
-      __keys__: Map.keys(elements),
-      __values__: values
+      __items__: Enum.into(items, %{}),
+      __fields_ordering__: fields_ordering
     }
   end
 end
