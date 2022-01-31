@@ -93,7 +93,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
                          } ->
       {name, Codec.decode(codec, data)}
     end)
-    |> create_named_tuple()
+    |> create_named_tuple(descriptor_elements)
   end
 
   defp verify_all_members_passed!(instance, elements) do
@@ -140,14 +140,14 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
     end
   end
 
-  defp create_named_tuple(elements) do
-    values =
-      elements
-      |> Map.values()
-      |> List.to_tuple()
+  defp create_named_tuple(elements, descriptor_fields) do
+    ordering =
+      descriptor_fields
+      |> Enum.with_index()
+      |> Enum.into(%{}, fn {%Types.NamedTupleDescriptorElement{name: name}, index} ->
+        {index, name}
+      end)
 
-    keys = Map.keys(elements)
-
-    %EdgeDB.NamedTuple{__keys__: keys, __values__: values}
+    %EdgeDB.NamedTuple{__items__: elements, __fields_ordering__: ordering}
   end
 end

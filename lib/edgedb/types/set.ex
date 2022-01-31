@@ -35,3 +35,18 @@ defimpl Enumerable, for: EdgeDB.Set do
     Enumerable.slice(items)
   end
 end
+
+defimpl Inspect, for: EdgeDB.Set do
+  import Inspect.Algebra
+
+  @impl Inspect
+  def inspect(%EdgeDB.Set{} = set, opts) do
+    elements = Enum.to_list(set)
+
+    element_fn = fn element, opts ->
+      Inspect.inspect(element, opts)
+    end
+
+    concat(["#EdgeDB.Set<", container_doc("{", elements, "}", opts, element_fn), ">"])
+  end
+end
