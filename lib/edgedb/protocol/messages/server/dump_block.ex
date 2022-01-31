@@ -10,7 +10,7 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpBlock do
     server: true,
     mtype: 0x3D,
     fields: [
-      headers: Keyword.t()
+      headers: map()
     ],
     known_headers: %{
       block_type: [

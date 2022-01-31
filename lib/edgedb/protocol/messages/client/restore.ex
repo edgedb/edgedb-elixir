@@ -10,7 +10,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Restore do
     client: true,
     mtype: 0x3C,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       jobs: Datatypes.UInt16.t(),
       header_data: Datatypes.Bytes.t()
     ]

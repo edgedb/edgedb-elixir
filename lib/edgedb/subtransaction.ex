@@ -185,7 +185,7 @@ defmodule EdgeDB.Subtransaction do
 
     case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
            statement: statement,
-           headers: []
+           headers: %{}
          }) do
       {:ok, _query, result} ->
         {:ok, result,
@@ -205,7 +205,7 @@ defmodule EdgeDB.Subtransaction do
 
     case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
            statement: statement,
-           headers: []
+           headers: %{}
          }) do
       {:ok, _query, result} ->
         {:ok, result,
@@ -224,7 +224,7 @@ defmodule EdgeDB.Subtransaction do
 
     case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
            statement: statement,
-           headers: []
+           headers: %{}
          }) do
       {:ok, _query, result} ->
         {:ok, result, state}

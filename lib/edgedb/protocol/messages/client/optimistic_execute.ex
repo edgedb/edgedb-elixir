@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Messages.Client.OptimisticExecute do
     client: true,
     mtype: 0x4F,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       io_format: Enums.IOFormat.t(),
       expected_cardinality: Enums.Cardinality.t(),
       command_text: Datatypes.String.t(),

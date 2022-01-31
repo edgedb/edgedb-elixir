@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Messages.Client.ExecuteScript do
     client: true,
     mtype: 0x51,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       script: Datatypes.String.t()
     ],
     known_headers: %{
