@@ -13,7 +13,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
     client: true,
     mtype: 0x50,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       io_format: Enums.IOFormat.t(),
       expected_cardinality: Enums.Cardinality.t(),
       statement_name: {Datatypes.Bytes.t(), default: @anonymous_statement},

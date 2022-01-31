@@ -140,6 +140,20 @@ defmodule Tests.APITest do
       assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "SELECT User"))
     end
 
+    test "automaticly rollbacks if error in EdgeDB occured", %{conn: conn} do
+      exc =
+        assert_raise EdgeDB.Protocol.Error, fn ->
+          EdgeDB.transaction(conn, fn conn ->
+            EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
+            EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
+          end)
+        end
+
+      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "SELECT Ticket"))
+
+      assert exc.message =~ "violates exclusivity constraint"
+    end
+
     test "nested transactions raises borrow error", %{conn: conn} do
       exc =
         assert_raise EdgeDB.Protocol.Error, fn ->
@@ -334,7 +348,7 @@ defmodule Tests.APITest do
       %{conn: EdgeDB.as_readonly(conn)}
     end
 
-    test "setups connection that will fail for non-readonly requests", %{conn: conn} do
+    test "configures connection that will fail for non-readonly requests", %{conn: conn} do
       exc =
         assert_raise EdgeDB.Protocol.Error, fn ->
           EdgeDB.query!(conn, "INSERT Ticket")
@@ -343,7 +357,7 @@ defmodule Tests.APITest do
       assert exc.name == "DisabledCapabilityError"
     end
 
-    test "setups connection that will fail for non-readonly requests in transaction", %{
+    test "configures connection that will fail for non-readonly requests in transaction", %{
       conn: conn
     } do
       exc =
@@ -356,11 +370,11 @@ defmodule Tests.APITest do
       assert exc.name == "DisabledCapabilityError"
     end
 
-    test "setups connection that executes readonly requests", %{conn: conn} do
+    test "configures connection that executes readonly requests", %{conn: conn} do
       assert 1 == EdgeDB.query_single!(conn, "SELECT 1")
     end
 
-    test "setups connection that executes readonly requests in transaction", %{
+    test "configures connection that executes readonly requests in transaction", %{
       conn: conn
     } do
       assert {:ok, 1} ==

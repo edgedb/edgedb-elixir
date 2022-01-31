@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Messages.Server.ReadyForCommand do
     server: true,
     mtype: 0x5A,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       transaction_state: Enums.TransactionState.t()
     ]
   )

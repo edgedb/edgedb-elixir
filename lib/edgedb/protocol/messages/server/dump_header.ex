@@ -10,7 +10,7 @@ defmodule EdgeDB.Protocol.Messages.Server.DumpHeader do
     server: true,
     mtype: 0x40,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       major_ver: Datatypes.UInt16.t(),
       minor_ver: Datatypes.UInt16.t(),
       schema_ddl: Datatypes.String.t(),

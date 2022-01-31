@@ -563,7 +563,7 @@ defmodule EdgeDB.Connection do
       command: query.statement
     }
 
-    with {:ok, state} <- send_messages([message, %Flush{}], state),
+    with {:ok, state} <- send_messages([message, %Sync{}], state),
          {:ok, {message, state}} <- receive_message(state) do
       handle_prepare_query_flow(query, message, state)
     end
@@ -579,16 +579,36 @@ defmodule EdgeDB.Connection do
         "can't execute query since expected single result and query doesn't return any data"
       )
 
-    {:error, exc, state}
+    with {:ok, state} <- wait_for_server_ready(state) do
+      {:error, exc, state}
+    end
   end
 
   defp handle_prepare_query_flow(
          query,
          %PrepareComplete{input_typedesc_id: in_id, output_typedesc_id: out_id},
+         state
+       ) do
+    with {:ok, state} <- wait_for_server_ready(state) do
+      maybe_describe_codecs(query, in_id, out_id, state)
+    end
+  end
+
+  defp handle_prepare_query_flow(_query, %ErrorResponse{} = message, state) do
+    with {:error, exc, state} <- handle_error_response(message, state),
+         {:ok, state} <- wait_for_server_ready(state) do
+      {:error, exc, state}
+    end
+  end
+
+  defp maybe_describe_codecs(
+         query,
+         in_codec_id,
+         out_codec_id,
          %State{queries_cache: qc, codecs_storage: cs} = state
        ) do
-    input_codec = Codecs.Storage.get(cs, in_id)
-    output_codec = Codecs.Storage.get(cs, out_id)
+    input_codec = Codecs.Storage.get(cs, in_codec_id)
+    output_codec = Codecs.Storage.get(cs, out_codec_id)
 
     if is_nil(input_codec) or is_nil(output_codec) do
       describe_codecs_from_query(query, state)
@@ -599,7 +619,16 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_prepare_query_flow(
+  defp describe_codecs_from_query(query, state) do
+    message = %DescribeStatement{aspect: :data_description}
+
+    with {:ok, state} <- send_messages([message, %Sync{}], state),
+         {:ok, {message, state}} <- receive_message(state) do
+      handle_describe_query_flow(query, message, state)
+    end
+  end
+
+  defp handle_describe_query_flow(
          %EdgeDB.Query{cardinality: :one},
          %CommandDataDescription{result_cardinality: :no_result},
          state
@@ -609,90 +638,28 @@ defmodule EdgeDB.Connection do
         "can't execute query since expected single result and query doesn't return any data"
       )
 
-    {:error, exc, state}
-  end
-
-  defp handle_prepare_query_flow(
-         query,
-         %CommandDataDescription{} = message,
-         %State{codecs_storage: cs, queries_cache: qc} = state
-       ) do
-    {input_codec, output_codec} = parse_description_message(message, cs)
-
-    query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
-
-    {:ok, query, state}
-  end
-
-  defp handle_prepare_query_flow(_query, %ErrorResponse{} = message, state) do
-    with {:error, exc, state} <- handle_error_response(message, state),
-         {:ok, state} <- restore_server_state_from_error(state) do
+    with {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
   end
 
-  defp optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
-    message = %OptimisticExecute{
-      headers: prepare_headers(opts, state),
-      io_format: query.io_format,
-      expected_cardinality: query.cardinality,
-      command_text: query.statement,
-      input_typedesc_id: query.input_codec.type_id,
-      output_typedesc_id: query.output_codec.type_id,
-      arguments: params
-    }
-
-    with {:ok, state} <- send_messages([message, %Sync{}], state),
-         {:ok, {message, state}} <- receive_message(state) do
-      handle_optimistic_execute_flow(
-        query,
-        %EdgeDB.Result{cardinality: query.cardinality},
-        message,
-        opts,
-        state
-      )
-    end
-  end
-
-  defp handle_optimistic_execute_flow(
-         %EdgeDB.Query{cardinality: :one},
-         _result,
-         %CommandDataDescription{result_cardinality: :no_result},
-         _opts,
-         state
-       ) do
-    exc =
-      Error.cardinality_violation_error(
-        "can't execute query since expected single result and query doesn't return any data"
-      )
-
-    {:error, exc, state}
-  end
-
-  defp handle_optimistic_execute_flow(
+  defp handle_describe_query_flow(
          query,
-         _result,
          %CommandDataDescription{} = message,
-         opts,
          %State{codecs_storage: cs, queries_cache: qc} = state
        ) do
     {input_codec, output_codec} = parse_description_message(message, cs)
+
     query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
-    reencoded_params = DBConnection.Query.encode(query, query.params, [])
-    execute_query(query, reencoded_params, opts, state)
+
+    with {:ok, state} <- wait_for_server_ready(state) do
+      {:ok, query, state}
+    end
   end
 
-  defp handle_optimistic_execute_flow(query, result, %CommandComplete{} = message, _opts, state) do
-    handle_execute_flow(query, result, message, state)
-  end
-
-  defp handle_optimistic_execute_flow(query, result, %Data{} = message, _opts, state) do
-    handle_execute_flow(query, result, message, state)
-  end
-
-  defp handle_optimistic_execute_flow(_query, _result, %ErrorResponse{} = message, _opts, state) do
+  defp handle_describe_query_flow(_query, %ErrorResponse{} = message, state) do
     with {:error, exc, state} <- handle_error_response(message, state),
-         {:ok, state} <- restore_server_state_from_error(state) do
+         {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
   end
@@ -743,17 +710,76 @@ defmodule EdgeDB.Connection do
 
   defp handle_execute_flow(_query, _result, %ErrorResponse{} = message, state) do
     with {:error, exc, state} <- handle_error_response(message, state),
-         {:ok, state} <- restore_server_state_from_error(state) do
+         {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
   end
 
-  defp describe_codecs_from_query(query, state) do
-    message = %DescribeStatement{aspect: :data_description}
+  defp optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
+    message = %OptimisticExecute{
+      headers: prepare_headers(opts, state),
+      io_format: query.io_format,
+      expected_cardinality: query.cardinality,
+      command_text: query.statement,
+      input_typedesc_id: query.input_codec.type_id,
+      output_typedesc_id: query.output_codec.type_id,
+      arguments: params
+    }
 
-    with {:ok, state} <- send_messages([message, %Flush{}], state),
+    with {:ok, state} <- send_messages([message, %Sync{}], state),
          {:ok, {message, state}} <- receive_message(state) do
-      handle_prepare_query_flow(query, message, state)
+      handle_optimistic_execute_flow(
+        query,
+        %EdgeDB.Result{cardinality: query.cardinality},
+        message,
+        opts,
+        state
+      )
+    end
+  end
+
+  defp handle_optimistic_execute_flow(
+         %EdgeDB.Query{cardinality: :one},
+         _result,
+         %CommandDataDescription{result_cardinality: :no_result},
+         _opts,
+         state
+       ) do
+    exc =
+      Error.cardinality_violation_error(
+        "can't execute query since expected single result and query doesn't return any data"
+      )
+
+    with {:ok, state} <- wait_for_server_ready(state) do
+      {:error, exc, state}
+    end
+  end
+
+  defp handle_optimistic_execute_flow(
+         query,
+         _result,
+         %CommandDataDescription{} = message,
+         opts,
+         %State{codecs_storage: cs, queries_cache: qc} = state
+       ) do
+    {input_codec, output_codec} = parse_description_message(message, cs)
+    query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
+    reencoded_params = DBConnection.Query.encode(query, query.params, [])
+    execute_query(query, reencoded_params, opts, state)
+  end
+
+  defp handle_optimistic_execute_flow(query, result, %CommandComplete{} = message, _opts, state) do
+    handle_execute_flow(query, result, message, state)
+  end
+
+  defp handle_optimistic_execute_flow(query, result, %Data{} = message, _opts, state) do
+    handle_execute_flow(query, result, message, state)
+  end
+
+  defp handle_optimistic_execute_flow(_query, _result, %ErrorResponse{} = message, _opts, state) do
+    with {:error, exc, state} <- handle_error_response(message, state),
+         {:ok, state} <- wait_for_server_ready(state) do
+      {:error, exc, state}
     end
   end
 
@@ -787,17 +813,17 @@ defmodule EdgeDB.Connection do
   defp start_transaction(opts, state) do
     opts
     |> QueryBuilder.start_transaction_statement()
-    |> execute_script_query([allow_capabilities: [:transaction]], state)
+    |> execute_script_query(%{allow_capabilities: [:transaction]}, state)
   end
 
   defp commit_transaction(state) do
     statement = QueryBuilder.commit_transaction_statement()
-    execute_script_query(statement, [allow_capabilities: [:transaction]], state)
+    execute_script_query(statement, %{allow_capabilities: [:transaction]}, state)
   end
 
   defp rollback_transaction(state) do
     statement = QueryBuilder.rollback_transaction_statement()
-    execute_script_query(statement, [allow_capabilities: [:transaction]], state)
+    execute_script_query(statement, %{allow_capabilities: [:transaction]}, state)
   end
 
   defp execute_script_query(statement, headers, state) do
@@ -878,12 +904,6 @@ defmodule EdgeDB.Connection do
   end
 
   defp do_ping(%State{} = state) do
-    with {:ok, state} <- send_message(%Sync{}, state) do
-      wait_for_server_ready(state)
-    end
-  end
-
-  defp restore_server_state_from_error(state) do
     with {:ok, state} <- send_message(%Sync{}, state) do
       wait_for_server_ready(state)
     end
@@ -1045,16 +1065,17 @@ defmodule EdgeDB.Connection do
   end
 
   defp prepare_headers(headers, %State{} = state) do
-    state_headers = []
+    state_headers = %{}
 
     state_headers =
       if state.capabilities != [] do
-        Keyword.put(state_headers, :allow_capabilities, state.capabilities)
+        Map.put(state_headers, :allow_capabilities, state.capabilities)
       else
         state_headers
       end
 
-    Keyword.merge(state_headers, headers)
+    headers = Enum.into(headers, %{})
+    Map.merge(state_headers, headers)
   end
 
   defp status(%State{server_state: :not_in_transaction}) do

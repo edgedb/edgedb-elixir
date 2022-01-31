@@ -10,7 +10,7 @@ defmodule EdgeDB.Protocol.Messages.Server.RestoreReady do
     server: true,
     mtype: 0x2B,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       jobs: Datatypes.UInt16.t()
     ]
   )
