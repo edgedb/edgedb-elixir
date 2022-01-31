@@ -16,7 +16,7 @@ defmodule EdgeDB.Protocol.Messages.Server.ErrorResponse do
       severity: Enums.ErrorSeverity.t(),
       error_code: Datatypes.UInt32.t(),
       message: Datatypes.String.t(),
-      attributes: Keyword.t()
+      attributes: map()
     ],
     known_headers: %{
       hint: [

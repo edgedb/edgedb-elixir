@@ -13,7 +13,7 @@ defmodule EdgeDB.Protocol.Messages.Client.DescribeStatement do
     client: true,
     mtype: 0x44,
     fields: [
-      headers: {Keyword.t(), default: []},
+      headers: {map(), default: []},
       aspect: Enums.DescribeAspect.t(),
       statement_name: {Datatypes.Bytes.t(), default: @anonymous_statement}
     ]

@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
     server: true,
     mtype: 0x43,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       status: Datatypes.String.t()
     ],
     known_headers: %{

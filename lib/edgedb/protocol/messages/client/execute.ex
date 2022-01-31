@@ -13,7 +13,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Execute do
     client: true,
     mtype: 0x45,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       statement_name: {Datatypes.Bytes.t(), default: @anonymous_statement},
       arguments: iodata()
     ],

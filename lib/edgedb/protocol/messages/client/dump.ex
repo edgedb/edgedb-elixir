@@ -7,7 +7,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Dump do
     client: true,
     mtype: 0x3E,
     fields: [
-      headers: Keyword.t()
+      headers: map()
     ]
   )
 

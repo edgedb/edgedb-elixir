@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Messages.Server.PrepareComplete do
     server: true,
     mtype: 0x31,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       cardinality: Enums.Cardinality.t(),
       input_typedesc_id: Datatypes.UUID.t(),
       output_typedesc_id: Datatypes.UUID.t()

@@ -11,7 +11,7 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandDataDescription do
     server: true,
     mtype: 0x54,
     fields: [
-      headers: Keyword.t(),
+      headers: map(),
       result_cardinality: Enums.Cardinality.t(),
       input_typedesc_id: Datatypes.UUID.t(),
       input_typedesc: Datatypes.Bytes.t(),
