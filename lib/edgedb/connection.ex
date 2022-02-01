@@ -40,6 +40,8 @@ defmodule EdgeDB.Connection do
       :codecs_storage,
       :timeout,
       capabilities: [],
+      transaction_options: [],
+      retry_options: [],
       buffer: <<>>,
       server_key_data: nil,
       server_state: :not_in_transaction,
@@ -55,6 +57,8 @@ defmodule EdgeDB.Connection do
             database: String.t(),
             timeout: timeout(),
             capabilities: list(Enums.Capability.t()),
+            transaction_options: list(EdgeDB.edgedb_transaction_option()),
+            retry_options: list(EdgeDB.retry_option()),
             buffer: bitstring(),
             server_key_data: list(byte()) | nil,
             server_state: Enums.TransactionState.t(),
@@ -65,25 +69,6 @@ defmodule EdgeDB.Connection do
             last_active: integer() | nil,
             savepoint_id: integer()
           }
-
-    @spec new(
-            :ssl.sslsocket(),
-            String.t(),
-            String.t(),
-            QueriesCache.t(),
-            Codecs.Storage.t(),
-            timeout()
-          ) :: t()
-    def new(socket, user, database, queries_cache, codecs_storage, timeout) do
-      %__MODULE__{
-        socket: socket,
-        user: user,
-        database: database,
-        timeout: timeout,
-        queries_cache: queries_cache,
-        codecs_storage: codecs_storage
-      }
-    end
   end
 
   @impl DBConnection
@@ -98,6 +83,8 @@ defmodule EdgeDB.Connection do
     password = opts[:password]
     database = opts[:database]
     codecs_modules = opts[:codecs] || []
+    transaction_opts = opts[:transaction] || []
+    retry_opts = opts[:retry] || []
 
     tcp_opts = (opts[:tcp] || []) ++ @tcp_socket_opts
 
@@ -108,10 +95,18 @@ defmodule EdgeDB.Connection do
 
     timeout = opts[:timeout]
 
+    state = %State{
+      user: user,
+      database: database,
+      timeout: timeout,
+      transaction_options: transaction_opts,
+      retry_options: retry_opts
+    }
+
     with {:ok, qc} <- QueriesCache.start_link(),
          {:ok, cs} <- Codecs.Storage.start_link(),
          {:ok, socket} <- open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout),
-         state = State.new(socket, user, database, qc, cs, timeout),
+         state = %State{state | socket: socket, queries_cache: qc, codecs_storage: cs},
          {:ok, state} <- handshake(password, state),
          {:ok, state} <- wait_for_server_ready(state),
          {:ok, state} <- initialize_custom_codecs(codecs_modules, state) do
@@ -222,6 +217,53 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_execute(
+        %InternalRequest{request: :transaction_options} = request,
+        _params,
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, state.transaction_options, state}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :set_transaction_options} = request,
+        %{options: opts},
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, :ok, %State{state | transaction_options: opts}}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :retry_options} = request,
+        _params,
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, state.retry_options, state}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :set_retry_options} = request,
+        %{options: retry_opts},
+        opts,
+        %State{} = state
+      ) do
+    retry_opts =
+      if opts[:replace] do
+        retry_opts
+      else
+        Keyword.merge(state.retry_options, retry_opts)
+      end
+
+    {:ok, request, :ok, %State{state | retry_options: retry_opts}}
+  end
+
+  @impl DBConnection
+  def handle_execute(
         %InternalRequest{request: :execute_granular_flow},
         %{query: %EdgeDB.Query{} = query, params: params},
         opts,
@@ -269,7 +311,7 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
-    exc = Error.interface_error("unknown internal request to connection: #{request}")
+    exc = Error.interface_error("unknown internal request to connection: #{inspect(request)}")
     {:error, exc, state}
   end
 
@@ -810,8 +852,9 @@ defmodule EdgeDB.Connection do
     {:ok, closed_query_result(), state}
   end
 
-  defp start_transaction(opts, state) do
-    opts
+  defp start_transaction(opts, %State{} = state) do
+    state.transaction_options
+    |> Keyword.merge(opts)
     |> QueryBuilder.start_transaction_statement()
     |> execute_script_query(%{allow_capabilities: [:transaction]}, state)
   end

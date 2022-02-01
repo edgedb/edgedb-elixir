@@ -7,6 +7,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.JSON do
   }
 
   @format 1
+  @json_library Application.compile_env(:edgedb, :json, Jason)
 
   defbuiltinscalarcodec(
     type_name: "std::json",
@@ -15,11 +16,9 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.JSON do
     calculate_size: false
   )
 
-  # TODO: allow custom JSON libraries, but for now Jason is hardcoded
-
   @impl EdgeDB.Protocol.Codec
   def encode_instance(instance) do
-    case Jason.encode(instance) do
+    case @json_library.encode(instance) do
       {:ok, encoded_data} ->
         data_length = byte_size(encoded_data)
         data = :binary.bin_to_list(encoded_data)
@@ -42,7 +41,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.JSON do
     json_content_length = json_type_length - 1
     <<json_content::binary(json_content_length)>> = rest
 
-    case Jason.decode(json_content) do
+    case @json_library.decode(json_content) do
       {:ok, instance} ->
         instance
 

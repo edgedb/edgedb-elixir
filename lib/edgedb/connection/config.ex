@@ -287,7 +287,9 @@ defmodule EdgeDB.Connection.Config do
       wait_for_available: from_config(:wait_for_available),
       server_settings: from_config(:server_settings),
       tcp: from_config(:tcp),
-      ssl: from_config(:ssl)
+      ssl: from_config(:ssl),
+      transaction: from_config(:transaction),
+      retry: from_config(:retry)
     )
   end
 

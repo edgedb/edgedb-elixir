@@ -8,6 +8,7 @@ defmodule EdgeDB.Connection.Config.Credentials do
 
   @path_module Application.compile_env(:edgedb, :path_module, Path)
   @file_module Application.compile_env(:edgedb, :file_module, File)
+  @json_library Application.compile_env(:edgedb, :json, Jason)
 
   @spec get_credentials_path(String.t()) :: String.t()
   def get_credentials_path(instance_name) do
@@ -41,7 +42,7 @@ defmodule EdgeDB.Connection.Config.Credentials do
   @spec parse_credentials(String.t()) :: Keyword.t()
   def parse_credentials(credentials) do
     credentials
-    |> Jason.decode!()
+    |> @json_library.decode!()
     |> Enum.reduce([], fn
       {"host", value}, opts ->
         Keyword.put(opts, :host, Validation.validate_host(value))

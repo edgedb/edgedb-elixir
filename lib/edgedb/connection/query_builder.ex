@@ -1,14 +1,7 @@
 defmodule EdgeDB.Connection.QueryBuilder do
   @type statement() :: String.t()
 
-  @type start_transaction_option() ::
-          {:isolation, :repeatable_read | :serializable}
-          | {:readonly, boolean()}
-          | {:deferrable, boolean()}
-
-  @type start_transaction_options() :: list(start_transaction_option())
-
-  @spec start_transaction_statement(start_transaction_options()) :: statement()
+  @spec start_transaction_statement(list(EdgeDB.edgedb_transaction_option())) :: statement()
   def start_transaction_statement(opts) do
     isolation =
       case Keyword.get(opts, :isolation, :repeatable_read) do

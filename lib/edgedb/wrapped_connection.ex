@@ -4,13 +4,13 @@ defmodule EdgeDB.WrappedConnection do
     :callbacks
   ]
 
-  @type callback() :: (DBConnection.t(), callback() -> any())
+  @type callback() :: (DBConnection.conn(), callback() -> any())
   @type t() :: %__MODULE__{
-          conn: any(),
+          conn: DBConnection.conn(),
           callbacks: list(callback())
         }
 
-  @spec wrap(t() | DBConnection.t(), callback()) :: t()
+  @spec wrap(t() | DBConnection.conn(), callback()) :: t()
 
   def wrap(%__MODULE__{} = conn, callback) do
     %__MODULE__{conn | callbacks: [callback | conn.callbacks]}
