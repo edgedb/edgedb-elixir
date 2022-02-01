@@ -27,19 +27,19 @@ defmodule EdgeDB.Borrower do
       :ok ->
         execute_on_borrowed(conn, callback)
 
-      {:error, exc} ->
-        raise exc
+      {:error, {:borrowed, reason}} ->
+        raise error_for_reason(reason)
     end
   end
 
   @spec ensure_unborrowed!(DBConnection.conn()) :: :ok | no_return()
   def ensure_unborrowed!(conn) do
     case GenServer.call(__MODULE__, {:check_borrowed, conn}) do
-      :ok ->
+      :unborrowed ->
         :ok
 
-      {:error, exc} ->
-        raise exc
+      reason ->
+        raise error_for_reason(reason)
     end
   end
 
@@ -52,25 +52,10 @@ defmodule EdgeDB.Borrower do
   def handle_call({:borrow, conn, reason}, _from, %State{borrowed: borrowed} = state) do
     case borrowed[conn] do
       nil ->
-        {:reply, :ok,
-         %State{
-           state
-           | borrowed: Map.put(borrowed, conn, reason)
-         }}
+        {:reply, :ok, %State{state | borrowed: Map.put(borrowed, conn, reason)}}
 
-      :transaction ->
-        {:reply,
-         {
-           :error,
-           Error.interface_error("connection is already borrowed for transaction")
-         }, state}
-
-      :subtransaction ->
-        {:reply,
-         {
-           :error,
-           Error.interface_error("connection is already borrowed for subtransaction")
-         }, state}
+      reason ->
+        {:reply, {:error, {:borrowed, reason}}, state}
     end
   end
 
@@ -78,21 +63,10 @@ defmodule EdgeDB.Borrower do
   def handle_call({:check_borrowed, conn}, _from, %State{borrowed: borrowed} = state) do
     case borrowed[conn] do
       nil ->
-        {:reply, :ok, state}
+        {:reply, :unborrowed, state}
 
-      :transaction ->
-        {:reply,
-         {
-           :error,
-           Error.interface_error("connection is already borrowed for transaction")
-         }, state}
-
-      :subtransaction ->
-        {:reply,
-         {
-           :error,
-           Error.interface_error("connection is already borrowed for subtransaction")
-         }, state}
+      reason ->
+        {:reply, reason, state}
     end
   end
 
@@ -107,6 +81,14 @@ defmodule EdgeDB.Borrower do
 
   defp unborrow(conn) do
     GenServer.cast(__MODULE__, {:unborrow, conn})
+  end
+
+  defp error_for_reason(:transaction) do
+    Error.interface_error("connection is already borrowed for transaction")
+  end
+
+  defp error_for_reason(:subtransaction) do
+    Error.interface_error("connection is already borrowed for subtransaction")
   end
 
   defp execute_on_borrowed(conn, callback) do
