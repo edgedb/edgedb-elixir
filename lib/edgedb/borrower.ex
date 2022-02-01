@@ -110,16 +110,14 @@ defmodule EdgeDB.Borrower do
   end
 
   defp execute_on_borrowed(conn, callback) do
-    result =
-      try do
-        callback.()
-      rescue
-        exc ->
-          unborrow(conn)
-          reraise exc, __STACKTRACE__
-      end
-
-    unborrow(conn)
-    result
+    callback.()
+  rescue
+    exc ->
+      unborrow(conn)
+      reraise exc, __STACKTRACE__
+  else
+    result ->
+      unborrow(conn)
+      result
   end
 end

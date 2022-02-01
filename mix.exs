@@ -46,7 +46,7 @@ defmodule EdgeDB.MixProject do
       {:db_connection, "~> 2.0"},
       {:elixir_uuid, "~> 1.2"},
       {:decimal, "~> 2.0"},
-      {:jason, "~> 1.2"},
+      {:jason, "~> 1.2", optional: true},
       # dev/test
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2", only: [:dev, :test], runtime: false},

@@ -45,10 +45,15 @@ defmodule EdgeDB.Protocol.Error do
     }
   end
 
+  @impl Exception
+  def message(%__MODULE__{} = exception) do
+    "#{exception.name}: #{exception.message}"
+  end
+
   @spec retry?(Exception.t()) :: boolean()
 
   def retry?(%__MODULE__{tags: tags}) do
-    Enum.any?(tags, &(&1 == :retry))
+    Enum.any?(tags, &(&1 == :should_retry))
   end
 
   def retry?(_other) do
@@ -58,7 +63,7 @@ defmodule EdgeDB.Protocol.Error do
   @spec reconnect?(Exception.t()) :: boolean()
 
   def reconnect?(%__MODULE__{tags: tags}) do
-    Enum.any?(tags, &(&1 == :reconnect))
+    Enum.any?(tags, &(&1 == :should_reconnect))
   end
 
   def reconnect?(_other) do

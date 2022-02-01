@@ -12,7 +12,7 @@ defmodule EdgeDB do
   @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
   @type tls_security() :: :insecure | :no_host_verification | :strict | :default
 
-  # NOTE: :command_timeout, :wait_for_available and :server_settings
+  # NOTE: :command_timeout and :server_settings
   # options added only for compatability with other drivers and aren't used right now
   @type connect_option() ::
           {:dsn, String.t()}
@@ -28,10 +28,11 @@ defmodule EdgeDB do
           | {:tls_security, tls_security()}
           | {:timeout, timeout()}
           | {:command_timeout, timeout()}
-          | {:wait_for_available, integer()}
           | {:server_settings, map()}
           | {:tcp, list(:gen_tcp.option())}
           | {:ssl, list(:ssl.tls_client_option())}
+          | {:transaction, list(transaction_option())}
+          | {:retry, list(retry_option())}
 
   @type start_option() ::
           connect_option()
@@ -42,11 +43,27 @@ defmodule EdgeDB do
           | {:io_format, Enums.IOFormat.t()}
           | DBConnection.option()
 
-  @type transaction_option() :: DBConnection.option()
+  @type edgedb_transaction_option() ::
+          {:isolation, :repeatable_read | :serializable}
+          | {:readonly, boolean()}
+          | {:deferrable, boolean()}
+
+  @type transaction_option() ::
+          edgedb_transaction_option()
+          | {:retry, list(retry_option())}
+          | DBConnection.option()
 
   @type rollback_option() ::
           {:reason, term()}
           | {:continue, boolean()}
+
+  @type retry_rule() ::
+          {:attempts, pos_integer()}
+          | {:backoff, (pos_integer() -> timeout())}
+
+  @type retry_option() ::
+          {:transaction_conflict, retry_rule()}
+          | {:network_error, retry_rule()}
 
   @type as_readonly_option() :: {atom(), any()}
 
@@ -194,7 +211,11 @@ defmodule EdgeDB do
     |> unwrap!()
   end
 
-  @spec transaction(connection(), (DBConnection.t() -> result()), list(transaction_option())) ::
+  @spec transaction(
+          connection(),
+          (DBConnection.t() -> result()),
+          list(transaction_option())
+        ) ::
           {:ok, result()}
           | {:error, term()}
 
@@ -206,17 +227,12 @@ defmodule EdgeDB do
 
   def transaction(conn, callback, opts) do
     EdgeDB.Borrower.borrow!(conn, :transaction, fn ->
-      DBConnection.transaction(conn, callback, opts)
+      retrying_transaction(conn, callback, opts)
     end)
   end
 
-  @spec subtransaction(connection(), (DBConnection.t() -> result())) ::
+  @spec subtransaction(DBConnection.conn(), (DBConnection.t() -> result())) ::
           {:ok, result()} | {:error, term()}
-  def subtransaction(conn, callback)
-
-  def subtransaction(%EdgeDB.WrappedConnection{} = conn, callback) do
-    execute_wrapped_callbacks(conn, &subtransaction(&1, callback))
-  end
 
   def subtransaction(%DBConnection{conn_mode: :transaction} = conn, callback) do
     EdgeDB.Borrower.borrow!(conn, :subtransaction, fn ->
@@ -271,18 +287,53 @@ defmodule EdgeDB do
   @spec as_readonly(connection(), list(as_readonly_option())) :: connection()
   def as_readonly(conn, _opts \\ []) do
     EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
-      request = %InternalRequest{request: :capabilities}
-      capabilities = DBConnection.execute!(conn, request, [], [])
+      with {:ok, _query, capabilities} <-
+             DBConnection.execute(conn, %InternalRequest{request: :capabilities}, []),
+           {:ok, _query, _result} <-
+             DBConnection.execute(conn, %InternalRequest{request: :set_capabilities}, %{
+               capabilities: [:readonly]
+             }) do
+        defer(fn -> callback.(conn) end, fn ->
+          DBConnection.execute!(conn, %InternalRequest{request: :set_capabilities}, %{
+            capabilities: capabilities
+          })
+        end)
+      end
+    end)
+  end
 
-      request = %InternalRequest{request: :set_capabilities}
-      DBConnection.execute!(conn, request, %{capabilities: [:readonly]}, [])
+  @spec with_transaction_options(connection(), list(edgedb_transaction_option())) :: connection()
+  def with_transaction_options(conn, opts) do
+    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
+      with {:ok, _query, transaction_opts} <-
+             DBConnection.execute(conn, %InternalRequest{request: :transaction_options}, []),
+           {:ok, _query, _result} <-
+             DBConnection.execute(conn, %InternalRequest{request: :set_transaction_options}, %{
+               options: opts
+             }) do
+        defer(fn -> callback.(conn) end, fn ->
+          DBConnection.execute!(conn, %InternalRequest{request: :set_transaction_options}, %{
+            options: transaction_opts
+          })
+        end)
+      end
+    end)
+  end
 
-      result = callback.(conn)
-
-      request = %InternalRequest{request: :set_capabilities}
-      DBConnection.execute!(conn, request, %{capabilities: capabilities}, [])
-
-      result
+  @spec with_retry_options(connection(), list(retry_option())) :: connection()
+  def with_retry_options(conn, opts) do
+    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
+      with {:ok, _query, retry_opts} <-
+             DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []),
+           {:ok, _query, _result} <-
+             DBConnection.execute(conn, %InternalRequest{request: :set_retry_options}, %{
+               options: opts
+             }) do
+        defer(fn -> callback.(conn) end, fn ->
+          request = %InternalRequest{request: :set_retry_options}
+          DBConnection.execute!(conn, request, %{options: retry_opts}, replace: true)
+        end)
+      end
     end)
   end
 
@@ -333,10 +384,90 @@ defmodule EdgeDB do
     end
   end
 
-  defp execute_wrapped_callbacks(%EdgeDB.WrappedConnection{} = conn, callback) do
-    Enum.reduce([callback | conn.callbacks], fn next, last ->
-      &next.(&1, last)
-    end).(conn.conn)
+  defp retrying_transaction(conn, callback, opts) do
+    with {:ok, _query, retry_opts} <-
+           DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []) do
+      retrying_transaction(1, conn, callback, Keyword.merge(retry_opts, opts[:retry] || []))
+    end
+  end
+
+  defp retrying_transaction(attempt, conn, callback, retry_opts) do
+    DBConnection.transaction(conn, callback, retry_opts)
+  rescue
+    exc in Error ->
+      case maybe_retry(exc, attempt, retry_opts) do
+        {:ok, backoff} ->
+          Process.sleep(backoff)
+          retrying_transaction(attempt + 1, conn, callback, retry_opts)
+
+        :abort ->
+          reraise exc, __STACKTRACE__
+      end
+
+    exc ->
+      reraise exc, __STACKTRACE__
+  end
+
+  defp maybe_retry(exception, attempt, retry_opts) do
+    rule = rule_for_retry(exception, retry_opts)
+
+    if Error.retry?(exception) and attempt <= rule[:attempts] do
+      {:ok, rule[:backoff].(attempt)}
+    else
+      :abort
+    end
+  end
+
+  defp rule_for_retry(%Error{} = exception, retry_opts) do
+    transaction_conflict_error_code = Error.transaction_conflict_error("").code
+    client_error_code = Error.client_error("").code
+
+    rule =
+      cond do
+        Bitwise.band(transaction_conflict_error_code, exception.code) ==
+            transaction_conflict_error_code ->
+          Keyword.get(retry_opts, :transaction_conflict, [])
+
+        Bitwise.band(client_error_code, exception.code) == client_error_code ->
+          Keyword.get(retry_opts, :network_error, [])
+
+        true ->
+          []
+      end
+
+    default_rule = [
+      attempts: 3,
+      backoff: &default_backoff/1
+    ]
+
+    Keyword.merge(default_rule, rule)
+  end
+
+  defp execute_wrapped_callbacks(
+         %EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks},
+         callback
+       ) do
+    DBConnection.run(conn, fn conn ->
+      Enum.reduce([callback | callbacks], fn next, last ->
+        &next.(&1, last)
+      end).(conn)
+    end)
+  end
+
+  defp defer(original_callback, deferred_callback) do
+    original_callback.()
+  rescue
+    exc ->
+      deferred_callback.()
+      reraise exc, __STACKTRACE__
+  else
+    result ->
+      deferred_callback.()
+      result
+  end
+
+  defp default_backoff(attempt) do
+    trunc(:math.pow(2, attempt) * Enum.random(0..100))
   end
 
   defp unwrap!(result) do
