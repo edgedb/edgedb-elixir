@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.NamedTupleTypeDescriptor do
+  @moduledoc false
+
   use EdgeDB.Protocol.TypeDescriptor
 
   alias EdgeDB.Protocol.{

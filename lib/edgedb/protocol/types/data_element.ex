@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Types.DataElement do
+  @moduledoc false
+
   use EdgeDB.Protocol.Type
 
   alias EdgeDB.Protocol.Datatypes

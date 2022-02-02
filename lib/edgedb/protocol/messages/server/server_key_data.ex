@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Server.ServerKeyData do
+  @moduledoc false
+
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.Datatypes

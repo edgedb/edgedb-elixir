@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Client.RestoreEOF do
+  @moduledoc false
+
   use EdgeDB.Protocol.Message
 
   defmessage(

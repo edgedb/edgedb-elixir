@@ -1,4 +1,11 @@
 defmodule EdgeDB.Query do
+  @moduledoc """
+  A structure carrying the information related to the query.
+
+  It's mostly used in driver internally, but user can retrive it along with `EdgeDB.Result` struct
+    from succeed query execution using `:raw` option for `EdgeDB.query*/4` functions. See `t:EdgeDB.query_option/0`.
+  """
+
   alias EdgeDB.Protocol.{
     Codec,
     Enums
@@ -16,11 +23,28 @@ defmodule EdgeDB.Query do
     params: []
   ]
 
+  @typedoc """
+  A structure carrying the information related to the query.
+
+  Fields:
+
+    * `:statement` - EdgeQL statement for execution.
+    * `:cardinality` - the expected number of elements in the returned set as a result of the query.
+    * `:io_format` - the preferred format of the query result.
+    * `:capabilities` - query capabilities. See
+      [RFC](https://github.com/edgedb/rfcs/blob/master/text/1004-transactions-api.rst#edgedb-changes)
+      for more information.
+    * `:required` - flag specifying that the result should not be empty.
+    * `:input_codec` - codec for encoding query parameters.
+    * `:output_codec` - codec for decoding the query result.
+    * `:cached` - flag specifying whether the request has already been cached by the connection.
+    * `:params` - query parameters.
+  """
   @type t() :: %__MODULE__{
-          statement: String.t() | atom(),
+          statement: String.t(),
           cardinality: Enums.Cardinality.t(),
           io_format: Enums.IOFormat.t(),
-          capabilities: Enums.Capability.t(),
+          capabilities: Enums.Capabilities.t(),
           required: boolean(),
           input_codec: Codec.t() | nil,
           output_codec: Codec.t() | nil,

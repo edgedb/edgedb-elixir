@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Enums.DecimalSign do
+  @moduledoc false
+
   use EdgeDB.Protocol.Enum
 
   alias EdgeDB.Protocol.Datatypes

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Client.Flush do
+  @moduledoc false
+
   use EdgeDB.Protocol.Message
 
   defmessage(

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatypes.UInt16 do
+  @moduledoc false
+
   use EdgeDB.Protocol.Datatype
 
   @uint16_max 0xFFFF

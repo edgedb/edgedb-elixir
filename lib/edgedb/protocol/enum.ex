@@ -1,10 +1,15 @@
 defmodule EdgeDB.Protocol.Enum do
+  @moduledoc false
+
   alias EdgeDB.Protocol.Datatypes
 
-  @callback to_atom(integer() | atom()) :: atom()
-  @callback to_code(atom() | integer()) :: integer()
-  @callback encode(term()) :: iodata()
-  @callback decode(bitstring()) :: {term(), bitstring()}
+  @type code() :: integer()
+  @type value() :: atom()
+
+  @callback to_atom(code_or_value :: code() | value()) :: atom()
+  @callback to_code(value_or_code :: value() | code()) :: integer()
+  @callback encode(code_or_value :: term()) :: iodata()
+  @callback decode(data :: bitstring()) :: {term(), bitstring()}
 
   defmacro __using__(_opts \\ []) do
     quote do
@@ -68,10 +73,12 @@ defmodule EdgeDB.Protocol.Enum do
 
     if union do
       quote do
+        @typedoc @moduledoc
         @type t() :: list(unquote(main_spec))
       end
     else
       quote do
+        @typedoc @moduledoc
         @type t() :: unquote(main_spec)
       end
     end
@@ -84,39 +91,56 @@ defmodule EdgeDB.Protocol.Enum do
   end
 
   defp define_to_atom_funs(values) do
-    for {name, code} <- values do
-      quote do
-        @spec to_atom(unquote(code) | unquote(name)) :: unquote(name)
+    funs =
+      for {name, code} <- values do
+        quote do
+          @spec to_atom(unquote(code) | unquote(name)) :: unquote(name)
 
-        def to_atom(unquote(code)) do
-          unquote(name)
-        end
+          def to_atom(unquote(code)) do
+            unquote(name)
+          end
 
-        def to_atom(unquote(name)) do
-          unquote(name)
+          def to_atom(unquote(name)) do
+            unquote(name)
+          end
         end
       end
+
+    quote do
+      @doc false
+      def to_atom(code_or_name)
+
+      unquote(funs)
     end
   end
 
   defp define_to_code_funs(values) do
-    for {name, code} <- values do
-      quote do
-        @spec to_code(unquote(code) | unquote(name)) :: unquote(code)
+    funs =
+      for {name, code} <- values do
+        quote do
+          @spec to_code(unquote(code) | unquote(name)) :: unquote(code)
 
-        def to_code(unquote(code)) do
-          unquote(code)
-        end
+          def to_code(unquote(code)) do
+            unquote(code)
+          end
 
-        def to_code(unquote(name)) do
-          unquote(code)
+          def to_code(unquote(name)) do
+            unquote(code)
+          end
         end
       end
+
+    quote do
+      @doc false
+      def to_code(name_or_code)
+
+      unquote(funs)
     end
   end
 
   defp define_datatype_codec_access_fun(codec) do
     quote do
+      @doc false
       @spec enum_codec() :: module()
       def enum_codec do
         unquote(codec)
@@ -126,6 +150,7 @@ defmodule EdgeDB.Protocol.Enum do
 
   defp define_enum_encoder(codec) do
     quote do
+      @doc false
       @spec encode(t()) :: iodata()
       def encode(value) do
         value
@@ -137,6 +162,7 @@ defmodule EdgeDB.Protocol.Enum do
 
   defp define_enum_decoder(codec) do
     quote do
+      @doc false
       @spec decode(bitstring()) :: {t(), bitstring()}
       def decode(<<content::binary>>) do
         {code, rest} = unquote(codec).decode(content)

@@ -1,27 +1,63 @@
 defmodule EdgeDB.NamedTuple do
-  @behaviour Access
+  @moduledoc """
+  An immutable value representing an EdgeDB named tuple value.
 
-  alias EdgeDB.Error
+  `EdgeDB.NamedTuple` implements `Access` behavior to access fields
+    by index or key and `Enumerable` protocol for iterating over tuple values.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(pid, "SELECT (a := 1, b := 'a', c := [3])")
+  #EdgeDB.NamedTuple<a: 1, b: "a", c: [3]>
+  iex(3)> nt[:b]
+  "a"
+  iex(4)> nt["c"]
+  [3]
+  iex(4)> nt[0]
+  1
+  ```
+  """
+
+  @behaviour Access
 
   defstruct [
     :__fields_ordering__,
     :__items__
   ]
 
-  @opaque named_tuple() :: %__MODULE__{
-            __fields_ordering__: %{integer() => String.t()},
-            __items__: %{String.t() => any()}
-          }
-  @type t() :: %__MODULE__{}
+  @typedoc """
+  An immutable value representing an EdgeDB named tuple value.
+  """
+  @opaque t() :: %__MODULE__{}
 
-  @spec to_tuple(named_tuple()) :: tuple()
+  @doc """
+  Convert a named tuple to a regular erlang tuple.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(pid, "SELECT (a := 1, b := 'a', c := [3])")
+  iex(3)> EdgeDB.NamedTuple.to_tuple(nt)
+  {1, "a", [3]}
+  ```
+  """
+  @spec to_tuple(t()) :: tuple()
   def to_tuple(%__MODULE__{__items__: items}) do
     items
     |> Map.values()
     |> List.to_tuple()
   end
 
-  @spec keys(named_tuple()) :: list(String.t())
+  @doc """
+  Get named tuple keys
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(pid, "SELECT (a := 1, b := 'a', c := [3])")
+  iex(3)> EdgeDB.NamedTuple.keys(nt)
+  ["a", "b", "c"]
+  ```
+  """
+  @spec keys(t()) :: list(String.t())
   def keys(%__MODULE__{__items__: items}) do
     Map.keys(items)
   end
@@ -49,12 +85,12 @@ defmodule EdgeDB.NamedTuple do
 
   @impl Access
   def get_and_update(%__MODULE__{}, _key, _function) do
-    raise Error.interface_error("named tuples can't be mutated")
+    raise EdgeDB.Error.interface_error("named tuples can't be mutated")
   end
 
   @impl Access
   def pop(%__MODULE__{}, _key) do
-    raise Error.interface_error("named tuples can't be mutated")
+    raise EdgeDB.Error.interface_error("named tuples can't be mutated")
   end
 end
 

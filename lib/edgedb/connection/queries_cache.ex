@@ -1,9 +1,13 @@
 defmodule EdgeDB.Connection.QueriesCache do
+  @moduledoc false
+
   use GenServer
 
   alias EdgeDB.Protocol.Enums
 
   defmodule State do
+    @moduledoc false
+
     defstruct [
       :cache
     ]

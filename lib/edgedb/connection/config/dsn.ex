@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.Config.DSN do
+  @moduledoc false
+
   alias EdgeDB.Connection.Config.Validation
 
   @file_module Application.compile_env(:edgedb, :file_module, File)

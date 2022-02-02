@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
+  @moduledoc false
+
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.{
@@ -6,7 +8,12 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.NamedTuple do
     Types
   }
 
-  defcodec(type: EdgeDB.NamedTuple.t())
+  @type named_tuple() :: %EdgeDB.NamedTuple{
+          __fields_ordering__: %{integer() => String.t()},
+          __items__: %{String.t() => any()}
+        }
+
+  defcodec(type: named_tuple())
 
   @spec new(
           Datatypes.UUID.t(),

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.BaseScalarTypeDescriptor do
+  @moduledoc false
+
   use EdgeDB.Protocol.TypeDescriptor
 
   # base scalar codecs always exist in storage

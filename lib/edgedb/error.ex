@@ -1,4 +1,12 @@
 defmodule EdgeDB.Error do
+  @moduledoc """
+  Exception returned by the driver if an error occurred.
+
+  Most of the functions in the `EdgeDB.Error` module are a shorthands for simplifying `EdgeDB.Error` exception
+    constructing. These functions are generated at compile time from a copy of the
+    [`errors.txt`](https://github.com/edgedb/edgedb/blob/a529aae753319f26cce942ae4fc7512dd0c5a37b/edb/api/errors.txt) file.
+  """
+
   defexception [
     :message,
     :name,
@@ -7,6 +15,48 @@ defmodule EdgeDB.Error do
     tags: [],
     query: nil
   ]
+
+  @typedoc """
+  Exception returned by the driver if an error occurred.
+
+  Fields:
+
+    * `:message` - human-readable error message.
+    * `:name` - error name from EdgeDB.
+    * `:code` - internal error code.
+    * `:attributes` - additional error attributes that can be obtained from the
+      [`ErrorResponse`](https://www.edgedb.com/docs/reference/protocol/messages#ref-protocol-msg-error) server message.
+    * `:tags` - error tags.
+    * `:query` - query, which should have been executed when the error occurred.
+  """
+  @type t() :: %__MODULE__{
+          message: String.t(),
+          name: String.t(),
+          code: integer(),
+          attributes: map(),
+          tags: list(tag()),
+          query: EdgeDB.Query.t() | nil
+        }
+
+  @typedoc """
+  Options for constructing an `EdgeDB.Error` instance.
+
+  Supported options:
+
+    * `:code` - internal error code.
+    * `:attributes` - additional error attributes that can be obtained from the
+      [`ErrorResponse`](https://www.edgedb.com/docs/reference/protocol/messages#ref-protocol-msg-error) server message.
+    * `:query` - query, which should have been executed when the error occurred.
+  """
+  @type option() ::
+          {:code, integer()}
+          | {:attributes, map()}
+          | {:query, EdgeDB.Query.t()}
+
+  @typedoc """
+  Error tags.
+  """
+  @type tag() :: :should_retry | :should_reconnect
 
   @tags_to_atoms %{
     "SHOULD_RETRY" => :should_retry,
@@ -18,21 +68,6 @@ defmodule EdgeDB.Error do
                         :code.priv_dir(:edgedb),
                         Path.join(["edgedb", "api", "errors.txt"])
                       )
-
-  @type option() ::
-          {:code, integer()}
-          | {:attributes, map()}
-          | {:query, EdgeDB.Query.t()}
-  @type options() :: list(option())
-  @type tag() :: :should_retry | :should_reconnect
-  @type t() :: %__MODULE__{
-          message: String.t(),
-          name: String.t(),
-          code: integer(),
-          attributes: map(),
-          tags: list(tag()),
-          query: EdgeDB.Query.t() | nil
-        }
 
   @impl Exception
   def exception(message, opts \\ []) do
@@ -55,7 +90,11 @@ defmodule EdgeDB.Error do
     "#{exception.name}: #{exception.message}"
   end
 
+  @doc """
+  Check if should try to repeat the query during the execution of which an error occurred.
+  """
   @spec retry?(Exception.t()) :: boolean()
+  def retry?(exception)
 
   def retry?(%__MODULE__{tags: tags}) do
     Enum.any?(tags, &(&1 == :should_retry))
@@ -65,7 +104,13 @@ defmodule EdgeDB.Error do
     false
   end
 
+  @doc """
+  Check if should try to reconnect to EdgeDB server.
+
+  **NOTE**: this function is not used right now, because `DBConnection` reconnects it connection itself.
+  """
   @spec reconnect?(Exception.t()) :: boolean()
+  def reconnect?(exception)
 
   def reconnect?(%__MODULE__{tags: tags}) do
     Enum.any?(tags, &(&1 == :should_reconnect))
@@ -106,7 +151,8 @@ defmodule EdgeDB.Error do
 
     {code, ""} = Integer.parse(code_str, 16)
 
-    @spec unquote(snake_cased_name)(String.t(), options()) :: t()
+    @doc false
+    @spec unquote(snake_cased_name)(String.t(), list(option())) :: t()
 
     # credo:disable-for-next-line Credo.Check.Readability.Specs
     def unquote(snake_cased_name)(msg, opts \\ []) do

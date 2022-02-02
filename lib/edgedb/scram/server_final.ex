@@ -1,4 +1,6 @@
 defmodule EdgeDB.SCRAM.ServerFinal do
+  @moduledoc false
+
   defstruct [
     :server_signature
   ]

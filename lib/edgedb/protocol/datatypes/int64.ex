@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatypes.Int64 do
+  @moduledoc false
+
   use EdgeDB.Protocol.Datatype
 
   @int64_max 0x7FFFFFFFFFFFFFFF

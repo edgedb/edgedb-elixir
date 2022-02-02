@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Client.Restore do
+  @moduledoc false
+
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{

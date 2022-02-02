@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Message do
+  @moduledoc false
+
   import EdgeDB.Protocol.Converters
 
   alias EdgeDB.Protocol.{

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.BigInt do
+  @moduledoc false
+
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.{

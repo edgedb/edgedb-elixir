@@ -1,4 +1,6 @@
 defmodule EdgeDB.SCRAM.ClientFirst do
+  @moduledoc false
+
   alias EdgeDB.SCRAM.ServerFirst
 
   @base_gs2header "n,,"

@@ -1,4 +1,19 @@
-defmodule EdgeDB.Protocol.Enums.Capability do
+defmodule EdgeDB.Protocol.Enums.Capabilities do
+  @moduledoc """
+  Query capabilities.
+
+  Values:
+
+    * `:readonly` - query is read-only.
+    * `:modifications` - query is not read-only.
+    * `:session_config` - query contains session config change.
+    * `:transaction` - query contains start/commit/rollback of transaction or savepoint manipulation.
+    * `:ddl` - query contains DDL.
+    * `:persistent_config` - server or database config change.
+    * `:all` - all possible capabilities.
+    * `:execute` - capabilities to execute query.
+  """
+
   use EdgeDB.Protocol.Enum
 
   alias Bitwise
@@ -67,6 +82,7 @@ defmodule EdgeDB.Protocol.Enums.Capability do
     {capabilities, rest}
   end
 
+  @doc false
   # this is special case for usage in headers processing
   # when we process headers we are sure that there won't
   # be any additional data after decoding datatype

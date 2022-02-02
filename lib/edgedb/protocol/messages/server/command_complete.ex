@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
+  @moduledoc false
+
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
@@ -17,7 +19,7 @@ defmodule EdgeDB.Protocol.Messages.Server.CommandComplete do
     known_headers: %{
       capabilities: [
         code: 0x1001,
-        decoder: &Enums.Capability.exhaustive_decode/1
+        decoder: &Enums.Capabilities.exhaustive_decode/1
       ]
     }
   )

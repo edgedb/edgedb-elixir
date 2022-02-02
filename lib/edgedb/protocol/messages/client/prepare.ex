@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Client.Prepare do
+  @moduledoc false
+
   use EdgeDB.Protocol.Message
 
   alias EdgeDB.Protocol.{
@@ -31,7 +33,7 @@ defmodule EdgeDB.Protocol.Messages.Client.Prepare do
       ],
       allow_capabilities: [
         code: 0xFF04,
-        encoder: Enums.Capability
+        encoder: Enums.Capabilities
       ],
       explicit_objectids: [
         code: 0xFF05

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatype do
+  @moduledoc false
+
   @callback encode_datatype(term()) :: iodata()
   @callback decode_datatype(bitstring()) :: {term(), bitstring()}
 

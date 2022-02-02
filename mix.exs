@@ -1,10 +1,12 @@
 defmodule EdgeDB.MixProject do
   use Mix.Project
 
+  @version "0.0.0"
+
   def project do
     [
       app: :edgedb,
-      version: "0.0.0",
+      version: @version,
       elixir: "~> 1.10",
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -25,7 +27,10 @@ defmodule EdgeDB.MixProject do
         plt_add_apps: [:ex_unit],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
       ],
-      aliases: aliases()
+      aliases: aliases(),
+      name: "EdgeDB",
+      description: "EdgeDB driver for Elixir",
+      docs: docs()
     ]
   end
 
@@ -48,10 +53,41 @@ defmodule EdgeDB.MixProject do
       {:decimal, "~> 2.0"},
       {:jason, "~> 1.2", optional: true},
       # dev/test
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.14", only: :test},
       {:mox, "~> 1.0", only: :test}
+    ]
+  end
+
+  defp docs do
+    [
+      source_url: "https://github.com/nsidnev/edgedb-elixir",
+      source_ref: "v#{@version}",
+      main: "main",
+      extras: [
+        "pages/main.md",
+        "pages/usage.md",
+        "pages/datatypes.md",
+        "pages/custom-codecs.md",
+        "CHANGELOG.md"
+      ],
+      groups_for_modules: [
+        "EdgeDB types": [
+          EdgeDB.Object,
+          EdgeDB.Set,
+          EdgeDB.NamedTuple,
+          EdgeDB.RelativeDuration,
+          EdgeDB.ConfigMemory
+        ],
+        Protocol: [
+          EdgeDB.Protocol.Codec,
+          EdgeDB.Protocol.Enums.Cardinality,
+          EdgeDB.Protocol.Enums.Capabilities,
+          EdgeDB.Protocol.Enums.IOFormat
+        ]
+      ]
     ]
   end
 

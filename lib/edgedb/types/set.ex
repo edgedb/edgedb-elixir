@@ -1,13 +1,43 @@
 defmodule EdgeDB.Set do
+  @moduledoc """
+  A representation of an immutable set of values returned by a query.
+    Nested sets in the result are also returned as `EdgeDB.Set` objects.
+
+  `EdgeDB.Set` implements `Enumerable` protocol for iterating over set values.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> %EdgeDB.Set{} =
+  iex(2)>  EdgeDB.query!(pid, "
+  ...(2)>   SELECT schema::ObjectType{
+  ...(2)>     name
+  ...(2)>   }
+  ...(2)>   FILTER .name IN {'std::BaseObject', 'std::Object', 'std::FreeObject'}
+  ...(2)>   ORDER BY .name
+  ...(2)>  ")
+  #EdgeDB.Set<{#EdgeDB.Object<name := "std::BaseObject">, #EdgeDB.Object<name := "std::FreeObject">, #EdgeDB.Object<name := "std::Object">}>
+  ```
+  """
+
   defstruct [
     :__items__
   ]
 
-  @opaque set() :: %__MODULE__{
-            __items__: MapSet.t()
-          }
-  @type t() :: %__MODULE__{}
+  @typedoc """
+  A representation of an immutable set of values returned by a query.
+  """
+  @opaque t() :: %__MODULE__{}
 
+  @doc """
+  Check if set is empty.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> %EdgeDB.Set{} = set = EdgeDB.query!(pid, "SELECT Ticket")
+  iex(3)> EdgeDB.Set.empty?(set)
+  true
+  ```
+  """
   @spec empty?(t()) :: boolean()
 
   def empty?(%__MODULE__{__items__: []}) do

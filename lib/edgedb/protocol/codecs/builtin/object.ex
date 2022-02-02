@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
+  @moduledoc false
+
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.{
@@ -8,7 +10,20 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
 
   @empty_set %EdgeDB.Set{__items__: MapSet.new()}
 
-  defcodec(type: EdgeDB.Object.t() | list() | Keyword.t())
+  @type object_field() :: %EdgeDB.Object.Field{
+          name: String.t(),
+          value: any(),
+          is_link: boolean(),
+          is_link_property: boolean(),
+          is_implicit: boolean()
+        }
+  @type object() :: %EdgeDB.Object{
+          __fields__: list(object_field()),
+          __tid__: Datatypes.UUID.t() | nil,
+          id: Datatypes.UUID.t() | nil
+        }
+
+  defcodec(type: object() | list() | Keyword.t())
 
   @spec new(Datatypes.UUID.t(), list(Types.ShapeElement.t()), list(Codec.t())) :: Codec.t()
   def new(type_id, shape_elements, codecs) do
@@ -57,7 +72,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
           bitstring(),
           list(Types.ShapeElement.t()),
           list(Codec.t())
-        ) :: EdgeDB.Object.t()
+        ) :: object()
   def decode_object(
         <<nelems::int32, elements_data::binary>>,
         object_shape_elements,
@@ -189,17 +204,17 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
 
   defp make_wrong_arguments_error_message(required_args, passed_args, missed_args, extra_args) do
     error_message = "exptected #{MapSet.to_list(required_args)} keyword arguments"
-    error_message = "#{error_message}, got #{MapSet.to_list(passed_args)}"
+    error_message = "#{error_message}, got #{inspect(MapSet.to_list(passed_args))}"
 
     error_message =
       if MapSet.size(missed_args) != 0 do
-        "#{error_message}, missed #{MapSet.to_list(missed_args)}"
+        "#{error_message}, missed #{inspect(MapSet.to_list(missed_args))}"
       else
         error_message
       end
 
     if MapSet.size(extra_args) != 0 do
-      "#{error_message}, missed #{MapSet.to_list(extra_args)}"
+      "#{error_message}, missed #{inspect(MapSet.to_list(extra_args))}"
     else
       error_message
     end

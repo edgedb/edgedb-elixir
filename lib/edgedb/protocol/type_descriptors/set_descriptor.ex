@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.TypeDescriptors.SetDescriptor do
+  @moduledoc false
+
   use EdgeDB.Protocol.TypeDescriptor
 
   alias EdgeDB.Protocol.Codecs

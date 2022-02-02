@@ -1,4 +1,6 @@
 defmodule EdgeDB.Subtransaction do
+  @moduledoc false
+
   use DBConnection
 
   alias EdgeDB.Connection.{
@@ -10,6 +12,8 @@ defmodule EdgeDB.Subtransaction do
   alias EdgeDB.Subtransaction.State
 
   defmodule State do
+    @moduledoc false
+
     defstruct [
       :conn,
       conn_state: :not_in_transaction,

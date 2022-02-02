@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.LocalDate do
+  @moduledoc false
+
   use EdgeDB.Protocol.Codec
 
   alias EdgeDB.Protocol.Datatypes

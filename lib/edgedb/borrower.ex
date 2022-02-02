@@ -1,7 +1,7 @@
 defmodule EdgeDB.Borrower do
-  use GenServer
+  @moduledoc false
 
-  alias EdgeDB.Error
+  use GenServer
 
   @reasons_to_borrow ~w(
     transaction
@@ -9,6 +9,8 @@ defmodule EdgeDB.Borrower do
   )a
 
   defmodule State do
+    @moduledoc false
+
     defstruct borrowed: %{}
 
     @type t() :: %__MODULE__{
@@ -84,11 +86,11 @@ defmodule EdgeDB.Borrower do
   end
 
   defp error_for_reason(:transaction) do
-    Error.interface_error("connection is already borrowed for transaction")
+    EdgeDB.Error.interface_error("connection is already borrowed for transaction")
   end
 
   defp error_for_reason(:subtransaction) do
-    Error.interface_error("connection is already borrowed for subtransaction")
+    EdgeDB.Error.interface_error("connection is already borrowed for subtransaction")
   end
 
   defp execute_on_borrowed(conn, callback) do
