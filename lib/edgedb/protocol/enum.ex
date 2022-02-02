@@ -54,17 +54,16 @@ defmodule EdgeDB.Protocol.Enum do
   end
 
   defp define_typespec(values, union) do
-    main_spec =
-      Enum.reduce(values, nil, fn
-        {name, code}, nil ->
-          quote do
-            unquote(name) | unquote(code)
-          end
+    atoms = Keyword.keys(values)
+    codes = Keyword.values(values)
+    values = atoms ++ codes
 
-        {name, code}, acc ->
-          quote do
-            unquote(acc) | unquote(name) | unquote(code)
-          end
+    main_spec =
+      values
+      |> Enum.reverse()
+      |> Enum.reduce(fn
+        value, acc ->
+          {:|, [], [value, acc]}
       end)
 
     if union do

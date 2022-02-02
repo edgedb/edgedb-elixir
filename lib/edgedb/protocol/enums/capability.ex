@@ -53,6 +53,17 @@ defmodule EdgeDB.Protocol.Enums.Capability do
       end)
       |> Enum.reject(&is_nil(&1))
 
+    # if after processing we get an empty list then capabilities is 0
+    # which corresonds to :readonly capability
+    capabilities =
+      case capabilities do
+        [] ->
+          [:readonly]
+
+        capabilities ->
+          capabilities
+      end
+
     {capabilities, rest}
   end
 

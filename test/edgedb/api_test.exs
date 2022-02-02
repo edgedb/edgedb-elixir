@@ -15,6 +15,41 @@ defmodule Tests.APITest do
     end
   end
 
+  describe "EdgeDB.query/4 for readonly queries" do
+    setup :reconnectable_edgedb_connection
+
+    test "retries failed query", %{conn: conn, pid: conn_pid} do
+      test_pid = self()
+
+      %{
+        mod_state: %{
+          state: %EdgeDB.Connection.State{
+            socket: socket
+          }
+        }
+      } = :sys.get_state(conn_pid)
+
+      EdgeDB.query!(conn, "SELECT Ticket")
+
+      :ssl.close(socket)
+
+      assert %EdgeDB.Set{} =
+               EdgeDB.query!(conn, "SELECT Ticket", [],
+                 retry: [
+                   network_error: [
+                     attempts: 1,
+                     backoff: fn attempt ->
+                       send(test_pid, {:attempt, attempt})
+                       0
+                     end
+                   ]
+                 ]
+               )
+
+      assert_receive {:attempt, 1}
+    end
+  end
+
   describe "EdgeDB.query_json/4" do
     test "returns decoded JSON on succesful query", %{conn: conn} do
       assert {:ok, "[{\"number\" : 1}]"} = EdgeDB.query_json(conn, "SELECT { number := 1 }")

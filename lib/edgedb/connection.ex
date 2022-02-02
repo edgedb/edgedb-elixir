@@ -187,12 +187,30 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_execute(%EdgeDB.Query{cached: true} = query, params, opts, state) do
-    optimistic_execute_query(query, params, opts, state)
+    case optimistic_execute_query(query, params, opts, state) do
+      {:ok, query, result, state} ->
+        {:ok, query, result, state}
+
+      {reason, %Error{query: nil} = exc, state} ->
+        {reason, %Error{exc | query: query}, state}
+
+      {reason, exc, state} ->
+        {reason, exc, state}
+    end
   end
 
   @impl DBConnection
   def handle_execute(%EdgeDB.Query{} = query, params, opts, state) do
-    execute_query(query, params, opts, state)
+    case execute_query(query, params, opts, state) do
+      {:ok, query, result, state} ->
+        {:ok, query, result, state}
+
+      {reason, %Error{query: nil} = exc, state} ->
+        {reason, %Error{exc | query: query}, state}
+
+      {reason, exc, state} ->
+        {reason, exc, state}
+    end
   end
 
   @impl DBConnection
@@ -612,13 +630,14 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_prepare_query_flow(
-         %EdgeDB.Query{cardinality: :one},
-         %PrepareComplete{cardinality: :no_result},
+         %EdgeDB.Query{cardinality: :one} = query,
+         %PrepareComplete{cardinality: :no_result, headers: %{capabilities: capabilities}},
          state
        ) do
     exc =
       Error.cardinality_violation_error(
-        "can't execute query since expected single result and query doesn't return any data"
+        "can't execute query since expected single result and query doesn't return any data",
+        query: %EdgeDB.Query{query | capabilities: capabilities}
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
@@ -628,16 +647,25 @@ defmodule EdgeDB.Connection do
 
   defp handle_prepare_query_flow(
          query,
-         %PrepareComplete{input_typedesc_id: in_id, output_typedesc_id: out_id},
+         %PrepareComplete{
+           input_typedesc_id: in_id,
+           output_typedesc_id: out_id,
+           headers: %{capabilities: capabilities}
+         },
          state
        ) do
     with {:ok, state} <- wait_for_server_ready(state) do
-      maybe_describe_codecs(query, in_id, out_id, state)
+      maybe_describe_codecs(
+        %EdgeDB.Query{query | capabilities: capabilities},
+        in_id,
+        out_id,
+        state
+      )
     end
   end
 
-  defp handle_prepare_query_flow(_query, %ErrorResponse{} = message, state) do
-    with {:error, exc, state} <- handle_error_response(message, state),
+  defp handle_prepare_query_flow(query, %ErrorResponse{} = message, state) do
+    with {:error, exc, state} <- handle_error_response(message, state, query: query),
          {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
@@ -671,13 +699,14 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_describe_query_flow(
-         %EdgeDB.Query{cardinality: :one},
+         %EdgeDB.Query{cardinality: :one} = query,
          %CommandDataDescription{result_cardinality: :no_result},
          state
        ) do
     exc =
       Error.cardinality_violation_error(
-        "can't execute query since expected single result and query doesn't return any data"
+        "can't execute query since expected single result and query doesn't return any data",
+        query: query
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
@@ -699,8 +728,8 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_describe_query_flow(_query, %ErrorResponse{} = message, state) do
-    with {:error, exc, state} <- handle_error_response(message, state),
+  defp handle_describe_query_flow(query, %ErrorResponse{} = message, state) do
+    with {:error, exc, state} <- handle_error_response(message, state, query: query),
          {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
@@ -742,16 +771,17 @@ defmodule EdgeDB.Connection do
   defp handle_execute_flow(
          query,
          %EdgeDB.Result{} = result,
-         %CommandComplete{status: status},
+         %CommandComplete{status: status, headers: %{capabilities: capabilities}},
          state
        ) do
     with {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, query, %EdgeDB.Result{result | statement: status}, state}
+      {:ok, %EdgeDB.Query{query | capabilities: capabilities},
+       %EdgeDB.Result{result | statement: status}, state}
     end
   end
 
-  defp handle_execute_flow(_query, _result, %ErrorResponse{} = message, state) do
-    with {:error, exc, state} <- handle_error_response(message, state),
+  defp handle_execute_flow(query, _result, %ErrorResponse{} = message, state) do
+    with {:error, exc, state} <- handle_error_response(message, state, query: query),
          {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
@@ -781,7 +811,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_optimistic_execute_flow(
-         %EdgeDB.Query{cardinality: :one},
+         %EdgeDB.Query{cardinality: :one} = query,
          _result,
          %CommandDataDescription{result_cardinality: :no_result},
          _opts,
@@ -789,7 +819,8 @@ defmodule EdgeDB.Connection do
        ) do
     exc =
       Error.cardinality_violation_error(
-        "can't execute query since expected single result and query doesn't return any data"
+        "can't execute query since expected single result and query doesn't return any data",
+        query: query
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
@@ -818,8 +849,8 @@ defmodule EdgeDB.Connection do
     handle_execute_flow(query, result, message, state)
   end
 
-  defp handle_optimistic_execute_flow(_query, _result, %ErrorResponse{} = message, _opts, state) do
-    with {:error, exc, state} <- handle_error_response(message, state),
+  defp handle_optimistic_execute_flow(query, _result, %ErrorResponse{} = message, _opts, state) do
+    with {:error, exc, state} <- handle_error_response(message, state, query: query),
          {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
     end
@@ -902,9 +933,16 @@ defmodule EdgeDB.Connection do
            message: message,
            attributes: attributes
          },
-         state
+         state,
+         opts \\ []
        ) do
-    exc = Error.exception(message, code: code, attributes: Enum.into(attributes, %{}))
+    exc =
+      Error.exception(message,
+        code: code,
+        attributes: Enum.into(attributes, %{}),
+        query: opts[:query]
+      )
+
     {:error, exc, state}
   end
 
