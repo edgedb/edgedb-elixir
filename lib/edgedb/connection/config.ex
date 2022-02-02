@@ -17,9 +17,7 @@ defmodule EdgeDB.Connection.Config do
   @path_module Application.compile_env(:edgedb, :path_module, Path)
   @system_module Application.compile_env(:edgedb, :system_module, System)
 
-  @type connect_options() :: list(EdgeDB.connect_option())
-
-  @spec connect_opts(connect_options()) :: connect_options()
+  @spec connect_opts(Keyword.t()) :: Keyword.t()
   def connect_opts(opts) do
     {dsn, instance_name} =
       with {:ok, dsn} <- Keyword.fetch(opts, :dsn),

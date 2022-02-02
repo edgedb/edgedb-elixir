@@ -41,6 +41,7 @@ defmodule EdgeDB do
   @type query_option() ::
           {:cardinality, Enums.Cardinality.t()}
           | {:io_format, Enums.IOFormat.t()}
+          | {:retry, list(retry_option())}
           | DBConnection.option()
 
   @type edgedb_transaction_option() ::
@@ -356,32 +357,84 @@ defmodule EdgeDB do
   defp prepare_execute_query(conn, query, params, opts) do
     EdgeDB.Borrower.ensure_unborrowed!(conn)
 
-    with {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} <-
-           DBConnection.prepare_execute(conn, query, params, opts) do
-      cond do
-        opts[:raw] ->
-          {:ok, {q, r}}
-
-        opts[:io_format] == :json ->
-          # in result set there will be only a single value
-
-          result =
-            r
-            |> Map.put(:cardinality, :at_most_one)
-            |> EdgeDB.Result.extract()
-
-          case result do
-            {:ok, nil} ->
-              {:ok, "null"}
-
-            other ->
-              other
-          end
-
-        true ->
-          EdgeDB.Result.extract(r)
-      end
+    with {:ok, _query, retry_opts} <-
+           DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []) do
+      retry_opts = Keyword.merge(retry_opts, opts[:retry] || [])
+      prepare_execute_query(1, conn, query, params, Keyword.merge(opts, retry: retry_opts))
     end
+  end
+
+  defp prepare_execute_query(attempt, conn, query, params, opts) do
+    case DBConnection.prepare_execute(conn, query, params, opts) do
+      {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} ->
+        handle_query_result(q, r, opts)
+
+      {:error, %Error{} = exc} ->
+        maybe_retry_readonly_query(attempt, exc, conn, query, params, opts)
+
+      {:error, exc} ->
+        {:error, exc}
+    end
+  end
+
+  defp handle_query_result(query, result, opts) do
+    cond do
+      opts[:raw] ->
+        {:ok, {query, result}}
+
+      opts[:io_format] == :json ->
+        # in result set there will be only a single value
+
+        extracting_result =
+          result
+          |> Map.put(:cardinality, :at_most_one)
+          |> EdgeDB.Result.extract()
+
+        case extracting_result do
+          {:ok, nil} ->
+            {:ok, "null"}
+
+          other ->
+            other
+        end
+
+      true ->
+        EdgeDB.Result.extract(result)
+    end
+  end
+
+  # queries in transaction should be retried using EdgeDB.transaction/3
+  defp maybe_retry_readonly_query(
+         _attempt,
+         exc,
+         %DBConnection{conn_mode: :transaction},
+         _query,
+         _params,
+         _opts
+       ) do
+    {:error, exc}
+  end
+
+  defp maybe_retry_readonly_query(
+         attempt,
+         %Error{query: %EdgeDB.Query{capabilities: capabilities}} = exc,
+         conn,
+         query,
+         params,
+         opts
+       ) do
+    with true <- :readonly in capabilities,
+         {:ok, backoff} <- retry?(exc, attempt, opts[:retry] || []) do
+      Process.sleep(backoff)
+      prepare_execute_query(attempt + 1, conn, query, params, opts)
+    else
+      _other ->
+        {:error, exc}
+    end
+  end
+
+  defp maybe_retry_readonly_query(_attempt, exc, _conn, _query, _params, _opts) do
+    {:error, exc}
   end
 
   defp retrying_transaction(conn, callback, opts) do
@@ -395,7 +448,7 @@ defmodule EdgeDB do
     DBConnection.transaction(conn, callback, retry_opts)
   rescue
     exc in Error ->
-      case maybe_retry(exc, attempt, retry_opts) do
+      case retry?(exc, attempt, retry_opts) do
         {:ok, backoff} ->
           Process.sleep(backoff)
           retrying_transaction(attempt + 1, conn, callback, retry_opts)
@@ -408,7 +461,7 @@ defmodule EdgeDB do
       reraise exc, __STACKTRACE__
   end
 
-  defp maybe_retry(exception, attempt, retry_opts) do
+  defp retry?(exception, attempt, retry_opts) do
     rule = rule_for_retry(exception, retry_opts)
 
     if Error.retry?(exception) and attempt <= rule[:attempts] do

@@ -31,6 +31,23 @@ defmodule Tests.Support.EdgeDBCase do
     %{conn: conn}
   end
 
+  @spec reconnectable_edgedb_connection(term()) :: map()
+  def reconnectable_edgedb_connection(_context) do
+    spec =
+      EdgeDB.child_spec(
+        show_sensitive_data_on_connection_error: true,
+        connection_listeners: [self()]
+      )
+
+    spec = %{spec | id: "reconnectable_edgedb_connection"}
+
+    {:ok, conn} = start_supervised(spec)
+
+    assert_receive {:connected, conn_pid}, 1000
+
+    %{conn: conn, pid: conn_pid}
+  end
+
   @spec rollback(EdgeDB.connection(), (EdgeDB.connection() -> any())) :: :ok
   def rollback(conn, callback) do
     assert {:error, :expected} =

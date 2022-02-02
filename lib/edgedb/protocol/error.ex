@@ -4,7 +4,8 @@ defmodule EdgeDB.Protocol.Error do
     :name,
     :code,
     attributes: %{},
-    tags: []
+    tags: [],
+    query: nil
   ]
 
   @tags_to_atoms %{
@@ -21,6 +22,7 @@ defmodule EdgeDB.Protocol.Error do
   @type option() ::
           {:code, integer()}
           | {:attributes, map()}
+          | {:query, EdgeDB.Query.t()}
   @type options() :: list(option())
   @type tag() :: :should_retry | :should_reconnect
   @type t() :: %__MODULE__{
@@ -28,20 +30,23 @@ defmodule EdgeDB.Protocol.Error do
           name: String.t(),
           code: integer(),
           attributes: map(),
-          tags: list(tag())
+          tags: list(tag()),
+          query: EdgeDB.Query.t() | nil
         }
 
   @impl Exception
   def exception(message, opts \\ []) do
     code = Keyword.get(opts, :code)
     attributes = Keyword.get(opts, :attributes, %{})
+    query = opts[:query]
 
     %__MODULE__{
       message: message,
       name: name_from_code(code),
       code: code,
       attributes: attributes,
-      tags: tags_for_error(code)
+      tags: tags_for_error(code),
+      query: query
     }
   end
 
