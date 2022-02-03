@@ -9,6 +9,6 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.SetTest do
   end
 
   defp new_set(elements) do
-    %EdgeDB.Set{__items__: MapSet.new(elements)}
+    %EdgeDB.Set{__items__: elements}
   end
 end
