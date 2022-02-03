@@ -1,7 +1,7 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Int32Test do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
+  alias EdgeDB.Error
 
   setup :edgedb_connection
 

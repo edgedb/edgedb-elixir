@@ -1,7 +1,7 @@
 defmodule EdgeDB.NamedTuple do
   @behaviour Access
 
-  alias EdgeDB.Protocol.Error
+  alias EdgeDB.Error
 
   defstruct [
     :__fields_ordering__,

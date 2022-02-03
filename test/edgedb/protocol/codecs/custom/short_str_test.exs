@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Custom.ShortStrTest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   alias Tests.Support.Codecs
 
   setup do
@@ -30,10 +28,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Custom.ShortStrTest do
     value = "too long string"
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <short_str>$0", [value])
       end
 
-    assert exc == Error.invalid_argument_error("string is too long")
+    assert exc == EdgeDB.Error.invalid_argument_error("string is too long")
   end
 end

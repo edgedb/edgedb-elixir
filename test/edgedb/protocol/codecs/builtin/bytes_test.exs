@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BytesTest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   test "decoding std::bytes value", %{conn: conn} do
@@ -19,10 +17,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BytesTest do
     value = 42
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <bytes>$0", [value])
       end
 
-    assert exc == Error.invalid_argument_error("unable to encode #{value} as std::bytes")
+    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as std::bytes")
   end
 end

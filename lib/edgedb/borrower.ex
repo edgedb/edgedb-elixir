@@ -1,7 +1,7 @@
 defmodule EdgeDB.Borrower do
   use GenServer
 
-  alias EdgeDB.Protocol.Error
+  alias EdgeDB.Error
 
   @reasons_to_borrow ~w(
     transaction

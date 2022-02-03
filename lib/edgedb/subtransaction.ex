@@ -6,11 +6,7 @@ defmodule EdgeDB.Subtransaction do
     QueryBuilder
   }
 
-  alias EdgeDB.Protocol.{
-    Enums,
-    Error
-  }
-
+  alias EdgeDB.Protocol.Enums
   alias EdgeDB.Subtransaction.State
 
   defmodule State do
@@ -57,7 +53,7 @@ defmodule EdgeDB.Subtransaction do
 
   @impl DBConnection
   def handle_close(_query, _opts, state) do
-    exc = Error.interface_error("handle_close/4 callback hasn't been implemented")
+    exc = EdgeDB.Error.interface_error("handle_close/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -74,13 +70,13 @@ defmodule EdgeDB.Subtransaction do
 
   @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
-    exc = Error.interface_error("handle_deallocate/4 callback hasn't been implemented")
+    exc = EdgeDB.Error.interface_error("handle_deallocate/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
-    exc = Error.interface_error("handle_declare/4 callback hasn't been implemented")
+    exc = EdgeDB.Error.interface_error("handle_declare/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -139,7 +135,7 @@ defmodule EdgeDB.Subtransaction do
 
   @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
-    exc = Error.interface_error("handle_fetch/4 callback hasn't been implemented")
+    exc = EdgeDB.Error.interface_error("handle_fetch/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 

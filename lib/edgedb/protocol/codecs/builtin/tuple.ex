@@ -3,7 +3,6 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Tuple do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Error,
     Types
   }
 
@@ -29,7 +28,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Tuple do
     expected_length = length(codecs)
     passed_length = tuple_size(instance)
 
-    raise Error.invalid_argument_error(
+    raise EdgeDB.Error.invalid_argument_error(
             "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
           )
   end
@@ -45,7 +44,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Tuple do
     expected_length = length(codecs)
     passed_length = length(instance)
 
-    raise Error.invalid_argument_error(
+    raise EdgeDB.Error.invalid_argument_error(
             "wrong tuple size for encoding: expected #{expected_length}, passed #{passed_length}"
           )
   end

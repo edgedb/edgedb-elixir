@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ConfigMemoryTest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   test "decoding cfg::memory value", %{conn: conn} do
@@ -30,22 +28,24 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ConfigMemoryTest do
     value = 0x8000000000000000
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <cfg::memory>$0", [value])
       end
 
-    assert exc == Error.invalid_argument_error("unable to encode #{value} as cfg::memory")
+    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as cfg::memory")
   end
 
   test "error when passing invalid entity as cfg::memory argument", %{conn: conn} do
     value = "42KiB"
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <cfg::memory>$0", [value])
       end
 
     assert exc ==
-             Error.invalid_argument_error("unable to encode #{inspect(value)} as cfg::memory")
+             EdgeDB.Error.invalid_argument_error(
+               "unable to encode #{inspect(value)} as cfg::memory"
+             )
   end
 end

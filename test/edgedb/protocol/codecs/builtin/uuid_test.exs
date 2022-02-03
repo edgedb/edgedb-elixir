@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.UUIDTest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   test "decoding std::uuid value", %{conn: conn} do
@@ -17,10 +15,11 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.UUIDTest do
 
   test "error when passing non UUID as std::uuid argument", %{conn: conn} do
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <uuid>$0", ["something"])
       end
 
-    assert exc == Error.invalid_argument_error("unable to encode \"something\" as std::uuid")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error("unable to encode \"something\" as std::uuid")
   end
 end

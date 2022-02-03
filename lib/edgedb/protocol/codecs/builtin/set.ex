@@ -4,7 +4,6 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
   alias EdgeDB.Protocol.{
     Codecs,
     Datatypes,
-    Error,
     Types
   }
 
@@ -31,7 +30,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
 
   @spec encode_set(t()) :: no_return()
   def encode_set(%EdgeDB.Set{}) do
-    raise Error.invalid_argument_error("set cann't be encoded")
+    raise EdgeDB.Error.invalid_argument_error("set cann't be encoded")
   end
 
   @spec decode_set(bitstring(), Codec.t()) :: t()

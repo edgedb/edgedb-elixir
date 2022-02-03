@@ -1,10 +1,7 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.Null do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.{
-    Datatypes,
-    Error
-  }
+  alias EdgeDB.Protocol.Datatypes
 
   defbuiltinscalarcodec(
     type_id: Datatypes.UUID.from_string("00000000-0000-0000-0000-000000000000"),
@@ -19,6 +16,6 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Null do
 
   @impl EdgeDB.Protocol.Codec
   def decode_instance(_data) do
-    raise Error.invalid_argument_error("null can't be decoded by client")
+    raise EdgeDB.Error.invalid_argument_error("null can't be decoded by client")
   end
 end

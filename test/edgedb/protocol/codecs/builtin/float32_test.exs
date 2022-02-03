@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Flaot32Test do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   test "decoding std::float32 value", %{conn: conn} do
@@ -49,10 +47,11 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Flaot32Test do
     value = "something"
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <float32>$0", [value])
       end
 
-    assert exc == Error.invalid_argument_error("unable to encode \"something\" as std::float32")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error("unable to encode \"something\" as std::float32")
   end
 end

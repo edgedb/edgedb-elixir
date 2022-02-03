@@ -3,7 +3,6 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Array do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Error,
     Types
   }
 
@@ -38,7 +37,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Array do
 
   def encode_array(instance, dimensions, codec) when is_list(instance) do
     if Keyword.keyword?(instance) do
-      raise Error.invalid_argument_error(
+      raise EdgeDB.Error.invalid_argument_error(
               "unable to encode keyword list #{inspect(instance)} as array"
             )
     end
@@ -71,7 +70,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Array do
     {parsed_dimensions, rest} = Types.Dimension.decode(ndims, rest)
 
     if length(parsed_dimensions) != length(expected_dimensions) do
-      raise Error.invalid_argument_error(
+      raise EdgeDB.Error.invalid_argument_error(
               "unable to decode binary data as array: parsed dimensions count don't match expected dimensions count"
             )
     end

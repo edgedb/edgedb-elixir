@@ -3,8 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.BigInt do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    Datatypes,
-    Error
+    Datatypes
   }
 
   @reserved 0
@@ -17,14 +16,14 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.BigInt do
 
   @impl EdgeDB.Protocol.Codec
   def encode_instance(%Decimal{exp: exp} = number) when exp != 0 do
-    raise Error.invalid_argument_error(
+    raise EdgeDB.Error.invalid_argument_error(
             "unable to encode #{inspect(number)} as #{type_name()}: bigint numbers can't contain exponent"
           )
   end
 
   @impl EdgeDB.Protocol.Codec
   def encode_instance(number) when is_float(number) do
-    raise Error.invalid_argument_error(
+    raise EdgeDB.Error.invalid_argument_error(
             "unable to encode #{inspect(number)} as #{type_name()}: floats can't be encoded"
           )
   end
