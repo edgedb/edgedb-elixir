@@ -8,9 +8,13 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
     Types
   }
 
-  @empty_set %EdgeDB.Set{__items__: MapSet.new()}
+  @empty_set %EdgeDB.Set{__items__: []}
 
-  defcodec(type: EdgeDB.Set.t())
+  @type set() :: %EdgeDB.Set{
+          __items__: list()
+        }
+
+  defcodec(type: set())
 
   @spec new(Datatypes.UUID.t(), Codec.t()) :: Codec.t()
   def new(type_id, codec) do
@@ -75,6 +79,6 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Set do
   end
 
   defp create_set(elements) do
-    %EdgeDB.Set{__items__: MapSet.new(elements)}
+    %EdgeDB.Set{__items__: elements}
   end
 end

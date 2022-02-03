@@ -8,31 +8,37 @@ defmodule EdgeDB.Set do
           }
   @type t() :: %__MODULE__{}
 
-  @spec empty?(set()) :: boolean()
-  def empty?(%__MODULE__{__items__: items}) do
-    MapSet.size(items) == 0
+  @spec empty?(t()) :: boolean()
+
+  def empty?(%__MODULE__{__items__: []}) do
+    true
+  end
+
+  def empty?(%__MODULE__{}) do
+    false
   end
 end
 
 defimpl Enumerable, for: EdgeDB.Set do
   @impl Enumerable
   def count(%EdgeDB.Set{__items__: items}) do
-    Enumerable.count(items)
+    {:ok, length(items)}
   end
 
   @impl Enumerable
   def member?(%EdgeDB.Set{__items__: items}, element) do
-    Enumerable.member?(items, element)
+    {:ok, Enum.member?(items, element)}
   end
 
   @impl Enumerable
   def reduce(%EdgeDB.Set{__items__: items}, acc, fun) do
-    Enumerable.reduce(items, acc, fun)
+    Enumerable.List.reduce(items, acc, fun)
   end
 
   @impl Enumerable
   def slice(%EdgeDB.Set{__items__: items}) do
-    Enumerable.slice(items)
+    set_length = length(items)
+    {:ok, set_length, &Enumerable.List.slice(items, &1, &2, set_length)}
   end
 end
 

@@ -35,7 +35,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
     Error
   }
 
-  @empty_set %EdgeDB.Set{__items__: MapSet.new()}
+  @empty_set %EdgeDB.Set{__items__: []}
 
   @impl DBConnection.Query
   def decode(%EdgeDB.Query{}, %EdgeDB.Result{set: %EdgeDB.Set{}} = result, _opts) do
@@ -90,9 +90,16 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
       element = Codec.decode(codec, data)
       %EdgeDB.Result{result | set: add_element_into_set(set, element)}
     end)
+    |> then(fn %EdgeDB.Result{set: set} = result ->
+      %EdgeDB.Result{result | set: reverse_elements_in_set(set)}
+    end)
   end
 
   defp add_element_into_set(%EdgeDB.Set{__items__: items} = set, element) do
-    %EdgeDB.Set{set | __items__: MapSet.put(items, element)}
+    %EdgeDB.Set{set | __items__: [element | items]}
+  end
+
+  defp reverse_elements_in_set(%EdgeDB.Set{__items__: items} = set) do
+    %EdgeDB.Set{set | __items__: Enum.reverse(items)}
   end
 end
