@@ -3,7 +3,6 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
 
   alias EdgeDB.Protocol.{
     Datatypes,
-    Error,
     Types
   }
 
@@ -32,7 +31,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
           list(Codec.t())
         ) :: no_return()
   def encode_object(%EdgeDB.Object{}, _elements, _codecs) do
-    raise Error.invalid_argument_error("objects can't be encoded")
+    raise EdgeDB.Error.invalid_argument_error("objects can't be encoded")
   end
 
   @spec encode_object(
@@ -78,7 +77,9 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
       value = arguments[name]
 
       if is_nil(value) and (cardinality == :one or cardinality == :at_least_one) do
-        raise Error.invalid_argument_error("argument #{name} is required, but received nil")
+        raise EdgeDB.Error.invalid_argument_error(
+                "argument #{name} is required, but received nil"
+              )
       end
 
       {value, codec}
@@ -150,7 +151,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
       err =
         required_keys
         |> make_wrong_arguments_error_message(passed_keys, missed_keys, extra_keys)
-        |> Error.query_argument_error()
+        |> EdgeDB.Error.query_argument_error()
 
       raise err
     end

@@ -1,6 +1,4 @@
 defmodule EdgeDB.Connection.Config do
-  alias EdgeDB.Protocol.Error
-
   alias EdgeDB.Connection.Config.{
     Credentials,
     DSN,
@@ -77,7 +75,7 @@ defmodule EdgeDB.Connection.Config do
       end
 
     if opts[:tls_ca] && opts[:tls_ca_file] do
-      raise Error.client_connection_error("tls_ca and tls_ca_file are mutually exclusive")
+      raise EdgeDB.Error.client_connection_error("tls_ca and tls_ca_file are mutually exclusive")
     end
 
     opts
@@ -110,7 +108,7 @@ defmodule EdgeDB.Connection.Config do
         {:halt, resolved_opts}
 
       _other ->
-        raise Error.client_connection_error(
+        raise EdgeDB.Error.client_connection_error(
                 "can not have more than one of the following connection options: " <>
                   ":dsn, :credentials, :credentials_file or :host/:port"
               )
@@ -126,7 +124,7 @@ defmodule EdgeDB.Connection.Config do
         {:halt, resolved_opts}
 
       _other ->
-        raise Error.client_connection_error(
+        raise EdgeDB.Error.client_connection_error(
                 "can not have more than one of the following connection options in config: " <>
                   ":dsn, :credentials_file :host/:port"
               )
@@ -142,7 +140,7 @@ defmodule EdgeDB.Connection.Config do
         {:halt, resolved_opts}
 
       _other ->
-        raise Error.client_connection_error(
+        raise EdgeDB.Error.client_connection_error(
                 "can not have more than one of the following connection environment variables:" <>
                   ~s("EDGEDB_DSN", "EDGEDB_INSTANCE", ) <>
                   ~s("EDGEDB_CREDENTIALS_FILE" or "EDGEDB_HOST"/"EDGEDB_PORT")
@@ -155,7 +153,7 @@ defmodule EdgeDB.Connection.Config do
     stash_dir = Credentials.stash_dir(project_dir)
 
     if not @file_module.exists?(stash_dir) do
-      raise Error.client_connection_error(
+      raise EdgeDB.Error.client_connection_error(
               ~s(found "edgedb.toml" but the project is not initialized, run "edgedb project init")
             )
     end
@@ -355,7 +353,7 @@ defmodule EdgeDB.Connection.Config do
       parent = @path_module.dirname(dir)
 
       if parent == dir do
-        raise Error.client_connection_error(
+        raise EdgeDB.Error.client_connection_error(
                 ~s(no "edgedb.toml" found and no connection options specified)
               )
       end
@@ -363,7 +361,7 @@ defmodule EdgeDB.Connection.Config do
       parent_dev = @file_module.stat!(parent).major_device
 
       if parent_dev != dev do
-        raise Error.client_connection_error(
+        raise EdgeDB.Error.client_connection_error(
                 ~s(no "edgedb.toml" found and no connection options specified) <>
                   ~s(stopped searching for "edgedb.toml" at file system boundary #{inspect(dir)})
               )

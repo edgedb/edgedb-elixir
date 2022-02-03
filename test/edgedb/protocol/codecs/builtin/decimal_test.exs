@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.DecimalTest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   test "decoding std::decimal value", %{conn: conn} do
@@ -31,24 +29,26 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.DecimalTest do
     value = <<16, 13, 2, 42>>
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
       end
 
     assert exc ==
-             Error.invalid_argument_error("unable to encode #{inspect(value)} as std::decimal")
+             EdgeDB.Error.invalid_argument_error(
+               "unable to encode #{inspect(value)} as std::decimal"
+             )
   end
 
   test "error when passing non-number Decimal as std::decimal argument", %{conn: conn} do
     value = %Decimal{coef: :inf}
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <decimal>$0", [value])
       end
 
     assert exc ==
-             Error.invalid_argument_error(
+             EdgeDB.Error.invalid_argument_error(
                "unable to encode #{inspect(value)} as std::decimal: coef inf is not a number"
              )
   end

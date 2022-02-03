@@ -1,8 +1,6 @@
 defmodule Tests.APITest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   describe "EdgeDB.query/4" do
@@ -11,7 +9,8 @@ defmodule Tests.APITest do
     end
 
     test "returns error on failed query", %{conn: conn} do
-      assert {:error, %Error{}} = EdgeDB.query(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
+      assert {:error, %EdgeDB.Error{}} =
+               EdgeDB.query(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
     end
   end
 
@@ -62,7 +61,7 @@ defmodule Tests.APITest do
     end
 
     test "raises error on failed query", %{conn: conn} do
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query!(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
       end
     end
@@ -80,7 +79,8 @@ defmodule Tests.APITest do
     end
 
     test "raises error on failed query", %{conn: conn} do
-      {:error, %Error{}} = EdgeDB.query_single(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
+      {:error, %EdgeDB.Error{}} =
+        EdgeDB.query_single(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
     end
   end
 
@@ -90,7 +90,7 @@ defmodule Tests.APITest do
     end
 
     test "raises error on failed query", %{conn: conn} do
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.transaction(conn, fn conn ->
           EdgeDB.query_single!(conn, "SELECT {1, 2, 3}", [], cardinality: :one)
         end)
@@ -104,7 +104,7 @@ defmodule Tests.APITest do
     end
 
     test "raises error on failed query", %{conn: conn} do
-      {:error, %Error{}} = EdgeDB.query_required_single(conn, "SELECT <int64>{}", [])
+      {:error, %EdgeDB.Error{}} = EdgeDB.query_required_single(conn, "SELECT <int64>{}", [])
     end
   end
 
@@ -114,7 +114,7 @@ defmodule Tests.APITest do
     end
 
     test "raises error on failed query", %{conn: conn} do
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_required_single!(conn, "SELECT <int64>{}")
       end
     end
@@ -175,7 +175,7 @@ defmodule Tests.APITest do
     end
 
     test "automaticly rollbacks if error in EdgeDB occured", %{conn: conn} do
-      assert_raise Error, ~r/violates exclusivity constraint/, fn ->
+      assert_raise EdgeDB.Error, ~r/violates exclusivity constraint/, fn ->
         EdgeDB.transaction(conn, fn conn ->
           EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
           EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
@@ -186,7 +186,7 @@ defmodule Tests.APITest do
     end
 
     test "nested transactions raises borrow error", %{conn: conn} do
-      assert_raise Error, ~r/borrowed for transaction/, fn ->
+      assert_raise EdgeDB.Error, ~r/borrowed for transaction/, fn ->
         EdgeDB.transaction(conn, fn conn ->
           EdgeDB.transaction(conn, fn conn ->
             EdgeDB.query!(conn, "SELECT 1")
@@ -196,7 +196,7 @@ defmodule Tests.APITest do
     end
 
     test "forbids using original connection inside", %{conn: conn} do
-      assert_raise Error, ~r/borrowed for transaction/, fn ->
+      assert_raise EdgeDB.Error, ~r/borrowed for transaction/, fn ->
         EdgeDB.transaction(conn, fn _tx_conn ->
           EdgeDB.query!(conn, "SELECT 1")
         end)
@@ -223,7 +223,7 @@ defmodule Tests.APITest do
 
   describe "EdgeDB.subtransaction/2" do
     test "allowed only on connections in transactions", %{conn: conn} do
-      assert_raise Error, ~r/(already in transaction)|(another subtransaction)/, fn ->
+      assert_raise EdgeDB.Error, ~r/(already in transaction)|(another subtransaction)/, fn ->
         EdgeDB.subtransaction(conn, fn _subtx_conn ->
           :ok
         end)
@@ -343,7 +343,7 @@ defmodule Tests.APITest do
     end
 
     test "forbids applying borrowed connections", %{conn: conn} do
-      assert_raise Error, ~r/borrowed for subtransaction/, fn ->
+      assert_raise EdgeDB.Error, ~r/borrowed for subtransaction/, fn ->
         EdgeDB.transaction(conn, fn tx_conn ->
           EdgeDB.subtransaction(tx_conn, fn _subtx_conn ->
             EdgeDB.query!(tx_conn, "SELECT 1")
@@ -351,7 +351,7 @@ defmodule Tests.APITest do
         end)
       end
 
-      assert_raise Error, ~r/borrowed for subtransaction/, fn ->
+      assert_raise EdgeDB.Error, ~r/borrowed for subtransaction/, fn ->
         EdgeDB.transaction(conn, fn tx_conn ->
           EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
             EdgeDB.subtransaction(subtx_conn_1, fn _subtx_conn_2 ->
@@ -376,7 +376,7 @@ defmodule Tests.APITest do
     end
 
     test "rollbacks to outer block if error occured", %{conn: conn} do
-      assert_raise EdgeDB.Protocol.Error, ~r/violates exclusivity constraint/, fn ->
+      assert_raise EdgeDB.Error, ~r/violates exclusivity constraint/, fn ->
         EdgeDB.transaction(conn, fn tx_conn ->
           EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
             EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
@@ -422,7 +422,7 @@ defmodule Tests.APITest do
 
     test "configures connection that will fail for non-readonly requests", %{conn: conn} do
       exc =
-        assert_raise Error, fn ->
+        assert_raise EdgeDB.Error, fn ->
           EdgeDB.query!(conn, "INSERT Ticket")
         end
 
@@ -433,7 +433,7 @@ defmodule Tests.APITest do
       conn: conn
     } do
       exc =
-        assert_raise Error, fn ->
+        assert_raise EdgeDB.Error, fn ->
           EdgeDB.transaction(conn, fn conn ->
             EdgeDB.query!(conn, "INSERT Ticket")
           end)
@@ -459,7 +459,7 @@ defmodule Tests.APITest do
   describe "EdgeDB.with_transaction_options/2" do
     test "accepts options for changing transaction", %{conn: conn} do
       exc =
-        assert_raise Error, ~r/read-only transaction/, fn ->
+        assert_raise EdgeDB.Error, ~r/read-only transaction/, fn ->
           conn
           |> EdgeDB.with_transaction_options(readonly: true)
           |> EdgeDB.transaction(fn conn ->
@@ -478,7 +478,7 @@ defmodule Tests.APITest do
       pid = self()
 
       exc =
-        assert_raise Error, ~r/test error/, fn ->
+        assert_raise EdgeDB.Error, ~r/test error/, fn ->
           conn
           |> EdgeDB.with_retry_options(
             transaction_conflict: [
@@ -491,7 +491,7 @@ defmodule Tests.APITest do
           )
           |> EdgeDB.transaction(fn conn ->
             EdgeDB.query!(conn, "INSERT Ticket{ number := 1 }")
-            raise Error.transaction_conflict_error("test error")
+            raise EdgeDB.Error.transaction_conflict_error("test error")
           end)
         end
 
@@ -510,7 +510,7 @@ defmodule Tests.APITest do
       pid = self()
 
       exc =
-        assert_raise Error, ~r/test error/, fn ->
+        assert_raise EdgeDB.Error, ~r/test error/, fn ->
           conn
           |> EdgeDB.with_retry_options(
             network_error: [
@@ -522,7 +522,7 @@ defmodule Tests.APITest do
           )
           |> EdgeDB.transaction(fn conn ->
             EdgeDB.query!(conn, "INSERT Ticket{ number := 1 }")
-            raise Error.client_connection_failed_temporarily_error("test error")
+            raise EdgeDB.Error.client_connection_failed_temporarily_error("test error")
           end)
         end
 

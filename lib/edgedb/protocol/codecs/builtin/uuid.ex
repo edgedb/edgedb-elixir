@@ -1,10 +1,7 @@
 defmodule EdgeDB.Protocol.Codecs.Builtin.UUID do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.{
-    Datatypes,
-    Error
-  }
+  alias EdgeDB.Protocol.Datatypes
 
   defbuiltinscalarcodec(
     type_name: "std::uuid",
@@ -17,7 +14,9 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.UUID do
     Datatypes.UUID.encode(uuid)
   rescue
     _exc in ArgumentError ->
-      reraise Error.invalid_argument_error("unable to encode #{inspect(uuid)} as #{type_name()}"),
+      reraise EdgeDB.Error.invalid_argument_error(
+                "unable to encode #{inspect(uuid)} as #{type_name()}"
+              ),
               __STACKTRACE__
   end
 

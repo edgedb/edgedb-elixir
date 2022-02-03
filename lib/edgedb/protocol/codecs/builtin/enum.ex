@@ -3,8 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Enum do
 
   alias EdgeDB.Protocol.{
     Codecs,
-    Datatypes,
-    Error
+    Datatypes
   }
 
   # internally enum values are just strings
@@ -34,7 +33,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Enum do
     if value in members do
       Codecs.Builtin.Str.encode_instance(value)
     else
-      raise Error.invalid_argument_error(
+      raise EdgeDB.Error.invalid_argument_error(
               "unable to encode #{inspect(value)} as enum: #{inspect(value)} is not member of enum"
             )
     end

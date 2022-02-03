@@ -1,10 +1,7 @@
 defmodule Tests.Support.Codecs.ShortStr do
   use EdgeDB.Protocol.Codec
 
-  alias EdgeDB.Protocol.{
-    Codecs,
-    Error
-  }
+  alias EdgeDB.Protocol.Codecs
 
   defscalarcodec(
     type_name: "default::short_str",
@@ -19,7 +16,7 @@ defmodule Tests.Support.Codecs.ShortStr do
     if String.length(str) <= 5 do
       Codecs.Builtin.Str.encode_instance(str)
     else
-      raise Error.invalid_argument_error("string is too long")
+      raise EdgeDB.Error.invalid_argument_error("string is too long")
     end
   end
 

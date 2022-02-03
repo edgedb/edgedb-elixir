@@ -1,10 +1,7 @@
 defmodule EdgeDB.Protocol.Codec do
   import EdgeDB.Protocol.Converters
 
-  alias EdgeDB.Protocol.{
-    Datatypes,
-    Error
-  }
+  alias EdgeDB.Protocol.Datatypes
 
   @callback encode_instance(term()) :: iodata()
   @callback decode_instance(bitstring()) :: term()
@@ -142,7 +139,7 @@ defmodule EdgeDB.Protocol.Codec do
           wrap_codec_operation(
             codec,
             encoder.(instance),
-            &Error.invalid_argument_error/1,
+            &EdgeDB.Error.invalid_argument_error/1,
             "unable to encode #{inspect(instance)}"
           )
 
@@ -158,7 +155,7 @@ defmodule EdgeDB.Protocol.Codec do
         wrap_codec_operation(
           codec,
           encoder.(instance),
-          &Error.invalid_argument_error/1,
+          &EdgeDB.Error.invalid_argument_error/1,
           "unable to encode #{inspect(instance)}"
         )
       end
@@ -172,7 +169,7 @@ defmodule EdgeDB.Protocol.Codec do
         wrap_codec_operation(
           codec,
           decoder.(data),
-          &Error.invalid_argument_error/1,
+          &EdgeDB.Error.invalid_argument_error/1,
           "unable to decode binary data"
         )
       end
@@ -181,7 +178,7 @@ defmodule EdgeDB.Protocol.Codec do
         wrap_codec_operation(
           codec,
           decoder.(data),
-          &Error.invalid_argument_error/1,
+          &EdgeDB.Error.invalid_argument_error/1,
           "unable to decode binary data"
         )
       end

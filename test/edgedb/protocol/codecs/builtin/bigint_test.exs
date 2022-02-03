@@ -1,8 +1,6 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BigIntTest do
   use Tests.Support.EdgeDBCase
 
-  alias EdgeDB.Protocol.Error
-
   setup :edgedb_connection
 
   test "decoding std::bigint value", %{conn: conn} do
@@ -25,24 +23,26 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BigIntTest do
     value = <<16, 13, 2, 42>>
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <bigint>$0", [value])
       end
 
     assert exc ==
-             Error.invalid_argument_error("unable to encode #{inspect(value)} as std::bigint")
+             EdgeDB.Error.invalid_argument_error(
+               "unable to encode #{inspect(value)} as std::bigint"
+             )
   end
 
   test "error when passing float as std::bigint argument", %{conn: conn} do
     value = 1.0
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <bigint>$0", [value])
       end
 
     assert exc ==
-             Error.invalid_argument_error(
+             EdgeDB.Error.invalid_argument_error(
                "unable to encode #{inspect(value)} as std::bigint: floats can't be encoded"
              )
   end
@@ -51,12 +51,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BigIntTest do
     {value, ""} = Decimal.parse("-15000.6250000")
 
     exc =
-      assert_raise Error, fn ->
+      assert_raise EdgeDB.Error, fn ->
         EdgeDB.query_single!(conn, "SELECT <bigint>$0", [value])
       end
 
     assert exc ==
-             Error.invalid_argument_error(
+             EdgeDB.Error.invalid_argument_error(
                "unable to encode #{inspect(value)} as std::bigint: bigint numbers can't contain exponent"
              )
   end

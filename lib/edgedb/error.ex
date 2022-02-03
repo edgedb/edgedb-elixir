@@ -1,4 +1,4 @@
-defmodule EdgeDB.Protocol.Error do
+defmodule EdgeDB.Error do
   defexception [
     :message,
     :name,

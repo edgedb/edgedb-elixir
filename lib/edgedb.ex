@@ -4,10 +4,7 @@ defmodule EdgeDB do
     InternalRequest
   }
 
-  alias EdgeDB.Protocol.{
-    Enums,
-    Error
-  }
+  alias EdgeDB.Protocol.Enums
 
   @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
   @type tls_security() :: :insecure | :no_host_verification | :strict | :default
@@ -259,7 +256,7 @@ defmodule EdgeDB do
   end
 
   def subtransaction(_conn, _callback) do
-    raise Error.interface_error(
+    raise EdgeDB.Error.interface_error(
             "EdgeDB.subtransaction/3 can be used only with connection " <>
               "that is already in transaction (check out EdgeDB.transaction/3) " <>
               "or in another subtransaction"
@@ -380,7 +377,7 @@ defmodule EdgeDB do
       {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} ->
         handle_query_result(q, r, opts)
 
-      {:error, %Error{} = exc} ->
+      {:error, %EdgeDB.Error{} = exc} ->
         maybe_retry_readonly_query(attempt, exc, conn, query, params, opts)
 
       {:error, exc} ->
@@ -428,7 +425,7 @@ defmodule EdgeDB do
 
   defp maybe_retry_readonly_query(
          attempt,
-         %Error{query: %EdgeDB.Query{capabilities: capabilities}} = exc,
+         %EdgeDB.Error{query: %EdgeDB.Query{capabilities: capabilities}} = exc,
          conn,
          query,
          params,
@@ -458,7 +455,7 @@ defmodule EdgeDB do
   defp retrying_transaction(attempt, conn, callback, retry_opts) do
     DBConnection.transaction(conn, callback, retry_opts)
   rescue
-    exc in Error ->
+    exc in EdgeDB.Error ->
       case retry?(exc, attempt, retry_opts) do
         {:ok, backoff} ->
           Process.sleep(backoff)
@@ -475,16 +472,16 @@ defmodule EdgeDB do
   defp retry?(exception, attempt, retry_opts) do
     rule = rule_for_retry(exception, retry_opts)
 
-    if Error.retry?(exception) and attempt <= rule[:attempts] do
+    if EdgeDB.Error.retry?(exception) and attempt <= rule[:attempts] do
       {:ok, rule[:backoff].(attempt)}
     else
       :abort
     end
   end
 
-  defp rule_for_retry(%Error{} = exception, retry_opts) do
-    transaction_conflict_error_code = Error.transaction_conflict_error("").code
-    client_error_code = Error.client_error("").code
+  defp rule_for_retry(%EdgeDB.Error{} = exception, retry_opts) do
+    transaction_conflict_error_code = EdgeDB.Error.transaction_conflict_error("").code
+    client_error_code = EdgeDB.Error.client_error("").code
 
     rule =
       cond do

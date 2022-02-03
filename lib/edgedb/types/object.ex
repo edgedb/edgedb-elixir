@@ -2,11 +2,7 @@ defmodule EdgeDB.Object do
   @behaviour Access
 
   alias EdgeDB.Object.Field
-
-  alias EdgeDB.Protocol.{
-    Datatypes,
-    Error
-  }
+  alias EdgeDB.Protocol.Datatypes
 
   defstruct [
     :__fields__,
@@ -41,12 +37,12 @@ defmodule EdgeDB.Object do
 
   @impl Access
   def get_and_update(%__MODULE__{}, _key, _function) do
-    raise Error.interface_error("objects can't be mutated")
+    raise EdgeDB.Error.interface_error("objects can't be mutated")
   end
 
   @impl Access
   def pop(%__MODULE__{}, _key) do
-    raise Error.interface_error("objects can't be mutated")
+    raise EdgeDB.Error.interface_error("objects can't be mutated")
   end
 
   defp find_field(fields, name_to_find) do
