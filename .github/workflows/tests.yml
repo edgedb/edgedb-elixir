@@ -4,7 +4,7 @@ on: push
 
 jobs:
   tests:
-    name: Run tests (OTP ${{ matrix.otp }} / Elixir ${{ matrix.elixir }})
+    name: Run tests (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }})
 
     runs-on: ubuntu-18.04
 
