@@ -221,7 +221,7 @@ defmodule Tests.APITest do
     end
   end
 
-  describe "EdgeDB.subtransaction/3" do
+  describe "EdgeDB.subtransaction/2" do
     test "allowed only on connections in transactions", %{conn: conn} do
       assert_raise Error, ~r/(already in transaction)|(another subtransaction)/, fn ->
         EdgeDB.subtransaction(conn, fn _subtx_conn ->
@@ -360,6 +360,48 @@ defmodule Tests.APITest do
           end)
         end)
       end
+    end
+  end
+
+  describe "EdgeDB.subtransaction!/2" do
+    test "unwraps succesful result", %{conn: conn} do
+      assert {:ok, 42} =
+               EdgeDB.transaction(conn, fn tx_conn ->
+                 EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
+                   EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
+                     EdgeDB.query_required_single!(subtx_conn2, "SELECT 42")
+                   end)
+                 end)
+               end)
+    end
+
+    test "rollbacks to outer block if error occured", %{conn: conn} do
+      assert_raise EdgeDB.Protocol.Error, ~r/violates exclusivity constraint/, fn ->
+        EdgeDB.transaction(conn, fn tx_conn ->
+          EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
+            EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
+              EdgeDB.query_required_single!(subtx_conn2, "INSERT Ticket{ number := 1}")
+              EdgeDB.query_required_single!(subtx_conn2, "INSERT Ticket{ number := 1}")
+            end)
+          end)
+        end)
+      end
+
+      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "SELECT Ticket"))
+    end
+
+    test "rollbacks to outer block if EdgeDB.rollback/2 called", %{conn: conn} do
+      assert {:error, :rollback} =
+               EdgeDB.transaction(conn, fn tx_conn ->
+                 EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
+                   EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
+                     EdgeDB.query_required_single(subtx_conn2, "INSERT Ticket{ number := 1}")
+                     EdgeDB.rollback(subtx_conn2)
+                   end)
+                 end)
+               end)
+
+      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "SELECT Ticket"))
     end
   end
 

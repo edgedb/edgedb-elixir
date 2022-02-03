@@ -266,6 +266,17 @@ defmodule EdgeDB do
           )
   end
 
+  @spec subtransaction!(DBConnection.conn(), (DBConnection.conn() -> result())) :: result()
+  def subtransaction!(conn, callback) do
+    case subtransaction(conn, callback) do
+      {:ok, result} ->
+        result
+
+      {:error, rollback_reason} ->
+        rollback(conn, reason: rollback_reason)
+    end
+  end
+
   @spec rollback(connection(), list(rollback_option())) :: :ok | no_return()
   def rollback(conn, opts \\ []) do
     reason = opts[:reason] || :rollback
