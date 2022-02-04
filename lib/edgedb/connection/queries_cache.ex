@@ -20,9 +20,10 @@ defmodule EdgeDB.Connection.QueriesCache do
     GenServer.start_link(__MODULE__, [])
   end
 
-  @spec get(t(), String.t(), Enums.Cardinality.t(), Enums.IOFormat.t()) :: EdgeDB.Query.t() | nil
-  def get(cache, statement, cardinality, io_format) do
-    GenServer.call(cache, {:get, statement, cardinality, io_format})
+  @spec get(t(), String.t(), Enums.Cardinality.t(), Enums.IOFormat.t(), boolean()) ::
+          EdgeDB.Query.t() | nil
+  def get(cache, statement, cardinality, io_format, required) do
+    GenServer.call(cache, {:get, statement, cardinality, io_format, required})
   end
 
   @spec add(t(), EdgeDB.Query.t()) :: :ok
@@ -41,8 +42,12 @@ defmodule EdgeDB.Connection.QueriesCache do
   end
 
   @impl GenServer
-  def handle_call({:get, statement, cardinality, io_format}, _from, %State{cache: cache} = state) do
-    key = {statement, cardinality, io_format}
+  def handle_call(
+        {:get, statement, cardinality, io_format, required},
+        _from,
+        %State{cache: cache} = state
+      ) do
+    key = {statement, cardinality, io_format, required}
 
     query =
       case :ets.lookup(cache, key) do
@@ -58,7 +63,7 @@ defmodule EdgeDB.Connection.QueriesCache do
 
   @impl GenServer
   def handle_cast({:add, query}, %State{cache: cache} = state) do
-    key = {query.statement, query.cardinality, query.io_format}
+    key = {query.statement, query.cardinality, query.io_format, query.required}
     :ets.insert(cache, {key, %EdgeDB.Query{query | cached: true}})
 
     {:noreply, state}
@@ -66,7 +71,7 @@ defmodule EdgeDB.Connection.QueriesCache do
 
   @impl GenServer
   def handle_cast({:clear, query}, %State{cache: cache} = state) do
-    key = {query.statement, query.cardinality, query.io_format}
+    key = {query.statement, query.cardinality, query.io_format, query.required}
     :ets.delete(cache, key)
 
     {:noreply, state}
