@@ -346,7 +346,7 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_prepare(%EdgeDB.Query{} = query, opts, %State{queries_cache: qc} = state) do
-    case QueriesCache.get(qc, query.statement, query.cardinality, query.io_format) do
+    case QueriesCache.get(qc, query.statement, query.cardinality, query.io_format, query.required) do
       %EdgeDB.Query{} = cached_query ->
         {:ok, cached_query, state}
 
@@ -754,7 +754,7 @@ defmodule EdgeDB.Connection do
          {:ok, {message, state}} <- receive_message(state) do
       handle_execute_flow(
         query,
-        %EdgeDB.Result{cardinality: query.cardinality},
+        %EdgeDB.Result{cardinality: query.cardinality, required: query.required},
         message,
         state
       )
@@ -811,7 +811,7 @@ defmodule EdgeDB.Connection do
          {:ok, {message, state}} <- receive_message(state) do
       handle_optimistic_execute_flow(
         query,
-        %EdgeDB.Result{cardinality: query.cardinality},
+        %EdgeDB.Result{cardinality: query.cardinality, required: query.required},
         message,
         opts,
         state
