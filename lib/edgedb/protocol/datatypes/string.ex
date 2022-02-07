@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatypes.String do
+  @moduledoc false
+
   use EdgeDB.Protocol.Datatype
 
   defdatatype(type: String.t())

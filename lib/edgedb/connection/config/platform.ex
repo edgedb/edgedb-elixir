@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.Config.Platform do
+  @moduledoc false
+
   @path_module Application.compile_env(:edgedb, :path_module, Path)
   @system_module Application.compile_env(:edgedb, :system_module, System)
 

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.Config do
+  @moduledoc false
+
   alias EdgeDB.Connection.Config.{
     Credentials,
     DSN,

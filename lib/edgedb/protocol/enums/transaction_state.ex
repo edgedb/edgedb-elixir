@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Enums.TransactionState do
+  @moduledoc false
+
   use EdgeDB.Protocol.Enum
 
   defenum(

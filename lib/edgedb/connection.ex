@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection do
+  @moduledoc false
+
   use DBConnection
 
   use EdgeDB.Protocol
@@ -31,6 +33,8 @@ defmodule EdgeDB.Connection do
   @edgedb_alpn_protocol "edgedb-binary"
 
   defmodule State do
+    @moduledoc false
+
     defstruct [
       :socket,
       :user,
@@ -55,7 +59,7 @@ defmodule EdgeDB.Connection do
             user: String.t(),
             database: String.t(),
             timeout: timeout(),
-            capabilities: list(Enums.Capability.t()),
+            capabilities: Enums.Capabilities.t(),
             transaction_options: list(EdgeDB.edgedb_transaction_option()),
             retry_options: list(EdgeDB.retry_option()),
             buffer: bitstring(),

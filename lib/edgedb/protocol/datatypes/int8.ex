@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatypes.Int8 do
+  @moduledoc false
+
   use EdgeDB.Protocol.Datatype
 
   @int8_max 0x7F

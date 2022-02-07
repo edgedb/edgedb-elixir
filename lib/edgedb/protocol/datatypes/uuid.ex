@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatypes.UUID do
+  @moduledoc false
+
   use EdgeDB.Protocol.Datatype
 
   defdatatype(type: bitstring())

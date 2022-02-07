@@ -104,8 +104,7 @@
         {Credo.Check.Readability.LargeNumbers, []},
         {Credo.Check.Readability.MaxLineLength, [priority: :low, max_length: 120]},
         {Credo.Check.Readability.ModuleAttributeNames, []},
-        # TODO: write doc
-        {Credo.Check.Readability.ModuleDoc, false},
+        {Credo.Check.Readability.ModuleDoc, [ignore_names: [~r/^(Tests\.)/]]},
         {Credo.Check.Readability.ModuleNames, []},
         {Credo.Check.Readability.ParenthesesInCondition, []},
         {Credo.Check.Readability.ParenthesesOnZeroArityDefs, []},

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Datatypes.Float64 do
+  @moduledoc false
+
   use EdgeDB.Protocol.Datatype
 
   @nan_literal <<0::1, 2047::11, 1::1, 0::51>>

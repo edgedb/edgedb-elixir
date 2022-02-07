@@ -1,8 +1,62 @@
 defmodule EdgeDB.Object do
+  @moduledoc """
+  An immutable representation of an object instance returned from a query.
+
+  `EdgeDB.Object` implements `Access` behavior to access properties by key.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> %EdgeDB.Object{} = object =
+  iex(2)>  EdgeDB.query_required_single!(pid, "
+  ...(2)>   SELECT schema::ObjectType{
+  ...(2)>     name
+  ...(2)>   }
+  ...(2)>   FILTER .name = 'std::Object'
+  ...(2)>   LIMIT 1
+  ...(2)>  ")
+  #EdgeDB.Object<name := "std::Object">
+  iex(3)> object.id
+  "44f330d1-741d-11ec-9526-a39dc731bdc7"
+  iex(4)> object[:name]
+  "std::Object"
+  iex(5)> object["name"]
+  "std::Object"
+  ```
+
+  ### Links and links properties
+
+  In EdgeDB, objects can have links to other objects or a set of objects.
+    You can use the same syntax to access links values as for object properties.
+    Links can also have their own properties (denoted as `@<link_prop_name>` in EdgeQL syntax).
+    You can use the same property name as in the query to access them from the links.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> %EdgeDB.Object{} = object =
+  iex(2)>  EdgeDB.query_required_single!(pid, "
+  ...(2)>   SELECT schema::Property {
+  ...(2)>       name,
+  ...(2)>       annotations: {
+  ...(2)>         name,
+  ...(2)>         @value
+  ...(2)>       }
+  ...(2)>   }
+  ...(2)>   FILTER .name = 'listen_port' AND .source.name = 'cfg::Config'
+  ...(2)>   LIMIT 1
+  ...(2)>  ")
+  #EdgeDB.Object<name := "listen_port", annotations := #EdgeDB.Set<{#EdgeDB.Object<name := "cfg::system", @value := "true">}>>
+  iex(3)> annotations = object[:annotations]
+  #EdgeDB.Set<{#EdgeDB.Object<name := "cfg::system", @value := "true">}>
+  iex(4)> link = Enum.at(annotations, 0)
+  #EdgeDB.Object<name := "cfg::system", @value := "true">
+  iex(5)> link["@value"]
+  "true"
+  ```
+  """
+
   @behaviour Access
 
   alias EdgeDB.Object.Field
-  alias EdgeDB.Protocol.Datatypes
 
   defstruct [
     :__fields__,
@@ -10,14 +64,42 @@ defmodule EdgeDB.Object do
     :id
   ]
 
-  @opaque object() :: %__MODULE__{
-            __fields__: list(Field.t()),
-            __tid__: Datatypes.UUID.t() | nil,
-            id: Datatypes.UUID.t() | nil
-          }
-  @type t() :: %__MODULE__{
-          id: Datatypes.UUID.t() | nil
+  @typedoc """
+  UUID value.
+  """
+  @type uuid() :: String.t()
+
+  @typedoc """
+  An immutable representation of an object instance returned from a query.
+
+  Fields:
+
+    * `:id` - a unique ID of the object instance in the database.
+  """
+  @type t() :: %{
+          __struct__: __MODULE__,
+          id: uuid() | nil
         }
+
+  defmodule Field do
+    @moduledoc false
+
+    defstruct [
+      :name,
+      :value,
+      :is_link,
+      :is_link_property,
+      :is_implicit
+    ]
+
+    @type t() :: %__MODULE__{
+            name: String.t(),
+            value: any(),
+            is_link: boolean(),
+            is_link_property: boolean(),
+            is_implicit: boolean()
+          }
+  end
 
   @impl Access
   def fetch(%__MODULE__{} = object, key) when is_atom(key) do

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.InternalRequest do
+  @moduledoc false
+
   defstruct [
     :request
   ]

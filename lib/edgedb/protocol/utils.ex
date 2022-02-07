@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Utils do
+  @moduledoc false
+
   @type encoding_option() ::
           {:raw, boolean()}
           | {:datatype, atom()}

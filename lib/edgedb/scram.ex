@@ -1,4 +1,6 @@
 defmodule EdgeDB.SCRAM do
+  @moduledoc false
+
   alias EdgeDB.SCRAM.{
     ClientFirst,
     ServerFinal,

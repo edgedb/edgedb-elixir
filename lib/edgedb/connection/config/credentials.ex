@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.Config.Credentials do
+  @moduledoc false
+
   alias EdgeDB.Connection.Config.{
     Platform,
     Validation

@@ -1,8 +1,27 @@
 defmodule EdgeDB.RelativeDuration do
+  @moduledoc """
+  An immutable value represeting an EdgeDB `cal::relative_duration` value.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> EdgeDB.query_required_single!(pid, "SELECT <cal::relative_duration>'45.6 seconds'")
+  #EdgeDB.RelativeDuration<"PT45.6S">
+  ```
+  """
+
   defstruct months: 0,
             days: 0,
             microseconds: 0
 
+  @typedoc """
+  An immutable value represeting an EdgeDB `cal::relative_duration` value.
+
+  Fields:
+
+    * `:months` - number of months.
+    * `:days` - number of months.
+    * `:microseconds` - number of microseconds.
+  """
   @type t() :: %__MODULE__{
           months: pos_integer(),
           days: pos_integer(),

@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Converters do
+  @moduledoc false
+
   defmacro binary(size), do: quote(do: binary - size(unquote(size)))
 
   defmacro int8, do: quote(do: signed - 8)

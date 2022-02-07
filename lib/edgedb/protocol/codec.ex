@@ -1,10 +1,21 @@
 defmodule EdgeDB.Protocol.Codec do
+  @moduledoc """
+  A codec structure knows how to work with the internal binary data from EdgeDB.
+
+  The binary protocol specification for the codecs can be found on
+    [the official EdgeDB site](https://www.edgedb.com/docs/reference/protocol).
+
+  Useful links for codec developers:
+    * [EdgeDB datatypes used in data descriptions](https://www.edgedb.com/docs/reference/protocol/index#conventions-and-data-types).
+    * [EdgeDB data wire formats](https://www.edgedb.com/docs/reference/protocol/dataformats).
+    * [Built-in EdgeDB codec implementations](https://github.com/nsidnev/edgedb-elixir/tree/master/lib/edgedb/protocol/codecs/builtin).
+    * [Custom codecs implementations](https://github.com/nsidnev/edgedb-elixir/tree/master/test/edgedb/protocol/codecs/custom).
+    * [Guide to developing custom codecs](pages/custom-codecs.md).
+  """
+
   import EdgeDB.Protocol.Converters
 
   alias EdgeDB.Protocol.Datatypes
-
-  @callback encode_instance(term()) :: iodata()
-  @callback decode_instance(bitstring()) :: term()
 
   defstruct [
     :type_id,
@@ -16,15 +27,65 @@ defmodule EdgeDB.Protocol.Codec do
     is_scalar: false
   ]
 
+  @typedoc """
+  UUID value.
+  """
+  @type uuid() :: String.t()
+
+  @typedoc """
+  A codec structure knows how to work with the internal binary data from EdgeDB.
+
+  Fields:
+    * `:type_id` - EdgeDB type ID that can be encoded/decoded by the codec.
+    * `:type_name` - optional name of the type that can be encoded/decoded by the codec.
+    * `:encoder` - function that can encode an entity to EdgeDB binary format.
+    * `:decoder` - function that can decode EdgeDB binary format into an entity.
+    * `:module` - module which defines the implementation of the codec.
+    * `:parent` - module, which was used as the base for the implementation of the codec.
+    * `:is_scalar` - flag specifying that the codec is used to encode/decode EdgeDB scalar values.
+  """
   @type t() :: %__MODULE__{
-          type_id: Datatypes.UUID.t() | nil,
+          type_id: uuid() | nil,
           type_name: String.t() | nil,
-          encoder: (t(), term() -> iodata()),
-          decoder: (t(), bitstring() -> term()),
+          encoder: encoder(),
+          decoder: decoder(),
           module: module(),
           parent: module() | nil,
           is_scalar: boolean()
         }
+
+  @typedoc """
+  Function that can encode an entity to EdgeDB binary format.
+  """
+  @type encoder() :: (t(), term() -> iodata())
+
+  @typedoc """
+  Function that can decode EdgeDB binary format into an entity.
+  """
+  @type decoder() :: (t(), bitstring() -> term())
+
+  @typedoc """
+  Options for defining custom codecs with `EdgeDB.Protocol.Codec.defscalarcodec/1`.
+
+  Supported options:
+    * `:type` - typepec for the type that can be processed by the encoder/decoder function.
+    * `:type_name` - the name of the EdgeDB type that can be processed by codec.
+    * `:calculate_size` - flag specifying whether to automatically calculate the payload size for the encoder/decoder.
+  """
+  @type codec_option() ::
+          {:type, term()}
+          | {:type_name, String.t()}
+          | {:calculate_size, boolean()}
+
+  @doc """
+  Encode the entity into EdgeDB binary format.
+  """
+  @callback encode_instance(term()) :: iodata()
+
+  @doc """
+  Decode binary data from EdgeDB format to the expected entity.
+  """
+  @callback decode_instance(bitstring()) :: term()
 
   defmacro __using__(_opts \\ []) do
     quote do
@@ -43,6 +104,7 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  @doc false
   defmacro defcodec(opts) do
     type = Keyword.fetch!(opts, :type)
     typespec_def = define_typespec(type)
@@ -58,6 +120,7 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  @doc false
   defmacro defbasescalarcodec(opts) do
     type = Keyword.fetch!(opts, :type)
     typespec_def = define_typespec(type)
@@ -83,6 +146,12 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  @doc """
+  Macros for defining custom scalar codecs implementation.
+
+  See [custom codecs development guide](pages/custom-codecs.md) for more information.
+  """
+  @spec defscalarcodec(list(codec_option())) :: Macro.t()
   defmacro defscalarcodec(opts) do
     # ensure required opts present in declaration since it's macros for custom codecs
     # which type_ids will fetched by names
@@ -93,6 +162,7 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  @doc false
   defmacro defbuiltinscalarcodec(opts) do
     # ensure required opts present in declaration since it's macros for builtin codecs
     _type = Keyword.fetch!(opts, :type)
@@ -121,16 +191,23 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  @doc """
+  Encode an entity into EdgeDB binary format using the codec.
+  """
   @spec encode(t(), term()) :: iodata()
   def encode(%__MODULE__{encoder: encoder} = codec, instance) do
     encoder.(codec, instance)
   end
 
+  @doc """
+  Decode EdgeDB binary data into an enitity using the codec.
+  """
   @spec decode(t(), bitstring()) :: term()
   def decode(%__MODULE__{decoder: decoder} = codec, <<data::binary>>) do
     decoder.(codec, data)
   end
 
+  @doc false
   @spec create_encoder((term() -> iodata()), boolean()) :: (t(), term() -> iodata())
   def create_encoder(encoder, calculate_size?) do
     if calculate_size? do
@@ -162,6 +239,7 @@ defmodule EdgeDB.Protocol.Codec do
     end
   end
 
+  @doc false
   @spec create_decoder((bitstring() -> term()), boolean()) :: (t(), bitstring() -> term())
   def create_decoder(decoder, calculate_size?) do
     if calculate_size? do

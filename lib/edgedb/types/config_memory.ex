@@ -1,12 +1,30 @@
 defmodule EdgeDB.ConfigMemory do
+  @moduledoc """
+  An immutable value represeting an EdgeDB `cfg::memory` value as a quantity of memory storage.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> mem = EdgeDB.query_required_single!(pid, "SELECT <cfg::memory>'5KiB'")
+  #EdgeDB.ConfigMemory<"5KiB">
+  iex(3)> EdgeDB.ConfigMemory.bytes(mem)
+  5120
+  ```
+  """
+
   defstruct [
     :bytes
   ]
 
+  @typedoc """
+  An immutable value represeting an EdgeDB `cfg::memory` value as a quantity of memory storage.
+  """
   @opaque t() :: %__MODULE__{
             bytes: pos_integer()
           }
 
+  @doc """
+  Get a quantity of memory storage in bytes.
+  """
   @spec bytes(t()) :: pos_integer()
   def bytes(%__MODULE__{bytes: bytes}) do
     bytes

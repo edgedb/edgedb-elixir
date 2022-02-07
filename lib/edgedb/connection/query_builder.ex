@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.QueryBuilder do
+  @moduledoc false
+
   @type statement() :: String.t()
 
   @spec start_transaction_statement(list(EdgeDB.edgedb_transaction_option())) :: statement()

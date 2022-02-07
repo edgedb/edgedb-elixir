@@ -1,4 +1,6 @@
 defmodule EdgeDB.Connection.Config.Validation do
+  @moduledoc false
+
   @type validation() :: :strict | :lenient
 
   @min_port 1

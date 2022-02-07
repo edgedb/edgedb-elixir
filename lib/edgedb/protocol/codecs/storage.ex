@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Codecs.Storage do
+  @moduledoc false
+
   use GenServer
 
   alias EdgeDB.Protocol.{
@@ -33,6 +35,8 @@ defmodule EdgeDB.Protocol.Codecs.Storage do
   ]
 
   defmodule State do
+    @moduledoc false
+
     defstruct [
       :storage
     ]

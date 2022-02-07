@@ -1,16 +1,17 @@
 # Elixir driver for EdgeDB
 
-How to use:
-```elixir
-# NOTE: you should initialize EdgeDB project first
-{:ok, conn} = EdgeDB.start_link()
+Documentation: https://hexdocs.pm/edgedb
 
-arg = [16, 13, 2, 42]
-^arg = EdgeDB.query_single!(conn, "SELECT <array<int64>>$arg", arg: arg)
+How to use:
+
+```elixir
+iex(1)> {:ok, conn} = EdgeDB.start_link() # NOTE: you should initialize EdgeDB project first
+iex(2)> arg = [16, 13, 2, 42]
+[16, 13, 2, 42]
+iex(3)> ^arg = EdgeDB.query_required_single!(conn, "SELECT <array<int64>>$arg", arg: arg)
+[16, 13, 2, 42]
 ```
 
 # TODO:
-1. Support for pool resize via server hints
-2. Documentation
-3. Publish package
-4. Query builder with schema reflection (long term)
+1. Support for lazy pool with automatic resize via server hints
+2. Query builder with schema reflection (long term)

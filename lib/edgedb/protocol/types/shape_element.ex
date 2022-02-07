@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Types.ShapeElement do
+  @moduledoc false
+
   use EdgeDB.Protocol.Type
 
   alias EdgeDB.Protocol.{

@@ -1,4 +1,6 @@
 defmodule EdgeDB.SCRAM.ServerFirst do
+  @moduledoc false
+
   alias EdgeDB.SCRAM.ServerFinal
 
   @sha256_output_length 32

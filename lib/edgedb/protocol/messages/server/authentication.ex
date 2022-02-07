@@ -1,4 +1,6 @@
 defmodule EdgeDB.Protocol.Messages.Server.Authentication do
+  @moduledoc false
+
   @behaviour EdgeDB.Protocol.Message
 
   import EdgeDB.Protocol.Converters
