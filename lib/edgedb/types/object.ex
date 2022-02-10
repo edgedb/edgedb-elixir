@@ -15,11 +15,9 @@ defmodule EdgeDB.Object do
   ...(2)>   LIMIT 1
   ...(2)>  ")
   #EdgeDB.Object<name := "std::Object">
-  iex(3)> object.id
-  "44f330d1-741d-11ec-9526-a39dc731bdc7"
-  iex(4)> object[:name]
+  iex(3)> object[:name]
   "std::Object"
-  iex(5)> object["name"]
+  iex(4)> object["name"]
   "std::Object"
   ```
 
