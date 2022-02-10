@@ -10,9 +10,14 @@ jobs:
 
     strategy:
       matrix:
-        edgedb-version: ["1.0-rc.4"]
-        otp-version: ["24.1.1"]
-        elixir-version: ["1.12.2"]
+        otp-version:
+          - "24.1.1"
+
+        elixir-version:
+          - "1.12.2"
+
+        edgedb-version:
+          - "1.0"
 
     steps:
       - uses: actions/checkout@v2
