@@ -913,16 +913,12 @@ defmodule EdgeDB do
   end
 
   defp rule_for_retry(%EdgeDB.Error{} = exception, retry_opts) do
-    transaction_conflict_error_code = EdgeDB.Error.transaction_conflict_error("").code
-    client_error_code = EdgeDB.Error.client_error("").code
-
     rule =
       cond do
-        Bitwise.band(transaction_conflict_error_code, exception.code) ==
-            transaction_conflict_error_code ->
+        EdgeDB.Error.inheritor?(exception, :transaction_conflict_error) ->
           Keyword.get(retry_opts, :transaction_conflict, [])
 
-        Bitwise.band(client_error_code, exception.code) == client_error_code ->
+        EdgeDB.Error.inheritor?(exception, :client_error) ->
           Keyword.get(retry_opts, :network_error, [])
 
         true ->

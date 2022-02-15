@@ -7,6 +7,8 @@ defmodule EdgeDB.Error do
     [`errors.txt`](https://github.com/edgedb/edgedb/blob/a529aae753319f26cce942ae4fc7512dd0c5a37b/edb/api/errors.txt) file.
   """
 
+  alias EdgeDB.Error.Loader
+
   defexception [
     :message,
     :name,
@@ -58,16 +60,7 @@ defmodule EdgeDB.Error do
   """
   @type tag() :: :should_retry | :should_reconnect
 
-  @tags_to_atoms %{
-    "SHOULD_RETRY" => :should_retry,
-    "SHOULD_RECONNECT" => :should_reconnect
-  }
-  @error_definition_regex ~r/^(?<error_code>0x(_[0-9A-Fa-f]{2}){4})\s*(?<error_name>\w+)/
-  @error_tag_regex ~r/\s+#(\w+)/
-  @edgedb_errors_file Path.join(
-                        :code.priv_dir(:edgedb),
-                        Path.join(["edgedb", "api", "errors.txt"])
-                      )
+  Module.register_attribute(__MODULE__, :supported_error_types, accumulate: true)
 
   @impl Exception
   def exception(message, opts \\ []) do
@@ -120,51 +113,43 @@ defmodule EdgeDB.Error do
     false
   end
 
-  for line <- File.stream!(@edgedb_errors_file),
-      Regex.match?(@error_definition_regex, line) do
-    %{
-      "error_code" => code_str,
-      "error_name" => error
-    } = Regex.named_captures(@error_definition_regex, line)
-
+  for error_desc <- Loader.get_errors() do
     snake_cased_name =
-      error
+      error_desc.name
       |> Macro.underscore()
       |> String.to_atom()
 
-    tags =
-      @error_tag_regex
-      |> Regex.scan(line)
-      |> Enum.reduce([], fn
-        [], acc ->
-          acc
+    Module.put_attribute(__MODULE__, :supported_error_types, snake_cased_name)
 
-        [_match, tag], acc ->
-          [tag | acc]
-      end)
-      |> Enum.map(&Map.fetch!(@tags_to_atoms, &1))
-
-    code_str =
-      code_str
-      |> String.replace_prefix("0x", "")
-      |> String.replace("_", "")
-
-    {code, ""} = Integer.parse(code_str, 16)
-
-    @doc false
     @spec unquote(snake_cased_name)(String.t(), list(option())) :: t()
 
     # credo:disable-for-next-line Credo.Check.Readability.Specs
     def unquote(snake_cased_name)(msg, opts \\ []) do
-      exception(msg, Keyword.merge(opts, code: unquote(code)))
+      exception(msg, Keyword.merge(opts, code: unquote(error_desc.code)))
     end
 
-    defp name_from_code(unquote(code)) do
-      unquote(error)
+    defp name_from_code(unquote(error_desc.code)) do
+      unquote(error_desc.name)
     end
 
-    defp tags_for_error(unquote(code)) do
-      unquote(tags)
+    defp tags_for_error(unquote(error_desc.code)) do
+      unquote(error_desc.tags)
     end
+  end
+
+  @doc """
+  Check if the exception is an inheritor of another EdgeDB error.
+  """
+  @spec inheritor?(t(), atom()) :: boolean()
+  def inheritor?(exception, base_error_type)
+
+  def inheritor?(%__MODULE__{code: code}, base_error_type)
+      when base_error_type in @supported_error_types do
+    base_error = apply(__MODULE__, base_error_type, [""])
+    Bitwise.band(base_error.code, code) == base_error.code
+  end
+
+  def inheritor?(_exception, _error_type) do
+    false
   end
 end
