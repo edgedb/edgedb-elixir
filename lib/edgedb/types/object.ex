@@ -67,6 +67,40 @@ defmodule EdgeDB.Object do
   """
   @type uuid() :: String.t()
 
+  @typedoc since: "0.2.0"
+  @typedoc """
+  Options for `EdgeDB.Object.fields/2`
+
+  Supported options:
+
+    * `:properties` - flag to include object properties in returning list. The default is `true`.
+    * `:links` - flag to include object links in returning list. The default is `true`.
+    * `:link_properies` - flag to include object link properties in returning list. The default is `true`.
+    * `:id` - flag to include implicit `:id` in returning list. The default is `false`.
+    * `:implicit` - flag to include implicit fields (like `:id` or `:__tid__`) in returning list.
+      The default is `false`.
+  """
+  @type fields_option() ::
+          {:properties, boolean()}
+          | {:links, boolean()}
+          | {:link_properties, boolean()}
+          | {:id, boolean()}
+          | {:implicit, boolean()}
+
+  @typedoc since: "0.2.0"
+  @typedoc """
+  Options for `EdgeDB.Object.properties/2`
+
+  Supported options:
+
+    * `:id` - flag to include implicit `:id` in returning list. The default is `false`.
+    * `:implicit` - flag to include implicit properties (like `:id` or `:__tid__`) in returning list.
+      The default is `false`.
+  """
+  @type properties_option() ::
+          {:id, boolean()}
+          | {:implicit, boolean()}
+
   @typedoc """
   An immutable representation of an object instance returned from a query.
 
@@ -78,6 +112,16 @@ defmodule EdgeDB.Object do
           __struct__: __MODULE__,
           id: uuid() | nil
         }
+
+  @typedoc since: "0.2.0"
+  @typedoc """
+  An immutable representation of an object instance returned from a query.
+  """
+  @opaque object :: %__MODULE__{
+            id: uuid() | nil,
+            __tid__: uuid() | nil,
+            __fields__: list(Field.t())
+          }
 
   defmodule Field do
     @moduledoc false
@@ -97,6 +141,71 @@ defmodule EdgeDB.Object do
             is_link_property: boolean(),
             is_implicit: boolean()
           }
+  end
+
+  @doc since: "0.2.0"
+  @doc """
+  Get object fields names (properties, links and link propries) as list of strings.
+
+  See `t:fields_option/0` for supported options.
+  """
+  @spec fields(object(), list(fields_option())) :: list(String.t())
+  def fields(%__MODULE__{} = object, opts \\ []) do
+    include_properies? = Keyword.get(opts, :properties, true)
+    include_links? = Keyword.get(opts, :links, true)
+    include_link_properties? = Keyword.get(opts, :link_propeties, true)
+    include_id? = Keyword.get(opts, :id, false)
+    include_implicits? = Keyword.get(opts, :implicit, false)
+
+    object.__fields__
+    |> Enum.filter(fn
+      %Field{name: "id", is_implicit: true} ->
+        include_id? or include_implicits?
+
+      %Field{is_implicit: true} ->
+        include_implicits?
+
+      %Field{is_link: true} ->
+        include_links?
+
+      %Field{is_link_property: true} ->
+        include_link_properties?
+
+      _field ->
+        include_properies?
+    end)
+    |> Enum.map(fn %Field{name: name} ->
+      name
+    end)
+  end
+
+  @doc since: "0.2.0"
+  @doc """
+  Get object properties names as list.
+
+  See `t:properties_option/0` for supported options.
+  """
+  @spec properties(object(), list(properties_option())) :: list(String.t())
+  def properties(%__MODULE__{} = object, opts \\ []) do
+    fields(object, Keyword.merge(opts, links: false, link_properties: false))
+  end
+
+  @doc since: "0.2.0"
+  @doc """
+  Get object links names as list.
+  """
+  @spec links(object()) :: list(String.t())
+  def links(%__MODULE__{} = object) do
+    fields(object, properties: false, link_properties: false)
+  end
+
+  @doc since: "0.2.0"
+  @doc """
+  Get object link propeties names as list.
+  """
+  @spec link_properties(object()) :: list(String.t())
+  def link_properties(%__MODULE__{} = object) do
+    fields(object, properties: false, links: false)
   end
 
   @impl Access
