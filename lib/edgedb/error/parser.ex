@@ -1,4 +1,4 @@
-defmodule EdgeDB.Error.Loader do
+defmodule EdgeDB.Error.Parser do
   @moduledoc false
 
   @tags_to_atoms %{
@@ -19,8 +19,8 @@ defmodule EdgeDB.Error.Loader do
           tags: list(atom())
         }
 
-  @spec get_errors() :: list(error_description())
-  def get_errors do
+  @spec parse_errors() :: list(error_description())
+  def parse_errors do
     cache = :ets.new(:errors_cache, [])
 
     errors =

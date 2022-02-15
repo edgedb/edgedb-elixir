@@ -5,9 +5,14 @@ defmodule EdgeDB.Error do
   Most of the functions in the `EdgeDB.Error` module are a shorthands for simplifying `EdgeDB.Error` exception
     constructing. These functions are generated at compile time from a copy of the
     [`errors.txt`](https://github.com/edgedb/edgedb/blob/a529aae753319f26cce942ae4fc7512dd0c5a37b/edb/api/errors.txt) file.
+
+  The useful ones are:
+
+    * `EdgeDB.Error.retry?/1`
+    * `EdgeDB.Error.inheritor?/2`
   """
 
-  alias EdgeDB.Error.Loader
+  alias EdgeDB.Error.Parser
 
   defexception [
     :message,
@@ -113,7 +118,7 @@ defmodule EdgeDB.Error do
     false
   end
 
-  for error_desc <- Loader.get_errors() do
+  for error_desc <- Parser.parse_errors() do
     snake_cased_name =
       error_desc.name
       |> Macro.underscore()
@@ -137,6 +142,7 @@ defmodule EdgeDB.Error do
     end
   end
 
+  @doc since: "0.2.0"
   @doc """
   Check if the exception is an inheritor of another EdgeDB error.
   """
