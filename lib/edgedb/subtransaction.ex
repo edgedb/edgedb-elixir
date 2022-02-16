@@ -40,7 +40,7 @@ defmodule EdgeDB.Subtransaction do
   end
 
   @impl DBConnection
-  def disconnect(_err, _state) do
+  def disconnect(_exc, _state) do
     :ok
   end
 
@@ -57,7 +57,7 @@ defmodule EdgeDB.Subtransaction do
 
   @impl DBConnection
   def handle_close(_query, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_close/4 callback hasn't been implemented")
+    exc = EdgeDB.Error.interface_error("handle_close/3 callback hasn't been implemented")
     {:error, exc, state}
   end
 

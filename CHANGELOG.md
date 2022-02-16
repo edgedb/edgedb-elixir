@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `EdgeDB.Object.fields/2`, `EdgeDB.Object.properties/2`, `EdgeDB.Object.links/1` and `EdgeDB.Object.link_properties/1` functions to inspect the fields of the object.
 - `EdgeDB.Error.inheritor?/2` function to check if the exception is an inheritor of another EdgeDB error.
+- `EdgeDB.Sandbox` module for use in tests involving database modifications.
 
 ## [0.1.0] - 2022-02-10
 
