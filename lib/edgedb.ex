@@ -81,6 +81,8 @@ defmodule EdgeDB do
       See `t:edgedb_transaction_option/0`.
     * `:retry` - options to retry transactions in case of errors. See `t:retry_option/0`.
     * `:codecs` - list of custom codecs for EdgeDB scalars.
+    * `:connection` - module that implements the `DBConnection` behavior for EdgeDB.
+      For tests, it's possible to use `EdgeDB.Sandbox` to support automatic rollback after tests are done.
   """
   @type connect_option() ::
           {:dsn, String.t()}
@@ -102,6 +104,7 @@ defmodule EdgeDB do
           | {:transaction, list(edgedb_transaction_option())}
           | {:retry, list(retry_option())}
           | {:codecs, list(module())}
+          | {:connection, module()}
 
   @typedoc """
   Options for `EdgeDB.start_link/1`.
@@ -253,13 +256,15 @@ defmodule EdgeDB do
   @spec start_link(String.t()) :: GenServer.on_start()
   def start_link(dsn) when is_binary(dsn) do
     opts = Config.connect_opts(dsn: dsn)
-    DBConnection.start_link(EdgeDB.Connection, opts)
+    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
+    DBConnection.start_link(connection, opts)
   end
 
   @spec start_link(list(start_option())) :: GenServer.on_start()
   def start_link(opts) do
     opts = Config.connect_opts(opts)
-    DBConnection.start_link(EdgeDB.Connection, opts)
+    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
+    DBConnection.start_link(connection, opts)
   end
 
   @doc """
@@ -280,7 +285,8 @@ defmodule EdgeDB do
       |> Keyword.put(:dsn, dsn)
       |> Config.connect_opts()
 
-    DBConnection.start_link(EdgeDB.Connection, opts)
+    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
+    DBConnection.start_link(connection, opts)
   end
 
   @doc """
@@ -291,7 +297,8 @@ defmodule EdgeDB do
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts \\ []) do
     opts = Config.connect_opts(opts)
-    DBConnection.child_spec(EdgeDB.Connection, opts)
+    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
+    DBConnection.child_spec(connection, opts)
   end
 
   @doc """
