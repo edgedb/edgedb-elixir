@@ -142,4 +142,18 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ObjectTest do
       end
     end)
   end
+
+  test "decoding object with property equals to empty set", %{conn: conn} do
+    rollback(conn, fn conn ->
+      object =
+        EdgeDB.query_required_single!(conn, """
+        SELECT {
+          a := <str>{}
+        }
+        LIMIT 1
+        """)
+
+      assert Enum.empty?(object[:a])
+    end)
+  end
 end

@@ -8,7 +8,7 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
     Types
   }
 
-  @empty_set %EdgeDB.Set{__items__: MapSet.new()}
+  @empty_set %EdgeDB.Set{__items__: []}
 
   @type object_field() :: %EdgeDB.Object.Field{
           name: String.t(),
