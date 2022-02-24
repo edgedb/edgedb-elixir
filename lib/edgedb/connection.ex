@@ -395,7 +395,7 @@ defmodule EdgeDB.Connection do
 
   defp add_custom_edgedb_ssl_opts(socket_opts, connect_opts) do
     socket_opts =
-      case connect_opts[:tls_ca_data] do
+      case connect_opts[:tls_ca] do
         nil ->
           socket_opts
 
