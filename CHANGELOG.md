@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - creation of `EdgeDB.Object` properties equal to an empty `EdgeDB.Set`.
+- access to TLS certificate from connection options.
 
 ## [0.1.0] - 2022-02-10
 
