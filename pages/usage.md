@@ -148,7 +148,7 @@ iex(4)> EdgeDB.query_single!(pid, "SELECT Post FILTER .body = 'lol' LIMIT 1")
 nil
 ```
 
-### Querying a requried single element
+### Querying a required single element
 
 In case we want to ensure that the requested element must exist, we can use the functions `EdgeDB.query_required_single/4` and
   `EdgeDB.query_required_single!/4`. Instead of returning `nil` they will return `EdgeDB.Error` in case of a missing element:
