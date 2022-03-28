@@ -80,9 +80,9 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
       ) do
     {encoded_elements, <<>>} = Types.TupleElement.decode(nelems, elements_data)
 
-    encoded_elements
-    |> decode_fields(object_shape_elements, codecs)
-    |> create_object_from_fields()
+    {fields, order} = decode_fields(encoded_elements, object_shape_elements, codecs)
+
+    create_object_from_fields(fields, Enum.reverse(order))
   end
 
   defp encode_arguments(arguments, elements_descriptors, codecs) do
@@ -113,8 +113,9 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
   defp decode_fields(object_fields, shape_elements, codecs) do
     [object_fields, shape_elements, codecs]
     |> Enum.zip()
-    |> Enum.map(fn {field_data, shape_element, codec} ->
-      decode_field_data(field_data, shape_element, codec)
+    |> Enum.reduce({%{}, []}, fn {field_data, shape_element, codec}, {fields, order} ->
+      field = decode_field_data(field_data, shape_element, codec)
+      {Map.put(fields, field.name, field), [field.name | order]}
     end)
   end
 
@@ -220,35 +221,26 @@ defmodule EdgeDB.Protocol.Codecs.Builtin.Object do
     end
   end
 
-  defp create_object_from_fields(fields) do
+  defp create_object_from_fields(fields, order) do
     id =
-      case find_field(fields, "id") do
-        nil ->
-          nil
-
-        field ->
-          field.value
+      if field = fields["id"] do
+        field.value
+      else
+        nil
       end
 
     type_id =
-      case find_field(fields, "__tid__") do
-        nil ->
-          nil
-
-        field ->
-          field.value
+      if field = fields["__tid__"] do
+        field.value
+      else
+        nil
       end
 
     %EdgeDB.Object{
       id: id,
       __tid__: type_id,
-      __fields__: fields
+      __fields__: fields,
+      __order__: order
     }
-  end
-
-  defp find_field(fields, name_to_find) do
-    Enum.find(fields, fn %{name: name} ->
-      name == name_to_find
-    end)
   end
 end
