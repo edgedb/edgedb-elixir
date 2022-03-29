@@ -47,6 +47,8 @@ defmodule EdgeDB.Sandbox do
     QueryBuilder
   }
 
+  alias EdgeDB.Protocol.Enums
+
   defmodule State do
     @moduledoc false
 
@@ -57,7 +59,7 @@ defmodule EdgeDB.Sandbox do
     ]
 
     @type t() :: %__MODULE__{
-            conn_state: EdgeDB.Protocol.Enums.TransactionState.t(),
+            conn_state: Enums.transaction_state(),
             internal_state: Connection.State.t(),
             savepoint: String.t() | nil
           }

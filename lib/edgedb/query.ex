@@ -8,6 +8,7 @@ defmodule EdgeDB.Query do
 
   alias EdgeDB.Protocol.{
     Codec,
+    CodecStorage,
     Enums
   }
 
@@ -19,6 +20,7 @@ defmodule EdgeDB.Query do
     capabilities: [],
     input_codec: nil,
     output_codec: nil,
+    codec_storage: nil,
     cached: false,
     params: []
   ]
@@ -42,19 +44,23 @@ defmodule EdgeDB.Query do
   """
   @type t() :: %__MODULE__{
           statement: String.t(),
-          cardinality: Enums.Cardinality.t(),
-          io_format: Enums.IOFormat.t(),
-          capabilities: Enums.Capabilities.t(),
+          cardinality: Enums.cardinality(),
+          io_format: Enums.io_format(),
+          capabilities: Enums.capabilities(),
           required: boolean(),
-          input_codec: Codec.t() | nil,
-          output_codec: Codec.t() | nil,
+          input_codec: Codec.id() | nil,
+          output_codec: Codec.id() | nil,
+          codec_storage: CodecStorage.t(),
           cached: boolean(),
           params: list(any())
         }
 end
 
 defimpl DBConnection.Query, for: EdgeDB.Query do
-  alias EdgeDB.Protocol.Codec
+  alias EdgeDB.Protocol.{
+    Codec,
+    CodecStorage
+  }
 
   @empty_set %EdgeDB.Set{__items__: []}
 
@@ -65,11 +71,11 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
 
   @impl DBConnection.Query
   def decode(
-        %EdgeDB.Query{output_codec: out_codec, required: required},
+        %EdgeDB.Query{output_codec: out_codec, required: required, codec_storage: codec_storage},
         %EdgeDB.Result{} = result,
         _opts
       ) do
-    decode_result(%EdgeDB.Result{result | required: required}, out_codec)
+    decode_result(%EdgeDB.Result{result | required: required}, out_codec, codec_storage)
   end
 
   @impl DBConnection.Query
@@ -83,8 +89,10 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
   end
 
   @impl DBConnection.Query
-  def encode(%EdgeDB.Query{input_codec: in_codec}, params, _opts) do
-    Codec.encode(in_codec, params)
+  def encode(%EdgeDB.Query{input_codec: in_codec, codec_storage: codec_storage}, params, _opts) do
+    codec_storage
+    |> CodecStorage.get(in_codec)
+    |> Codec.encode(params, codec_storage)
   end
 
   @impl DBConnection.Query
@@ -97,18 +105,22 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
     query
   end
 
-  defp decode_result(%EdgeDB.Result{cardinality: :no_result} = result, _codec) do
+  defp decode_result(%EdgeDB.Result{cardinality: :no_result} = result, _codec, _codec_storage) do
     result
   end
 
-  defp decode_result(%EdgeDB.Result{} = result, codec) do
+  defp decode_result(%EdgeDB.Result{} = result, codec, codec_storage) do
     encoded_set = result.set
     result = %EdgeDB.Result{result | set: @empty_set}
 
     encoded_set
     |> Enum.reverse()
     |> Enum.reduce(result, fn data, %EdgeDB.Result{set: set} = result ->
-      element = Codec.decode(codec, data)
+      element =
+        codec_storage
+        |> CodecStorage.get(codec)
+        |> Codec.decode(data, codec_storage)
+
       %EdgeDB.Result{result | set: add_element_into_set(set, element)}
     end)
     |> then(fn %EdgeDB.Result{set: set} = result ->

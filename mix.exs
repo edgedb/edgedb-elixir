@@ -70,7 +70,10 @@ defmodule EdgeDB.MixProject do
 
   defp dialyzer do
     [
-      plt_add_apps: [:ex_unit],
+      plt_add_apps: [
+        :ex_unit,
+        :jason
+      ],
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
     ]
   end
@@ -83,7 +86,7 @@ defmodule EdgeDB.MixProject do
 
   defp preferred_cli_env do
     [
-      dialyzer: :test,
+      dialyzer: :dev,
       credo: :test,
       coveralls: :test,
       "coveralls.detail": :test,
@@ -124,9 +127,9 @@ defmodule EdgeDB.MixProject do
         ],
         Protocol: [
           EdgeDB.Protocol.Codec,
-          EdgeDB.Protocol.Enums.Cardinality,
-          EdgeDB.Protocol.Enums.Capabilities,
-          EdgeDB.Protocol.Enums.IOFormat
+          EdgeDB.Protocol.CustomCodec,
+          EdgeDB.Protocol.CodecStorage,
+          EdgeDB.Protocol.Enums
         ]
       ]
     ]

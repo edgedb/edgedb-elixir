@@ -21,7 +21,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Int32Test do
         EdgeDB.query_single!(conn, "SELECT <int32>$0", [value])
       end
 
-    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as std::int32")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::int32: #{inspect(value)}"
+             )
   end
 
   test "error when passing too large number as std::int32 argument", %{conn: conn} do
@@ -32,7 +35,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Int32Test do
         EdgeDB.query_single!(conn, "SELECT <int32>$0", [value])
       end
 
-    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as std::int32")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::int32: #{inspect(value)}"
+             )
   end
 
   test "error when passing too small number as std::int32 argument", %{conn: conn} do
@@ -43,6 +49,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Int32Test do
         EdgeDB.query_single!(conn, "SELECT <int32>$0", [value])
       end
 
-    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as std::int32")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::int32: #{inspect(value)}"
+             )
   end
 end

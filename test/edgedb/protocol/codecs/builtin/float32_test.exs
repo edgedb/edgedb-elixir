@@ -52,6 +52,8 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Flaot32Test do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error("unable to encode \"something\" as std::float32")
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::float32: #{inspect(value)}"
+             )
   end
 end

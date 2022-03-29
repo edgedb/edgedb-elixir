@@ -1,28 +1,40 @@
 defmodule Tests.Support.Codecs.TicketNo do
-  use EdgeDB.Protocol.Codec
+  @behaviour EdgeDB.Protocol.CustomCodec
 
-  alias EdgeDB.Protocol.Codecs
+  defstruct []
 
-  defscalarcodec(
-    type: term(),
-    type_name: "default::TicketNo"
-  )
-
-  defstruct [
-    :number
-  ]
-
-  @impl EdgeDB.Protocol.Codec
-  def encode_instance(%__MODULE__{number: number}) do
-    Codecs.Builtin.Int64.encode_instance(number)
+  @impl EdgeDB.Protocol.CustomCodec
+  def new do
+    %__MODULE__{}
   end
 
-  @impl EdgeDB.Protocol.Codec
-  def decode_instance(binary_representation) do
-    number = Codecs.Builtin.Int64.decode_instance(binary_representation)
+  @impl EdgeDB.Protocol.CustomCodec
+  def name do
+    "default::TicketNo"
+  end
+end
 
-    %__MODULE__{
-      number: number
-    }
+defimpl EdgeDB.Protocol.Codec, for: Tests.Support.Codecs.TicketNo do
+  alias Tests.Support.TicketNo
+  alias EdgeDB.Protocol.{Codec, Codecs}
+
+  @int64_codec Codecs.Int64.new()
+
+  @impl Codec
+  def encode(_codec, %TicketNo{number: number}, codec_storage) do
+    Codec.encode(@int64_codec, number, codec_storage)
+  end
+
+  @impl Codec
+  def encode(_codec, value, _codec_storage) do
+    raise EdgeDB.Error.invalid_argument_error(
+            "value can not be encoded as default::TicketNo: #{inspect(value)}"
+          )
+  end
+
+  @impl Codec
+  def decode(_codec, data, codec_storage) do
+    number = Codec.decode(@int64_codec, data, codec_storage)
+    %TicketNo{number: number}
   end
 end

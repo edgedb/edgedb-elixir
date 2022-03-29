@@ -29,7 +29,7 @@ defmodule EdgeDB.Result do
           statement: String.t() | nil,
           required: boolean(),
           set: EdgeDB.Set.t() | list(binary()),
-          cardinality: Enums.Cardinality.t()
+          cardinality: Enums.cardinality()
         }
 
   @doc """

@@ -1,25 +1,35 @@
 defmodule Tests.Support.Codecs.ShortStr do
-  use EdgeDB.Protocol.Codec
+  @behaviour EdgeDB.Protocol.CustomCodec
 
-  alias EdgeDB.Protocol.Codecs
+  defstruct []
 
-  defscalarcodec(
-    type_name: "default::short_str",
-    type: String.t(),
+  @impl EdgeDB.Protocol.CustomCodec
+  def new do
+    %__MODULE__{}
+  end
 
-    # inherit this from parent codec
-    calculate_size: false
-  )
+  @impl EdgeDB.Protocol.CustomCodec
+  def name do
+    "default::short_str"
+  end
+end
 
-  @impl EdgeDB.Protocol.Codec
-  def encode_instance(str) do
-    if String.length(str) <= 5 do
-      Codecs.Builtin.Str.encode_instance(str)
+defimpl EdgeDB.Protocol.Codec, for: Tests.Support.Codecs.ShortStr do
+  alias EdgeDB.Protocol.{Codec, Codecs}
+
+  @str_codec Codecs.Str.new()
+
+  @impl Codec
+  def encode(_codec, value, codec_storage) when is_binary(value) do
+    if String.length(value) <= 5 do
+      Codec.encode(@str_codec, value, codec_storage)
     else
       raise EdgeDB.Error.invalid_argument_error("string is too long")
     end
   end
 
-  @impl EdgeDB.Protocol.Codec
-  defdelegate decode_instance(binary_data), to: Codecs.Builtin.Str
+  @impl Codec
+  def decode(_codec, data, codec_storage) do
+    Codec.decode(@str_codec, data, codec_storage)
+  end
 end

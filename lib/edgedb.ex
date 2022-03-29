@@ -142,8 +142,8 @@ defmodule EdgeDB do
     * other - check `t:DBConnection.start_option/0`.
   """
   @type query_option() ::
-          {:cardinality, Enums.Cardinality.t()}
-          | {:io_format, Enums.IOFormat.t()}
+          {:cardinality, Enums.cardinality()}
+          | {:io_format, Enums.io_format()}
           | {:retry, list(retry_option())}
           | {:raw, boolean()}
           | DBConnection.option()
