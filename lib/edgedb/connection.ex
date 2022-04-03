@@ -3,8 +3,6 @@ defmodule EdgeDB.Connection do
 
   use DBConnection
 
-  use EdgeDB.Protocol
-
   alias EdgeDB.Connection.{
     InternalRequest,
     QueriesCache,
@@ -12,17 +10,55 @@ defmodule EdgeDB.Connection do
     State
   }
 
+  alias EdgeDB.{
+    Protocol,
+    SCRAM
+  }
+
   alias EdgeDB.Protocol.{
     Codec,
-    Codecs,
+    CodecStorage,
     Enums
   }
 
-  alias EdgeDB.SCRAM
+  alias EdgeDB.Protocol.Types.{
+    ConnectionParam,
+    DataElement,
+    ParameterStatus.SystemConfig
+  }
+
+  alias EdgeDB.Protocol.Messages.Client.{
+    AuthenticationSASLInitialResponse,
+    AuthenticationSASLResponse,
+    ClientHandshake,
+    DescribeStatement,
+    Execute,
+    ExecuteScript,
+    OptimisticExecute,
+    Prepare,
+    Sync,
+    Terminate
+  }
+
+  alias EdgeDB.Protocol.Messages.Server.{
+    AuthenticationOK,
+    AuthenticationSASL,
+    AuthenticationSASLContinue,
+    AuthenticationSASLFinal,
+    CommandComplete,
+    CommandDataDescription,
+    Data,
+    ErrorResponse,
+    LogMessage,
+    ParameterStatus,
+    PrepareComplete,
+    ReadyForCommand,
+    ServerHandshake,
+    ServerKeyData
+  }
 
   require Logger
 
-  @max_packet_size 64 * 1024 * 1024
   @tcp_socket_opts [packet: :raw, mode: :binary, active: false]
   @ssl_socket_opts []
 
@@ -31,6 +67,7 @@ defmodule EdgeDB.Connection do
   @minor_ver 13
   @minor_ver_min 13
   @edgedb_alpn_protocol "edgedb-binary"
+  @message_header_length Protocol.message_header_length()
 
   defmodule State do
     @moduledoc false
@@ -40,12 +77,11 @@ defmodule EdgeDB.Connection do
       :user,
       :database,
       :queries_cache,
-      :codecs_storage,
+      :codec_storage,
       :timeout,
       capabilities: [],
       transaction_options: [],
       retry_options: [],
-      buffer: <<>>,
       server_key_data: nil,
       server_state: :not_in_transaction,
       server_settings: %{},
@@ -59,14 +95,13 @@ defmodule EdgeDB.Connection do
             user: String.t(),
             database: String.t(),
             timeout: timeout(),
-            capabilities: Enums.Capabilities.t(),
+            capabilities: Enums.capabilities(),
             transaction_options: list(EdgeDB.edgedb_transaction_option()),
             retry_options: list(EdgeDB.retry_option()),
-            buffer: bitstring(),
             server_key_data: list(byte()) | nil,
-            server_state: Enums.TransactionState.t(),
+            server_state: Enums.transaction_state(),
             queries_cache: QueriesCache.t(),
-            codecs_storage: Codecs.Storage.t(),
+            codec_storage: CodecStorage.t(),
             server_settings: map(),
             ping_interval: integer() | nil | :disabled,
             last_active: integer() | nil,
@@ -106,10 +141,11 @@ defmodule EdgeDB.Connection do
       retry_options: retry_opts
     }
 
-    with {:ok, qc} <- QueriesCache.start_link(),
-         {:ok, cs} <- Codecs.Storage.start_link(),
-         {:ok, socket} <- open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout),
-         state = %State{state | socket: socket, queries_cache: qc, codecs_storage: cs},
+    qc = QueriesCache.new()
+    cs = CodecStorage.new()
+
+    with {:ok, socket} <- open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout),
+         state = %State{state | socket: socket, queries_cache: qc, codec_storage: cs},
          {:ok, state} <- handshake(password, state),
          {:ok, state} <- wait_for_server_ready(state),
          {:ok, state} <- initialize_custom_codecs(codecs_modules, state) do
@@ -196,7 +232,7 @@ defmodule EdgeDB.Connection do
   def handle_execute(%EdgeDB.Query{cached: true} = query, params, opts, state) do
     case optimistic_execute_query(query, params, opts, state) do
       {:ok, query, result, state} ->
-        {:ok, query, result, state}
+        {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, result, state}
 
       {reason, %EdgeDB.Error{query: nil} = exc, state} ->
         {reason, %EdgeDB.Error{exc | query: query}, state}
@@ -210,7 +246,7 @@ defmodule EdgeDB.Connection do
   def handle_execute(%EdgeDB.Query{} = query, params, opts, state) do
     case execute_query(query, params, opts, state) do
       {:ok, query, result, state} ->
-        {:ok, query, result, state}
+        {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, result, state}
 
       {reason, %EdgeDB.Error{query: nil} = exc, state} ->
         {reason, %EdgeDB.Error{exc | query: query}, state}
@@ -352,7 +388,7 @@ defmodule EdgeDB.Connection do
   def handle_prepare(%EdgeDB.Query{} = query, opts, %State{queries_cache: qc} = state) do
     case QueriesCache.get(qc, query.statement, query.cardinality, query.io_format, query.required) do
       %EdgeDB.Query{} = cached_query ->
-        {:ok, cached_query, state}
+        {:ok, %EdgeDB.Query{cached_query | codec_storage: state.codec_storage}, state}
 
       nil ->
         prepare_query(query, opts, state)
@@ -688,17 +724,14 @@ defmodule EdgeDB.Connection do
          query,
          in_codec_id,
          out_codec_id,
-         %State{queries_cache: qc, codecs_storage: cs} = state
+         %State{queries_cache: qc, codec_storage: cs} = state
        ) do
-    input_codec = Codecs.Storage.get(cs, in_codec_id)
-    output_codec = Codecs.Storage.get(cs, out_codec_id)
-
-    if is_nil(input_codec) or is_nil(output_codec) do
+    if is_nil(CodecStorage.get(cs, in_codec_id)) or is_nil(CodecStorage.get(cs, out_codec_id)) do
       describe_codecs_from_query(query, state)
     else
-      query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
+      query = save_query_with_codecs_in_cache(qc, query, in_codec_id, out_codec_id)
 
-      {:ok, query, state}
+      {:ok, %EdgeDB.Query{query | codec_storage: cs}, state}
     end
   end
 
@@ -730,14 +763,20 @@ defmodule EdgeDB.Connection do
   defp handle_describe_query_flow(
          query,
          %CommandDataDescription{} = message,
-         %State{codecs_storage: cs, queries_cache: qc} = state
+         %State{codec_storage: cs, queries_cache: qc} = state
        ) do
-    {input_codec, output_codec} = parse_description_message(message, cs)
+    parse_description_message(message, cs)
 
-    query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
+    query =
+      save_query_with_codecs_in_cache(
+        qc,
+        query,
+        message.input_typedesc_id,
+        message.output_typedesc_id
+      )
 
     with {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, query, state}
+      {:ok, %EdgeDB.Query{query | codec_storage: cs}, state}
     end
   end
 
@@ -806,8 +845,8 @@ defmodule EdgeDB.Connection do
       io_format: query.io_format,
       expected_cardinality: query.cardinality,
       command_text: query.statement,
-      input_typedesc_id: query.input_codec.type_id,
-      output_typedesc_id: query.output_codec.type_id,
+      input_typedesc_id: query.input_codec,
+      output_typedesc_id: query.output_codec,
       arguments: params
     }
 
@@ -846,10 +885,18 @@ defmodule EdgeDB.Connection do
          _result,
          %CommandDataDescription{} = message,
          opts,
-         %State{codecs_storage: cs, queries_cache: qc} = state
+         %State{codec_storage: cs, queries_cache: qc} = state
        ) do
-    {input_codec, output_codec} = parse_description_message(message, cs)
-    query = save_query_with_codecs_in_cache(qc, query, input_codec, output_codec)
+    parse_description_message(message, cs)
+
+    query =
+      save_query_with_codecs_in_cache(
+        qc,
+        query,
+        message.input_typedesc_id,
+        message.output_typedesc_id
+      )
+
     reencoded_params = DBConnection.Query.encode(query, query.params, [])
     execute_query(query, reencoded_params, opts, state)
   end
@@ -876,19 +923,15 @@ defmodule EdgeDB.Connection do
            output_typedesc_id: output_typedesc_id,
            output_typedesc: output_typedesc
          },
-         codecs_storage
+         codec_storage
        ) do
-    input_codec =
-      Codecs.Storage.get_or_create(codecs_storage, input_typedesc_id, fn ->
-        EdgeDB.Protocol.build_codec_from_type_description(codecs_storage, input_typedesc)
-      end)
+    if is_nil(CodecStorage.get(codec_storage, input_typedesc_id)) do
+      Protocol.parse_type_description(input_typedesc, codec_storage)
+    end
 
-    output_codec =
-      Codecs.Storage.get_or_create(codecs_storage, output_typedesc_id, fn ->
-        EdgeDB.Protocol.build_codec_from_type_description(codecs_storage, output_typedesc)
-      end)
-
-    {input_codec, output_codec}
+    if is_nil(CodecStorage.get(codec_storage, output_typedesc_id)) do
+      Protocol.parse_type_description(output_typedesc, codec_storage)
+    end
   end
 
   defp close_prepared_query(query, %State{} = state) do
@@ -1024,15 +1067,10 @@ defmodule EdgeDB.Connection do
     {:ok, state}
   end
 
-  defp initialize_custom_codecs(codecs_modules, %State{codecs_storage: cs} = state) do
-    codecs =
-      Enum.map(codecs_modules, fn codec_mod ->
-        codec_mod.new()
-      end)
-
+  defp initialize_custom_codecs(codecs_modules, %State{codec_storage: cs} = state) do
     names =
-      Enum.map(codecs, fn codec ->
-        codec.type_name
+      Enum.map(codecs_modules, fn codec_mod ->
+        codec_mod.name()
       end)
 
     statement = QueryBuilder.scalars_type_ids_by_names_statement()
@@ -1043,18 +1081,20 @@ defmodule EdgeDB.Connection do
          {:ok, query, result, state} <- execute_query(query, encoded_params, [], state),
          result = DBConnection.Query.decode(query, result, []),
          {:ok, types} <- EdgeDB.Result.extract(result) do
-      Enum.each(codecs, fn %Codec{type_name: name} = codec ->
+      Enum.each(codecs_modules, fn codec_mod ->
         scalar_object =
           Enum.find(types, fn type ->
-            type[:name] == name
+            type[:name] == codec_mod.name()
           end)
 
         case scalar_object do
           %EdgeDB.Object{id: type_id} ->
-            Codecs.Storage.register(cs, %Codec{codec | type_id: type_id})
+            CodecStorage.add(cs, type_id, codec_mod.new())
 
           _other ->
-            Logger.warn("skip registration of codec for unknown type with name #{inspect(name)}")
+            Logger.warn(
+              "skip registration of codec for unknown type with name #{inspect(codec_mod.name())}"
+            )
         end
       end)
 
@@ -1063,55 +1103,58 @@ defmodule EdgeDB.Connection do
   end
 
   defp parse_system_config(encoded_config, %State{} = state) do
-    {%SystemConfig{
-       typedesc_id: typedesc_id,
-       typedesc: type_descriptor,
-       data: %DataElement{data: data}
-     }, <<>>} = Types.ParameterStatus.SystemConfig.decode(encoded_config)
+    %SystemConfig{
+      typedesc_id: typedesc_id,
+      typedesc: type_descriptor,
+      data: %DataElement{data: data}
+    } = Protocol.decode_system_config(encoded_config)
 
-    state.codecs_storage
-    |> Codecs.Storage.get_or_create(typedesc_id, fn ->
-      EdgeDB.Protocol.build_codec_from_type_description(state.codecs_storage, type_descriptor)
-    end)
-    |> Codec.decode(data)
+    codec =
+      case CodecStorage.get(state.codec_storage, typedesc_id) do
+        nil ->
+          codec_id = Protocol.parse_type_description(type_descriptor, state.codec_storage)
+          CodecStorage.get(state.codec_storage, codec_id)
+
+        codec ->
+          codec
+      end
+
+    Codec.decode(codec, data, state.codec_storage)
   end
 
   defp send_message(message, state) do
     message
-    |> EdgeDB.Protocol.encode_message()
+    |> Protocol.encode_message()
     |> send_data_into_socket(state)
   end
 
   defp send_messages(messages, state) when is_list(messages) do
     messages
-    |> Enum.map(&EdgeDB.Protocol.encode_message/1)
+    |> Enum.map(&Protocol.encode_message/1)
     |> send_data_into_socket(state)
   end
 
   defp receive_message(state) do
-    case EdgeDB.Protocol.decode_message(state.buffer) do
-      {:ok, {%LogMessage{} = message, buffer}} ->
-        state = handle_log_message(message, %State{state | buffer: buffer})
+    result =
+      with {:ok, data} <- :ssl.recv(state.socket, @message_header_length, state.timeout) do
+        case Protocol.parse_message_header(data) do
+          {type, 0} ->
+            {:ok, Protocol.decode_message(type, <<>>)}
+
+          {type, length} ->
+            with {:ok, payload} <- :ssl.recv(state.socket, length, state.timeout) do
+              {:ok, Protocol.decode_message(type, payload)}
+            end
+        end
+      end
+
+    case result do
+      {:ok, %LogMessage{} = message} ->
+        state = handle_log_message(message, state)
         receive_message(state)
 
-      {:ok, {message, buffer}} ->
-        {:ok,
-         {message,
-          %State{
-            state
-            | last_active: System.monotonic_time(:second),
-              buffer: buffer
-          }}}
-
-      {:error, {:not_enough_size, size}} ->
-        receive_message_data_from_socket(size, state)
-    end
-  end
-
-  defp receive_message_data_from_socket(required_data_size, state) do
-    case :ssl.recv(state.socket, min(required_data_size, @max_packet_size), state.timeout) do
-      {:ok, data} ->
-        receive_message(%State{state | buffer: state.buffer <> data})
+      {:ok, message} ->
+        {:ok, {message, %State{state | last_active: System.monotonic_time(:second)}}}
 
       {:error, :closed} ->
         exc = EdgeDB.Error.client_connection_closed_error("connection has been closed")

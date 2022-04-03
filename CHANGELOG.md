@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- parsing of binary data from EdgeDB by completely reworking the protocol implementation.
 - internal implementation of the `Access` behaviour for `EdgeDB.Object` to improve fields access performance.
 
 ## [0.1.0] - 2022-02-10

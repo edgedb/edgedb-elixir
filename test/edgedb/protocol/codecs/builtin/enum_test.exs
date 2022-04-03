@@ -23,7 +23,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.EnumTest do
 
     assert exc ==
              EdgeDB.Error.invalid_argument_error(
-               "unable to encode #{inspect(value)} as enum: #{inspect(value)} is not member of enum"
+               "value can not be encoded as enum: not enum member: #{inspect(value)}"
              )
   end
 end

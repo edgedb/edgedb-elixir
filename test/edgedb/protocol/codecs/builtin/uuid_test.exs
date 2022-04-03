@@ -20,6 +20,8 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.UUIDTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error("unable to encode \"something\" as std::uuid")
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::uuid: Invalid argument; Not a valid UUID: #{"something"}"
+             )
   end
 end

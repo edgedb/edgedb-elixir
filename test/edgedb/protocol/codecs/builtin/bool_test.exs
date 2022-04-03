@@ -22,6 +22,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BoolTest do
         EdgeDB.query_single!(conn, "SELECT <bool>$0", [value])
       end
 
-    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as std::bool")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::bool: #{inspect(value)}"
+             )
   end
 end

@@ -21,6 +21,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BytesTest do
         EdgeDB.query_single!(conn, "SELECT <bytes>$0", [value])
       end
 
-    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as std::bytes")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as std::bytes: #{inspect(value)}"
+             )
   end
 end

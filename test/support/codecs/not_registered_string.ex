@@ -1,12 +1,31 @@
 defmodule Tests.Support.Codecs.NotRegisteredString do
-  use EdgeDB.Protocol.Codec
+  @behaviour EdgeDB.Protocol.CustomCodec
 
-  defscalarcodec(
-    type_name: "default::not_registered_string",
-    type: term(),
-    calculate_size: false
-  )
+  defstruct []
 
-  defdelegate encode_instance(term), to: EdgeDB.Protocol.Codecs.Builtin.Str
-  defdelegate decode_instance(binary_data), to: EdgeDB.Protocol.Codecs.Builtin.Str
+  @impl EdgeDB.Protocol.CustomCodec
+  def new do
+    %__MODULE__{}
+  end
+
+  @impl EdgeDB.Protocol.CustomCodec
+  def name do
+    "default::not_registered_string"
+  end
+end
+
+defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NotRegisteredString do
+  alias EdgeDB.Protocol.{Codec, Codecs}
+
+  @str_codec Codecs.Str.new()
+
+  @impl Codec
+  def encode(_codec, value, codec_storage) do
+    Codec.encode(@str_codec, value, codec_storage)
+  end
+
+  @impl Codec
+  def decode(_codec, data, codec_storage) do
+    Codec.decode(@str_codec, data, codec_storage)
+  end
 end

@@ -32,7 +32,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ConfigMemoryTest do
         EdgeDB.query_single!(conn, "SELECT <cfg::memory>$0", [value])
       end
 
-    assert exc == EdgeDB.Error.invalid_argument_error("unable to encode #{value} as cfg::memory")
+    assert exc ==
+             EdgeDB.Error.invalid_argument_error(
+               "value can not be encoded as cfg::memory: #{inspect(value)}"
+             )
   end
 
   test "error when passing invalid entity as cfg::memory argument", %{conn: conn} do
@@ -45,7 +48,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ConfigMemoryTest do
 
     assert exc ==
              EdgeDB.Error.invalid_argument_error(
-               "unable to encode #{inspect(value)} as cfg::memory"
+               "value can not be encoded as cfg::memory: #{inspect(value)}"
              )
   end
 end

@@ -22,7 +22,7 @@ defmodule EdgeDB.Subtransaction do
 
     @type t() :: %__MODULE__{
             conn: DBConnection.t(),
-            conn_state: Enums.TransactionState.t(),
+            conn_state: Enums.transaction_state(),
             savepoint: String.t() | nil
           }
   end

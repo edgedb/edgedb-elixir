@@ -1,16 +1,20 @@
 # Custom codecs for EdgeDB scalars
 
-`EdgeDB.Protocol.Codec` is a structure that knows how to encode or decode Elixir types into EdgeDB types
+`EdgeDB.Protocol.Codec` is a codec that knows how to encode or decode Elixir types into EdgeDB types
   and vice versa using the EdgeDB binary format.
 
 Custom codecs can be useful when your EdgeDB scalars need their own processing.
 
-You can use the `EdgeDB.Protocol.Codec.defscalarcodec/1` macros to define a custom codec.
-  It will generate code with `EdgeDB.Protocol.Codec` behavior, which will require
-  implementing `c:EdgeDB.Protocol.Codec.encode_instance/1` and `c:EdgeDB.Protocol.Codec.decode_instance/1` callbacks.
+> #### NOTE {: .warning}
+>
+> Although most of the driver API is complete, some internal parts may be changed in the future.
+>   The implementation of the binary protocol (including the definition of custom codecs) is on the list of possible changes.
 
 In most cases you can use already defined codecs to work with the EdgeDB binary protocol. Otherwise,
   you will need to check to the EdgeDB [binary protocol documentation](https://www.edgedb.com/docs/reference/protocol).
+
+To implement custom codec it will be required to implement `EdgeDB.Protocol.CustomCodec` behaviour
+  and implement `EdgeDB.Protocol.Codec` protocol.
 
 As an example, let's create a custom codec for a scalar that extends the standard `std::json` type.
 
@@ -50,38 +54,36 @@ The implementation of the codec itself:
 
 ```elixir
 defmodule MyApp.EdgeDB.Codecs.JSONPayload do
-  use EdgeDB.Protocol.Codec
+  @behviour EdgeDB.Protocol.CustomCodec
 
-  alias EdgeDB.Protocol.Codecs
+  defstruct []
+
+  def new do
+    %__MODULE__{}
+  end
+
+  def name do
+    "default::JSONPayload"
+  end
+end
+
+defimpl EdgeDB.Protocol.CustomCodec, for: MyApp.EdgeDB.Codecs.JSONPayload do
+  alias EdgeDB.Protocol.{
+    Codec,
+    CodecStorage
+  }
 
   alias MyApp.Users.Payload
 
-  defscalarcodec(
-    type_name: "default::JSONPayload",
-    type: Payload.t(),
-    calculate_size: false  # we need that because the JSON codec calculates its own size and we rely on JSON codec
-  )
-
-  @impl EdgeDB.Protocol.Codec
-  def encode_instance(%Payload{} = payload) do
-    payload
-    |> Map.from_struct()
-    |> Codecs.Builtin.JSON.encode_instance()
+  @impl Codec
+  def encode(_codec, %Payload{} = payload, codec_storage) do
+    json_codec = CodecStorage.get_by_name(codec_storage, "std::json")
+    Codec.encode(json_codec, Map.from_struct(payload), codec_storage)
   end
 
-  @impl EdgeDB.Protocol.Codec
-  def decode_instance(binary_data) do
-    %{
-      "public_id" => public_id,
-      "first_name" => first_name,
-      "last_name" => last_name
-    } = Codecs.Builtin.JSON.decode_instance(binary_data)
-
-    %Payload{
-      public_id: public_id,
-      first_name: first_name,
-      last_name: last_name
-    }
+  @impl Codec
+  def encode(_codec, value, codec_storage) do
+    raise RuntimeError, "#{__MODULE__} codec can encode only #{Payload} struct"
   end
 end
 ```
