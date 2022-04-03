@@ -58,6 +58,7 @@ defmodule EdgeDB.Object do
 
   defstruct [
     :__fields__,
+    :__order__,
     :__tid__,
     :id
   ]
@@ -120,7 +121,8 @@ defmodule EdgeDB.Object do
   @opaque object :: %__MODULE__{
             id: uuid() | nil,
             __tid__: uuid() | nil,
-            __fields__: list(Field.t())
+            __fields__: %{String.t() => Field.t()},
+            __order__: list(String.t())
           }
 
   defmodule Field do
@@ -159,22 +161,22 @@ defmodule EdgeDB.Object do
 
     object.__fields__
     |> Enum.filter(fn
-      %Field{name: "id", is_implicit: true} ->
+      {"id", %Field{is_implicit: true}} ->
         include_id? or include_implicits?
 
-      %Field{is_implicit: true} ->
+      {_name, %Field{is_implicit: true}} ->
         include_implicits?
 
-      %Field{is_link: true} ->
+      {_name, %Field{is_link: true}} ->
         include_links?
 
-      %Field{is_link_property: true} ->
+      {_name, %Field{is_link_property: true}} ->
         include_link_properties?
 
-      _field ->
+      _other ->
         include_properies?
     end)
-    |> Enum.map(fn %Field{name: name} ->
+    |> Enum.map(fn {name, _field} ->
       name
     end)
   end
@@ -214,13 +216,13 @@ defmodule EdgeDB.Object do
   end
 
   @impl Access
-  def fetch(%__MODULE__{__fields__: fields}, key) do
-    case find_field(fields, key) do
-      nil ->
-        :error
+  def fetch(%__MODULE__{__fields__: fields}, key) when is_binary(key) do
+    case fields do
+      %{^key => %Field{value: value}} ->
+        {:ok, value}
 
-      field ->
-        {:ok, field.value}
+      _other ->
+        :error
     end
   end
 
@@ -233,22 +235,16 @@ defmodule EdgeDB.Object do
   def pop(%__MODULE__{}, _key) do
     raise EdgeDB.Error.interface_error("objects can't be mutated")
   end
-
-  defp find_field(fields, name_to_find) do
-    Enum.find(fields, fn %{name: name} ->
-      name == name_to_find
-    end)
-  end
 end
 
 defimpl Inspect, for: EdgeDB.Object do
   import Inspect.Algebra
 
   @impl Inspect
-  def inspect(%EdgeDB.Object{__fields__: fields}, opts) do
+  def inspect(%EdgeDB.Object{__fields__: fields, __order__: order}, opts) do
     visible_fields =
-      Enum.reject(fields, fn %EdgeDB.Object.Field{is_implicit: implicit?} ->
-        implicit?
+      Enum.reject(order, fn name ->
+        fields[name].is_implicit
       end)
 
     fields_count = Enum.count(visible_fields)
@@ -257,11 +253,11 @@ defimpl Inspect, for: EdgeDB.Object do
       visible_fields
       |> Enum.with_index(1)
       |> Enum.map(fn
-        {%EdgeDB.Object.Field{name: name, value: value}, ^fields_count} ->
-          concat([name, " := ", Inspect.inspect(value, opts)])
+        {name, ^fields_count} ->
+          concat([name, " := ", Inspect.inspect(fields[name].value, opts)])
 
-        {%EdgeDB.Object.Field{name: name, value: value}, _index} ->
-          concat([name, " := ", Inspect.inspect(value, opts), ", "])
+        {name, _index} ->
+          concat([name, " := ", Inspect.inspect(fields[name].value, opts), ", "])
       end)
 
     concat(["#EdgeDB.Object<", concat(elements_docs), ">"])
