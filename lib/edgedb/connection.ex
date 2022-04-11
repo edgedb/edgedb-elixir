@@ -79,6 +79,7 @@ defmodule EdgeDB.Connection do
       :queries_cache,
       :codec_storage,
       :timeout,
+      :pool_pid,
       capabilities: [],
       transaction_options: [],
       retry_options: [],
@@ -96,6 +97,7 @@ defmodule EdgeDB.Connection do
             database: String.t(),
             timeout: timeout(),
             capabilities: Enums.capabilities(),
+            pool_pid: pid() | nil,
             transaction_options: list(EdgeDB.edgedb_transaction_option()),
             retry_options: list(EdgeDB.retry_option()),
             server_key_data: list(byte()) | nil,
@@ -131,12 +133,14 @@ defmodule EdgeDB.Connection do
       |> Keyword.merge(opts[:ssl] || [])
       |> add_custom_edgedb_ssl_opts(opts)
 
+    pool_pid = opts[:pool_pid]
     timeout = opts[:timeout]
 
     state = %State{
       user: user,
       database: database,
       timeout: timeout,
+      pool_pid: pool_pid,
       transaction_options: transaction_opts,
       retry_options: retry_opts
     }
@@ -622,12 +626,12 @@ defmodule EdgeDB.Connection do
     wait_for_server_ready(%State{state | server_key_data: data})
   end
 
-  # TODO: maybe use it somehow, but right now just ignore it
   defp handle_server_ready_flow(
          %ParameterStatus{name: "suggested_pool_concurrency", value: value},
-         state
+         %State{} = state
        ) do
     {pool_concurrency, ""} = Integer.parse(value)
+    inform_pool_about_suggested_size(state.pool_pid, pool_concurrency)
 
     wait_for_server_ready(%State{
       state
@@ -1199,6 +1203,14 @@ defmodule EdgeDB.Connection do
 
         {:disconnect, exc, state}
     end
+  end
+
+  defp inform_pool_about_suggested_size(nil, _suggested_size) do
+    :ok
+  end
+
+  defp inform_pool_about_suggested_size(pool_pid, suggested_size) do
+    send(pool_pid, {:resize_pool, suggested_size})
   end
 
   defp prepare_headers(headers, %State{} = state) do

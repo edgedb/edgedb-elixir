@@ -288,7 +288,8 @@ defmodule EdgeDB.Connection.Config do
       ssl: from_config(:ssl),
       transaction: from_config(:transaction),
       retry: from_config(:retry),
-      connection: from_config(:connection)
+      connection: from_config(:connection),
+      pool: from_config(:pool)
     )
   end
 
