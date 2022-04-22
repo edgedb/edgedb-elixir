@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - creation of `EdgeDB.Object` properties equal to an empty `EdgeDB.Set`.
 - access to TLS certificate from connection options.
+- isolation configuration by dropping `REPEATABLE READ` mode, because only `SERIALIZABLE` is supported by `EdgeDB 1.0` (`REPEATABLE READ` was dropped in `EdgeDB 1.3`).
 
 ### Changed
 

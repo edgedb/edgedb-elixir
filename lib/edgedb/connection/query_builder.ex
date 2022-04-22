@@ -5,13 +5,11 @@ defmodule EdgeDB.Connection.QueryBuilder do
 
   @spec start_transaction_statement(list(EdgeDB.edgedb_transaction_option())) :: statement()
   def start_transaction_statement(opts) do
+    # only SERIALIZABLE exists at the moment
     isolation =
-      case Keyword.get(opts, :isolation, :repeatable_read) do
-        :serializable ->
+      case Keyword.get(opts, :isolation, :serializable) do
+        _isolation ->
           "ISOLATION SERIALIZABLE"
-
-        :repeatable_read ->
-          "ISOLATION REPEATABLE READ"
       end
 
     read =
