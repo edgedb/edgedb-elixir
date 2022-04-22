@@ -1,0 +1,27 @@
+name: Release package in Hex
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release:
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "24.1.1"
+          elixir-version: "1.12.2"
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Publish to Hex
+        env:
+          HEX_API_KEY: ${{ secrets.HEX_API_KEY }}
+        run: mix hex.publish --yes
