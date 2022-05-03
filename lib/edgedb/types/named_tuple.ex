@@ -41,9 +41,9 @@ defmodule EdgeDB.NamedTuple do
   ```
   """
   @spec to_tuple(t()) :: tuple()
-  def to_tuple(%__MODULE__{__items__: items}) do
-    items
-    |> Map.values()
+  def to_tuple(%__MODULE__{} = nt) do
+    nt
+    |> Enum.into([])
     |> List.to_tuple()
   end
 
@@ -58,8 +58,12 @@ defmodule EdgeDB.NamedTuple do
   ```
   """
   @spec keys(t()) :: list(String.t())
-  def keys(%__MODULE__{__items__: items}) do
-    Map.keys(items)
+  def keys(%__MODULE__{__fields_ordering__: fields_order}) do
+    fields_order
+    |> Enum.sort()
+    |> Enum.map(fn {_index, name} ->
+      name
+    end)
   end
 
   @impl Access
@@ -108,16 +112,22 @@ defimpl Enumerable, for: EdgeDB.NamedTuple do
   end
 
   @impl Enumerable
-  def reduce(%EdgeDB.NamedTuple{__items__: items}, acc, fun) do
-    items
-    |> Map.values()
+  def reduce(%EdgeDB.NamedTuple{__items__: items, __fields_ordering__: fields_order}, acc, fun) do
+    fields_order
+    |> Enum.sort()
+    |> Enum.map(fn {_index, name} ->
+      items[name]
+    end)
     |> Enumerable.reduce(acc, fun)
   end
 
   @impl Enumerable
-  def slice(%EdgeDB.NamedTuple{__items__: items}) do
-    items
-    |> Map.values()
+  def slice(%EdgeDB.NamedTuple{__items__: items, __fields_ordering__: fields_order}) do
+    fields_order
+    |> Enum.sort()
+    |> Enum.map(fn {_index, name} ->
+      items[name]
+    end)
     |> Enumerable.slice()
   end
 end
@@ -134,10 +144,10 @@ defimpl Inspect, for: EdgeDB.NamedTuple do
 
     elements_docs =
       fields_order
+      |> Enum.sort()
       |> Enum.map(fn {index, name} ->
         {index, glue(name, ": ", inspect(items[name]))}
       end)
-      |> Enum.sort()
       |> Enum.map(fn
         {^max_index, doc} ->
           doc
