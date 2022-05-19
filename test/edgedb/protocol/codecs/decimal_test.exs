@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.DecimalTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection

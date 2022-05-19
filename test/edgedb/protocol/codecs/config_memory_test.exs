@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.ConfigMemoryTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.ConfigMemoryTest do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection

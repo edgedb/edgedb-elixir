@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Flaot64Test do
+defmodule Tests.EdgeDB.Protocol.Codecs.Flaot64Test do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection
