@@ -26,9 +26,28 @@ end
 defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Null do
   import EdgeDB.Protocol.Converters
 
+  alias EdgeDB.Protocol.Codec.EdgeDB.Protocol.Codecs.Object
+
   @impl EdgeDB.Protocol.Codec
-  def encode(_codec, _value, _codec_storage) do
+  def encode(_codec, [], _codec_storage) do
     <<0::uint32>>
+  end
+
+  @impl EdgeDB.Protocol.Codec
+  def encode(_codec, arguments, _codec_storage) when map_size(arguments) == 0 do
+    <<0::uint32>>
+  end
+
+  @impl EdgeDB.Protocol.Codec
+  def encode(_codec, arguments, _codec_storage) when is_list(arguments) or is_map(arguments) do
+    arguments
+    |> Object.transform_arguments()
+    |> Object.raise_wrong_arguments_error!([])
+  end
+
+  @impl EdgeDB.Protocol.Codec
+  def encode(_codec, value, _codec_storage) do
+    EdgeDB.Error.invalid_argument_error("value can not be encoded as null: #{inspect(value)}")
   end
 
   @impl EdgeDB.Protocol.Codec

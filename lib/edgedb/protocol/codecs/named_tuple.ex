@@ -29,48 +29,8 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
   @empty_set %EdgeDB.Set{__items__: []}
 
   @impl Codec
-  def encode(%{elements: elements, codecs: codecs}, map, codec_storage)
-      when is_map(map) and map_size(map) == length(codecs) do
-    map = transform_into_string_map(map)
-
-    verify_all_members_passed!(map, elements)
-
-    elements =
-      codecs
-      |> Enum.map(&CodecStorage.get(codec_storage, &1))
-      |> Enum.zip(elements)
-      |> Enum.map(fn {codec, element} ->
-        value = map[element.name]
-
-        if is_nil(value) do
-          <<0::int32, -1::int32>>
-        else
-          [<<0::int32>> | Codec.encode(codec, value, codec_storage)]
-        end
-      end)
-
-    data = [<<length(elements)::int32>> | elements]
-    [<<IO.iodata_length(data)::uint32>> | data]
-  end
-
-  @impl Codec
-  def encode(%{codecs: codecs} = codec, list, codec_storage)
-      when is_list(list) and length(list) == length(codecs) do
-    if not Keyword.keyword?(list) do
-      raise EdgeDB.Error.invalid_argument_error(
-              "value can not be encoded as named tuple: plain list can not encoded, use keyword list"
-            )
-    end
-
-    map = Enum.into(list, %{})
-    encode(codec, map, codec_storage)
-  end
-
-  @impl Codec
-  def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
-            "value can not be encoded as named tuple: #{inspect(value)}"
-          )
+  def encode(_codec, _value, _codec_storage) do
+    raise EdgeDB.Error.invalid_argument_error("tuples encoding is not supported by clients")
   end
 
   @impl Codec
@@ -97,53 +57,6 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
       end)
 
     %EdgeDB.NamedTuple{__items__: map, __fields_ordering__: ordering}
-  end
-
-  defp transform_into_string_map(value) do
-    Enum.into(value, %{}, fn
-      {key, value} when is_atom(key) ->
-        {to_string(key), value}
-
-      {key, value} when is_binary(key) ->
-        {key, value}
-    end)
-  end
-
-  defp verify_all_members_passed!(map, elements) do
-    passed_keys =
-      map
-      |> Map.keys()
-      |> MapSet.new()
-
-    required_keys = Enum.into(elements, MapSet.new(), & &1.name)
-    missed_keys = MapSet.difference(required_keys, passed_keys)
-    extra_keys = MapSet.difference(passed_keys, required_keys)
-
-    if MapSet.size(missed_keys) != 0 or MapSet.size(extra_keys) != 0 do
-      err = make_wrong_elements_error_message(required_keys, passed_keys, missed_keys, extra_keys)
-      EdgeDB.Error.invalid_argument_error("value can not be encoded as named tuple: #{err}")
-    end
-
-    :ok
-  end
-
-  defp make_wrong_elements_error_message(required_keys, passed_keys, missed_keys, extra_keys) do
-    error_message =
-      "exptected #{MapSet.to_list(required_keys)} keys in named tuple, " <>
-        "got #{MapSet.to_list(passed_keys)}"
-
-    error_message =
-      if MapSet.size(missed_keys) != 0 do
-        "#{error_message}, missed #{MapSet.to_list(missed_keys)}"
-      else
-        error_message
-      end
-
-    if MapSet.size(extra_keys) != 0 do
-      "#{error_message}, missed #{MapSet.to_list(extra_keys)}"
-    else
-      error_message
-    end
   end
 
   defp decode_element_list(<<>>, [], _codec_storage, 0, acc) do

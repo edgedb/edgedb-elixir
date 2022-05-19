@@ -25,41 +25,8 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Tuple do
   @empty_set %EdgeDB.Set{__items__: []}
 
   @impl Codec
-  def encode(%{codecs: codecs}, tuple, codec_storage)
-      when is_tuple(tuple) and tuple_size(tuple) == length(codecs) do
-    elements =
-      codecs
-      |> Enum.map(&CodecStorage.get(codec_storage, &1))
-      |> Enum.with_index()
-      |> Enum.map(fn
-        {codec, idx} ->
-          element = elem(tuple, idx)
-
-          if is_nil(element) do
-            <<0::int32, -1::int32>>
-          else
-            Codec.encode(codec, element, codec_storage)
-          end
-      end)
-
-    [<<IO.iodata_length(elements)::int32>> | elements]
-  end
-
-  @impl Codec
-  def encode(%{codecs: codecs}, tuple, _codec_storage) when is_tuple(tuple) do
-    expected_length = length(codecs)
-    passed_length = tuple_size(tuple)
-
-    raise EdgeDB.Error.invalid_argument_error(
-            "value can not be encoded as tuple: mismatched tuple size: expected #{expected_length}, got #{passed_length}"
-          )
-  end
-
-  @impl Codec
-  def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
-            "value can not be encoded as tuple: #{inspect(value)}"
-          )
+  def encode(_codec, _value, _codec_storage) do
+    raise EdgeDB.Error.invalid_argument_error("tuples encoding is not supported by clients")
   end
 
   @impl Codec

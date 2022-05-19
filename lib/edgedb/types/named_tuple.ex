@@ -48,7 +48,7 @@ defmodule EdgeDB.NamedTuple do
   end
 
   @doc """
-  Get named tuple keys
+  Get named tuple keys.
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
