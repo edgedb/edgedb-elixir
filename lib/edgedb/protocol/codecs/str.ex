@@ -4,7 +4,7 @@ defmodule EdgeDB.Protocol.Codecs.Str do
   @behaviour EdgeDB.Protocol.BaseScalarCodec
 
   @id UUID.string_to_binary!("00000000-0000-0000-0000-000000000101")
-  @name "std::uuid"
+  @name "std::str"
 
   defstruct id: @id,
             name: @name
