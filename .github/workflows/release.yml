@@ -2,7 +2,8 @@ name: Release package in Hex
 
 on:
   release:
-    types: [published]
+    types:
+      - "published"
 
 jobs:
   release:
