@@ -1,8 +1,13 @@
 name: Styles
 
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - "master"
+
+  pull_request:
+      branches:
+        - "*"
 
 jobs:
   styles:
