@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BoolTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.BoolTest do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection

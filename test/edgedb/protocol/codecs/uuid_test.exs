@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.UUIDTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.UUIDTest do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection

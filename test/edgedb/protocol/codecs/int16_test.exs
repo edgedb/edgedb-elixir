@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.Int16Test do
+defmodule Tests.EdgeDB.Protocol.Codecs.Int16Test do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection
