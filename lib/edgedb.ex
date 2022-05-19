@@ -157,15 +157,14 @@ defmodule EdgeDB do
   Supported options:
 
     * `:isolation` - If `:serializable` is used, the built statement will use the `ISOLATION SERIALIZABLE` mode.
-      Otherwise, if `:repeatable_read` is used, the built statement will use the `ISOLATION REPEATABLE READ` mode.
-      The default is `:repeatable_read`.
+      Currently only `:serializable` is supported by this driver and EdgeDB.
     * `:readonly` - if set to `true` then the built statement will use `READ ONLY` mode,
       otherwise `READ WRITE` will be used. The default is `false`.
     * `:deferrable` - if set to `true` then the built statement will use `DEFERRABLE` mode,
       otherwise `NOT DEFERRABLE` will be used. The default is `false`.
   """
   @type edgedb_transaction_option() ::
-          {:isolation, :repeatable_read | :serializable}
+          {:isolation, :serializable}
           | {:readonly, boolean()}
           | {:deferrable, boolean()}
 
