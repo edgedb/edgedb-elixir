@@ -33,7 +33,7 @@ jobs:
             deps
             _build
             priv/plts
-          key: styles-${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-${{ hashFiles('mix.lock') }}
+          key: styles-${{ runner.os }}-${{ hashFiles('mix.lock') }}
 
       - name: Install dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'
