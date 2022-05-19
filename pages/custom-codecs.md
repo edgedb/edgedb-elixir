@@ -58,21 +58,24 @@ defmodule MyApp.EdgeDB.Codecs.JSONPayload do
 
   defstruct []
 
+  @impl EdgeDB.Protocol.CustomCodec
   def new do
     %__MODULE__{}
   end
 
+  @impl EdgeDB.Protocol.CustomCodec
   def name do
     "default::JSONPayload"
   end
 end
 
-defimpl EdgeDB.Protocol.CustomCodec, for: MyApp.EdgeDB.Codecs.JSONPayload do
+defimpl EdgeDB.Protocol.Codec, for: MyApp.EdgeDB.Codecs.JSONPayload do
   alias EdgeDB.Protocol.{
     Codec,
     CodecStorage
   }
 
+  alias MyApp.EdgeDB.Codecs.JSONPayload
   alias MyApp.Users.Payload
 
   @impl Codec
@@ -83,7 +86,9 @@ defimpl EdgeDB.Protocol.CustomCodec, for: MyApp.EdgeDB.Codecs.JSONPayload do
 
   @impl Codec
   def encode(_codec, value, codec_storage) do
-    raise RuntimeError, "#{__MODULE__} codec can encode only #{Payload} struct"
+    raise EdgeDB.Error.interface_error(
+            "unexpected value to encode as #{inspect(JSONPayload.name())}: #{inspect(value)}"
+          )
   end
 
   @impl Codec

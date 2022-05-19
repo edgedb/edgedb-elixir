@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - Unreleased
 
-[Compare with 0.2.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.0...HEAD)
+[Compare with 0.2.1](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.1...HEAD)
+
+## [0.2.1] - 2022-05-19
+
+[Compare with 0.2.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.0...v0.2.1)
+
+### Removed
+
+- mention of `:repeatable_read` option for transaction isolation mode from `t:EdgeDB.edgedb_transaction_option/0`.
+
+### Fixed
+
+- codec name returned by codec for `std::str` from `std::uuid` to `str::str`.
+- documentation for the custom codec example, which did not have a `Codec.decode/3` implementation and used the wrong protocol.
 
 ## [0.2.0] - 2022-05-03
 
