@@ -34,6 +34,15 @@ defmodule Tests.EdgeDB.Types.NamedTupleTest do
     end
   end
 
+  describe "EdgeDB.NamedTuple.to_map/1" do
+    test "returns map converted from object", %{conn: conn} do
+      nt = EdgeDB.query_required_single!(conn, select_named_tuple_query())
+      expected_map = Enum.into(1..100, %{}, &{"key_#{&1}", &1})
+
+      assert EdgeDB.NamedTuple.to_map(nt) == expected_map
+    end
+  end
+
   defp select_named_tuple_query do
     # create here a complex literal for named tuple to ensure that erlang optimization for maps won't be used
 
