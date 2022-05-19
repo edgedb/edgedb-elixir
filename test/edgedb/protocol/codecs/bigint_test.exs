@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.BigIntTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection

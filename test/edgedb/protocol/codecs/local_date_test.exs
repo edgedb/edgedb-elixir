@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.Protocol.Codecs.Builtin.LocalDateTest do
+defmodule Tests.EdgeDB.Protocol.Codecs.LocalDateTest do
   use Tests.Support.EdgeDBCase
 
   setup :edgedb_connection
