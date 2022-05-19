@@ -11,7 +11,7 @@ on:
 
 jobs:
   tests:
-    name: Run tests (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }})
+    name: Run tests (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }} / EdgeDB ${{ matrix.edgedb-version }})
 
     runs-on: ubuntu-18.04
 
@@ -25,6 +25,7 @@ jobs:
 
         edgedb-version:
           - "1.0"
+          - "1.3"
 
     steps:
       - uses: actions/checkout@v3
@@ -61,3 +62,13 @@ jobs:
 
       - name: Run tests
         run: mix coveralls
+
+  result:
+    name: Collect tests results
+
+    needs: tests
+
+    runs-on: ubuntu-18.04
+
+    steps:
+      - uses: actions/checkout@v3

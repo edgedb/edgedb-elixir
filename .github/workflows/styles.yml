@@ -11,14 +11,9 @@ on:
 
 jobs:
   styles:
-    name: Run style checks (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }})
+    name: Check styles
 
     runs-on: ubuntu-18.04
-
-    strategy:
-      matrix:
-        otp-version: ["24.1.1"]
-        elixir-version: ["1.12.2"]
 
     steps:
       - uses: actions/checkout@v3
@@ -27,8 +22,8 @@ jobs:
 
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ matrix.otp-version }}
-          elixir-version: ${{ matrix.elixir-version }}
+          otp-version: "24.1.1"
+          elixir-version: "1.12.2"
 
       - name: Set up cache
         uses: actions/cache@v3.0.2
