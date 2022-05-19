@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - codec name returned by codec for `std::str` from `std::uuid` to `str::str`.
-- documentation for the custom codec example, which did not have a `Codec.decode/3` implementation and used the wrong protocol.
+- documentation for the custom codec example, which did not have a `EdgeDB.Protocol.Codec.decode/3` implementation and used the wrong protocol.
 
 ## [0.2.0] - 2022-05-03
 
