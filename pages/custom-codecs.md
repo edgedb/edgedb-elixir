@@ -85,6 +85,17 @@ defimpl EdgeDB.Protocol.CustomCodec, for: MyApp.EdgeDB.Codecs.JSONPayload do
   def encode(_codec, value, codec_storage) do
     raise RuntimeError, "#{__MODULE__} codec can encode only #{Payload} struct"
   end
+
+  @impl Codec
+  def decode(_codec, data, codec_storage) do
+    json_codec = CodecStorage.get_by_name(codec_storage, "std::json")
+    payload = Codec.decode(json_codec, data, codec_storage)
+    %Payload{
+      public_id: payload["public_id"]
+      first_name: payload["first_name"]
+      last_name: payload["last_name"]
+    }
+  end
 end
 ```
 
