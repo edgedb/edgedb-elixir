@@ -3,6 +3,7 @@ defmodule EdgeDB.Protocol.Codecs.Object do
 
   alias EdgeDB.Protocol.{
     Codec,
+    CodecStorage,
     Types
   }
 
@@ -34,47 +35,36 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   @impl Codec
   def encode(_codec, %EdgeDB.Object{}, _codec_storage) do
     raise EdgeDB.Error.invalid_argument_error(
-            "value can not be encoded as object: object encoding is not supported"
+            "value can not be encoded as object: objects encoding is not supported"
+          )
+  end
+
+  # maybe worth adding in future, but for now it's not allowed
+  @impl Codec
+  def encode(_codec, %{__struct__: _struct_mod}, _codec_storage) do
+    raise EdgeDB.Error.invalid_argument_error(
+            "value can not be encoded as object: structs encoding is not supported"
           )
   end
 
   @impl Codec
-  def encode(%{shape_elements: elements, codecs: codecs}, list, codec_storage)
-      when is_list(list) and length(list) == length(elements) do
-    map =
-      if Keyword.keyword?(list) do
-        transform_into_string_map(list)
-      else
-        transform_into_indexed_string_map(list)
-      end
+  def encode(%{shape_elements: elements} = codec, arguments, codec_storage)
+      when is_list(arguments) and length(arguments) == length(elements) do
+    do_object_encoding(codec, arguments, codec_storage)
+  end
 
-    verify_all_members_passed!(map, elements)
-    codecs = Enum.map(codecs, &CodecStorage.get(codec_storage, &1))
+  @impl Codec
+  def encode(%{shape_elements: elements} = codec, arguments, codec_storage)
+      when is_map(arguments) and map_size(arguments) == length(elements) do
+    do_object_encoding(codec, arguments, codec_storage)
+  end
 
-    values =
-      elements
-      |> Enum.zip(codecs)
-      |> Enum.map(fn {%{name: name, cardinality: cardinality}, codec} ->
-        value = map[name]
-
-        if is_nil(value) and (cardinality == :one or cardinality == :at_least_one) do
-          raise EdgeDB.Error.invalid_argument_error(
-                  "argument #{inspect(name)} is required, but received nil"
-                )
-        end
-
-        {value, codec}
-      end)
-      |> Enum.map(fn
-        {nil, _codec} ->
-          <<0::int32, -1::int32>>
-
-        {value, codec} ->
-          [<<0::int32>> | Codec.encode(codec, value, codec_storage)]
-      end)
-
-    data = [<<length(values)::int32>> | values]
-    [<<IO.iodata_length(data)::uint32>> | data]
+  @impl Codec
+  def encode(%{shape_elements: elements}, arguments, _codec_storage)
+      when is_list(arguments) or is_map(arguments) do
+    arguments
+    |> transform_arguments()
+    |> raise_wrong_arguments_error!(elements)
   end
 
   @impl Codec
@@ -116,6 +106,109 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     }
   end
 
+  @spec transform_arguments(list() | Keyword.t() | map()) :: %{String.t() => term()}
+  def transform_arguments(arguments) do
+    cond do
+      is_map(arguments) ->
+        transform_into_string_map(arguments)
+
+      Keyword.keyword?(arguments) ->
+        transform_into_string_map(arguments)
+
+      is_list(arguments) ->
+        transform_into_indexed_string_map(arguments)
+    end
+  end
+
+  @spec raise_wrong_arguments_error!(map(), list()) :: no_return()
+  def raise_wrong_arguments_error!(arguments, elements) do
+    passed_keys =
+      arguments
+      |> Map.keys()
+      |> MapSet.new()
+
+    required_keys = Enum.into(elements, MapSet.new(), & &1.name)
+    missed_keys = MapSet.difference(required_keys, passed_keys)
+    extra_keys = MapSet.difference(passed_keys, required_keys)
+
+    error_message =
+      if MapSet.size(required_keys) == 0 do
+        "expected nothing"
+      else
+        "expected #{inspect(MapSet.to_list(required_keys))} keys"
+      end
+
+    error_message =
+      cond do
+        MapSet.size(required_keys) == 0 and MapSet.size(passed_keys) == 0 ->
+          error_message
+
+        MapSet.size(required_keys) != 0 and MapSet.size(passed_keys) == 0 ->
+          "#{error_message}, passed nothing"
+
+        true ->
+          "#{error_message}, passed #{inspect(MapSet.to_list(passed_keys))} keys"
+      end
+
+    error_message =
+      if MapSet.size(missed_keys) != 0 do
+        "#{error_message}, missed #{inspect(MapSet.to_list(missed_keys))} keys"
+      else
+        error_message
+      end
+
+    error_message =
+      if MapSet.size(extra_keys) != 0 do
+        "#{error_message}, passed extra #{inspect(MapSet.to_list(extra_keys))} keys"
+      else
+        error_message
+      end
+
+    raise EdgeDB.Error.query_argument_error(error_message)
+  end
+
+  defp do_object_encoding(%{shape_elements: elements, codecs: codecs}, arguments, codec_storage) do
+    values =
+      arguments
+      |> process_arguments(elements, codecs, codec_storage)
+      |> Enum.map(fn
+        {nil, _codec} ->
+          <<0::int32, -1::int32>>
+
+        {value, codec} ->
+          [<<0::int32>> | Codec.encode(codec, value, codec_storage)]
+      end)
+
+    data = [<<length(values)::int32>> | values]
+    [<<IO.iodata_length(data)::uint32>> | data]
+  end
+
+  defp process_arguments(arguments, elements, codecs, codec_storage) do
+    arguments = transform_arguments(arguments)
+    codecs = Enum.map(codecs, &CodecStorage.get(codec_storage, &1))
+
+    elements
+    |> Enum.zip(codecs)
+    |> Enum.map(fn {%{name: name, cardinality: cardinality}, codec} ->
+      value =
+        case Map.fetch(arguments, name) do
+          {:ok, value} ->
+            value
+
+          :error ->
+            raise_wrong_arguments_error!(arguments, elements)
+        end
+
+      if is_nil(value) and (cardinality == :one or cardinality == :at_least_one) do
+        raise EdgeDB.Error.invalid_argument_error(
+                "argument #{inspect(name)} is required, but received nil"
+              )
+      end
+
+      {value, codec}
+    end)
+  end
+
   defp transform_into_string_map(list) do
     Enum.into(list, %{}, fn
       {key, value} when is_atom(key) ->
@@ -132,43 +225,6 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     |> Enum.into(%{}, fn {value, index} ->
       {to_string(index), value}
     end)
-  end
-
-  defp verify_all_members_passed!(map, elements) do
-    passed_keys =
-      map
-      |> Map.keys()
-      |> MapSet.new()
-
-    required_keys = Enum.into(elements, MapSet.new(), & &1.name)
-    missed_keys = MapSet.difference(required_keys, passed_keys)
-    extra_keys = MapSet.difference(passed_keys, required_keys)
-
-    if MapSet.size(missed_keys) != 0 or MapSet.size(extra_keys) != 0 do
-      err = make_wrong_elements_error_message(required_keys, passed_keys, missed_keys, extra_keys)
-      raise EdgeDB.Error.invalid_argument_error("value can not be encoded as object: #{err}")
-    end
-
-    :ok
-  end
-
-  defp make_wrong_elements_error_message(required_keys, passed_keys, missed_keys, extra_keys) do
-    error_message =
-      "exptected #{MapSet.to_list(required_keys)} keys in named tuple, " <>
-        "got #{MapSet.to_list(passed_keys)}"
-
-    error_message =
-      if MapSet.size(missed_keys) != 0 do
-        "#{error_message}, missed #{MapSet.to_list(missed_keys)}"
-      else
-        error_message
-      end
-
-    if MapSet.size(extra_keys) != 0 do
-      "#{error_message}, missed #{MapSet.to_list(extra_keys)}"
-    else
-      error_message
-    end
   end
 
   defp decode_element_list(<<>>, [], [], _codec_storage, 0, fields, order) do
