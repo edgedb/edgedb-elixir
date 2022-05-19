@@ -47,6 +47,22 @@ defmodule EdgeDB.NamedTuple do
     |> List.to_tuple()
   end
 
+  @doc since: "0.3.0"
+  @doc """
+  Convert a named tuple into a regular map.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(pid, "SELECT (a := 1, b := 'a', c := [3])")
+  iex(3)> EdgeDB.NamedTuple.to_map(nt)
+  %{"a" => 1, "b" => "a", "c" => [3]}
+  ```
+  """
+  @spec to_map(t()) :: %{String.t() => term()}
+  def to_map(%__MODULE__{__items__: items}) do
+    items
+  end
+
   @doc """
   Get named tuple keys.
 

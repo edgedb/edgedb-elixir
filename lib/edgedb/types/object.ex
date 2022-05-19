@@ -118,7 +118,7 @@ defmodule EdgeDB.Object do
   @typedoc """
   An immutable representation of an object instance returned from a query.
   """
-  @opaque object :: %__MODULE__{
+  @opaque object() :: %__MODULE__{
             id: uuid() | nil,
             __tid__: uuid() | nil,
             __fields__: %{String.t() => Field.t()},
@@ -208,6 +208,46 @@ defmodule EdgeDB.Object do
   @spec link_properties(object()) :: list(String.t())
   def link_properties(%__MODULE__{} = object) do
     fields(object, properties: false, links: false)
+  end
+
+  @doc since: "0.3.0"
+  @doc """
+  Convert an object into a regular map.
+
+  ```elixir
+  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(2)> object =
+  iex(2)>  EdgeDB.query_required_single!(pid, "
+  ...(2)>   SELECT schema::Property {
+  ...(2)>       name,
+  ...(2)>       annotations: {
+  ...(2)>         name,
+  ...(2)>         @value
+  ...(2)>       }
+  ...(2)>   }
+  ...(2)>   FILTER .name = 'listen_port' AND .source.name = 'cfg::Config'
+  ...(2)>   LIMIT 1
+  ...(2)>  ")
+  iex(3)> EdgeDB.Object.to_map(object)
+  %{"name" => "listen_port", "annotations" => [%{"name" => "cfg::system", "@value" => "true"}]}
+  ```
+  """
+  @spec to_map(object()) :: %{String.t() => term()}
+  def to_map(%__MODULE__{__fields__: fields}) do
+    fields
+    |> Enum.reject(fn {_name, field} ->
+      field.is_implicit
+    end)
+    |> Enum.into(%{}, fn
+      {name, %Field{is_link: true, value: %EdgeDB.Set{} = links}} ->
+        {name, Enum.map(links, &to_map/1)}
+
+      {name, %Field{is_link: true, value: %EdgeDB.Object{} = link}} ->
+        {name, to_map(link)}
+
+      {name, %Field{value: property}} ->
+        {name, property}
+    end)
   end
 
   @impl Access

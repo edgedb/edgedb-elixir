@@ -208,4 +208,31 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
       end)
     end
   end
+
+  describe "EdgeDB.Object.to_map/1" do
+    test "returns map converted from object", %{conn: conn} do
+      object =
+        EdgeDB.query_required_single!(conn, """
+         SELECT schema::Property {
+             name,
+             annotations: {
+               name,
+               @value
+             }
+         }
+         FILTER .name = 'listen_port' AND .source.name = 'cfg::Config'
+         LIMIT 1
+        """)
+
+      assert %{
+               "name" => "listen_port",
+               "annotations" => [
+                 %{
+                   "name" => "cfg::system",
+                   "@value" => "true"
+                 }
+               ]
+             } == EdgeDB.Object.to_map(object)
+    end
+  end
 end
