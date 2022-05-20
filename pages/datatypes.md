@@ -15,7 +15,7 @@ The table below shows the correspondence between EdgeDB and Elixir types.
 | `uuid`                    | `t:String.t/0`                           | `"0eba1636-846e-11ec-845e-276b0105b857"`             |
 | `anyenum`                 | `t:String.t/0`                           | `"green"`                                            |
 | `datetime`                | `t:DateTime.t/0`                         | `~U[2018-05-07 15:01:22Z]`                           |
-| `duration`                | `t:integer/0`                            | `-420000000`                                         |
+| `duration`                | `t:integer/0` or `Timex.Duration`        | `-420000000`, `#<Duration(PT7M)>`                    |
 | `cal::local_datetime`     | `t:NaiveDateTime.t/0`                    | `~N[2018-05-07 15:01:22]`                            |
 | `cal::local_date`         | `t:Date.t/0`                             | `~D[2018-05-07]`                                     |
 | `cal::local_time`         | `t:Time.t/0`                             | `~T[15:01:22]`                                       |

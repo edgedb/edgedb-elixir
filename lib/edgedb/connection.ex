@@ -1031,7 +1031,7 @@ defmodule EdgeDB.Connection do
         {:ok, %State{state | ping_interval: :disabled}}
 
       session_idle_timeout ->
-        ping_interval = System.convert_time_unit(session_idle_timeout, :microsecond, :second)
+        ping_interval = ping_from_idle_timeout(session_idle_timeout)
         maybe_ping(%State{state | ping_interval: ping_interval})
     end
   end
@@ -1047,6 +1047,16 @@ defmodule EdgeDB.Connection do
   defp do_ping(%State{} = state) do
     with {:ok, state} <- send_message(%Sync{}, state) do
       wait_for_server_ready(state)
+    end
+  end
+
+  defp ping_from_idle_timeout(timeout) when is_integer(timeout) do
+    System.convert_time_unit(timeout, :microsecond, :second)
+  end
+
+  if Code.ensure_loaded?(Timex) do
+    defp ping_from_idle_timeout(%Timex.Duration{} = timeout) do
+      Timex.Duration.to_seconds(timeout, truncate: true)
     end
   end
 

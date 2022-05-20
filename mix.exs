@@ -45,6 +45,7 @@ defmodule EdgeDB.MixProject do
       {:elixir_uuid, "~> 1.2"},
       {:decimal, "~> 2.0"},
       {:jason, "~> 1.2", optional: true},
+      {:timex, "~> 3.7", optional: true},
       # dev/test
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.2", only: [:dev, :test], runtime: false},
@@ -72,7 +73,8 @@ defmodule EdgeDB.MixProject do
     [
       plt_add_apps: [
         :ex_unit,
-        :jason
+        :jason,
+        :timex
       ],
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
     ]

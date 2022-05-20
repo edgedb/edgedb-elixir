@@ -33,6 +33,25 @@ The JSON library is injected in the compiled `EdgeDB` code, so be sure to recomp
 mix deps.clean edgedb --build
 ```
 
+## Timex support
+
+`EdgeDB` can work with `Timex` out of the box. If you define `Timex` as an application dependency,
+  `EdgeDB` will use `Timex.Duration` to encode and decode the `std::duration` type from database.
+  If you don't like this behavior, you can set `EdgeDB` to ignore `Timex` using
+  the `:timex_duration` option by setting this to false in the `:edgedb` application configuration:
+
+```elixir
+config :edgedb,
+    timex_duration: false
+```
+
+`EdgeDB` will inject the use of `Timex` into the `std::duration` codec at compile time,
+  so be sure to recompile `EdgeDB` if you change this behavior:
+
+```bash
+mix deps.clean edgedb --build
+```
+
 ## License
 
 This project is licensed under the terms of the MIT license.
