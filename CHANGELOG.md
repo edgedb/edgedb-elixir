@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.2.1](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.1...HEAD)
 
+### Added
+
+- maps as valid type for query arguments.
+- `EdgeDB.Object.to_map/1` and `EdgeDB.NamedTuple.to_map/1` functions.
+- optional support for `std::datetime` EdgeDB type via `Timex.Duration` structure.
+
+### Removed
+
+- legacy arguments encoding.
+
+### Changed
+
+- `EdgeQL` queries to be lowercase.
+
 ## [0.2.1] - 2022-05-19
 
 [Compare with 0.2.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.0...v0.2.1)

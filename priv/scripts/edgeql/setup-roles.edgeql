@@ -1,22 +1,22 @@
 # setup edgedb_scram
 
-CREATE SUPERUSER ROLE edgedb_scram {
-    SET password := 'edgedb_scram_password'
+create superuser role edgedb_scram {
+    set password := 'edgedb_scram_password'
 };
 
-CONFIGURE INSTANCE INSERT Auth {
+configure instance insert Auth {
     user := 'edgedb_scram',
-    method := (INSERT SCRAM),
+    method := (insert SCRAM),
     priority := 2
 };
 
 
 # setup edgedb_scram
 
-CREATE SUPERUSER ROLE edgedb_trust;
+create superuser role edgedb_trust;
 
-CONFIGURE INSTANCE INSERT Auth {
+configure instance insert Auth {
     user := 'edgedb_trust',
-    method := (INSERT Trust),
+    method := (insert Trust),
     priority := 3
 };

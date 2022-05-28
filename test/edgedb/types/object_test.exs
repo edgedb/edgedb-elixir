@@ -7,7 +7,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns list of object properties names", %{conn: conn} do
       rollback(conn, fn conn ->
         EdgeDB.query!(conn, """
-        INSERT User {
+        insert User {
           name := "username",
           image := "http://example.com/some/url"
         }
@@ -15,7 +15,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
 
         user_properties =
           conn
-          |> EdgeDB.query_required_single!("SELECT User { name, image } LIMIT 1")
+          |> EdgeDB.query_required_single!("select User { name, image } limit 1")
           |> EdgeDB.Object.properties()
           |> MapSet.new()
 
@@ -27,7 +27,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns list of object properties names + id with `:id` option ", %{conn: conn} do
       rollback(conn, fn conn ->
         EdgeDB.query!(conn, """
-        INSERT User {
+        insert User {
           name := "username",
           image := "http://example.com/some/url"
         }
@@ -35,7 +35,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
 
         user_properties =
           conn
-          |> EdgeDB.query_required_single!("SELECT User { name, image } LIMIT 1")
+          |> EdgeDB.query_required_single!("select User { name, image } limit 1")
           |> EdgeDB.Object.properties(id: true)
           |> MapSet.new()
 
@@ -49,7 +49,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     } do
       rollback(conn, fn conn ->
         EdgeDB.query!(conn, """
-        INSERT User {
+        insert User {
           name := "username",
           image := "http://example.com/some/url"
         }
@@ -57,7 +57,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
 
         user_properties =
           conn
-          |> EdgeDB.query_required_single!("SELECT User { name, image } LIMIT 1")
+          |> EdgeDB.query_required_single!("select User { name, image } limit 1")
           |> EdgeDB.Object.properties(implicit: true)
           |> MapSet.new()
 
@@ -71,9 +71,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns list of object links names", %{conn: conn} do
       rollback(conn, fn conn ->
         EdgeDB.query!(conn, """
-        WITH
+        with
           director := (
-            INSERT Person {
+            insert Person {
               first_name := "Chris",
               middle_name := "Joseph",
               last_name := "Columbus",
@@ -92,7 +92,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
             last_name := "Watson",
             image := "",
           )
-        INSERT Movie {
+        insert Movie {
           title := "Harry Potter and the Philosopher's Stone",
           year := 2001,
           image := "",
@@ -101,9 +101,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
           $$,
           directors := director,
           actors := (
-            FOR a in {(1, actor1), (2, actor2)}
-            UNION (
-              INSERT Person {
+            for a in {(1, actor1), (2, actor2)}
+            union (
+              insert Person {
                 first_name := a.1.first_name,
                 middle_name := a.1.middle_name,
                 last_name := a.1.last_name,
@@ -118,13 +118,13 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         movie_links =
           conn
           |> EdgeDB.query_required_single!("""
-          SELECT Movie {
+          select Movie {
             title,
             directors,
             actors: {
               @list_order
-            } ORDER BY @list_order,
-          } LIMIT 1
+            } order by @list_order,
+          } limit 1
           """)
           |> EdgeDB.Object.links()
           |> MapSet.new()
@@ -139,9 +139,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns list of object link properties names", %{conn: conn} do
       rollback(conn, fn conn ->
         EdgeDB.query!(conn, """
-        WITH
+        with
           director := (
-            INSERT Person {
+            insert Person {
               first_name := "Chris",
               middle_name := "Joseph",
               last_name := "Columbus",
@@ -160,7 +160,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
             last_name := "Watson",
             image := "",
           )
-        INSERT Movie {
+        insert Movie {
           title := "Harry Potter and the Philosopher's Stone",
           year := 2001,
           image := "",
@@ -169,9 +169,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
           $$,
           directors := director,
           actors := (
-            FOR a in {(1, actor1), (2, actor2)}
-            UNION (
-              INSERT Person {
+            for a in {(1, actor1), (2, actor2)}
+            union (
+              insert Person {
                 first_name := a.1.first_name,
                 middle_name := a.1.middle_name,
                 last_name := a.1.last_name,
@@ -185,13 +185,13 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
 
         movie =
           EdgeDB.query_required_single!(conn, """
-          SELECT Movie {
+          select Movie {
             title,
             directors,
             actors: {
               @list_order
-            } ORDER BY @list_order,
-          } LIMIT 1
+            } order by @list_order,
+          } limit 1
           """)
 
         actors = movie[:actors]
@@ -213,15 +213,15 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns map converted from object", %{conn: conn} do
       object =
         EdgeDB.query_required_single!(conn, """
-         SELECT schema::Property {
+         select schema::Property {
              name,
              annotations: {
                name,
                @value
              }
          }
-         FILTER .name = 'listen_port' AND .source.name = 'cfg::Config'
-         LIMIT 1
+         filter .name = 'listen_port' and .source.name = 'cfg::Config'
+         limit 1
         """)
 
       assert %{

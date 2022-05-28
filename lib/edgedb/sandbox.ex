@@ -4,8 +4,8 @@ defmodule EdgeDB.Sandbox do
   Custom connection for tests that involve modifying the database through the driver.
 
   This connection, when started, wraps the actual connection to EdgeDB into a transaction using
-    the `START TRANSACTION` statement. And then further calls to `EdgeDB.transaction/3` will result
-    in executing `DECLARE SAVEPOINT` statement instead of `START TRANSACTION`. This connection
+    the `start transaction` statement. And then further calls to `EdgeDB.transaction/3` will result
+    in executing `declare savepoint` statement instead of `start transaction`. This connection
     doesn't affect the availability of the `EdgeDB.subtransaction/2` and `EdgeDB.subtransaction!/2` calls,
     you can continue to use them with this module.
 

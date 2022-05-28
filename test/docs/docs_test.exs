@@ -20,20 +20,20 @@ defmodule Tests.DocsTest do
   doctest EdgeDB.Set
 
   defp drop_tickets(conn) do
-    EdgeDB.query!(conn, "DELETE Ticket")
+    EdgeDB.query!(conn, "delete Ticket")
 
     conn
   end
 
   defp drop_persons(conn) do
-    EdgeDB.query!(conn, "DELETE Person")
+    EdgeDB.query!(conn, "delete Person")
 
     conn
   end
 
   defp add_person(conn) do
     EdgeDB.query!(conn, """
-    INSERT Person {
+    insert Person {
       first_name := 'Daniel',
       middle_name := 'Jacob',
       last_name := 'Radcliffe',

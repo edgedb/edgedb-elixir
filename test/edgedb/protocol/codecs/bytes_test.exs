@@ -5,12 +5,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BytesTest do
 
   test "decoding std::bytes value", %{conn: conn} do
     value = <<16, 13, 2, 42>>
-    assert ^value = EdgeDB.query_single!(conn, "SELECT <bytes>b\"\x10\x0d\x02\x2a\"")
+    assert ^value = EdgeDB.query_single!(conn, "select <bytes>b\"\x10\x0d\x02\x2a\"")
   end
 
   test "encoding std::bytes value", %{conn: conn} do
     value = <<16, 13, 2, 42>>
-    assert ^value = EdgeDB.query_single!(conn, "SELECT <bytes>$0", [value])
+    assert ^value = EdgeDB.query_single!(conn, "select <bytes>$0", [value])
   end
 
   test "error when passing non bytes as std::bytes argument", %{conn: conn} do
@@ -18,7 +18,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BytesTest do
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "SELECT <bytes>$0", [value])
+        EdgeDB.query_single!(conn, "select <bytes>$0", [value])
       end
 
     assert exc ==

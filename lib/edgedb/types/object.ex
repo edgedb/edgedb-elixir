@@ -8,11 +8,11 @@ defmodule EdgeDB.Object do
   iex(1)> {:ok, pid} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
   iex(2)>  EdgeDB.query_required_single!(pid, "
-  ...(2)>   SELECT schema::ObjectType{
+  ...(2)>   select schema::ObjectType{
   ...(2)>     name
   ...(2)>   }
-  ...(2)>   FILTER .name = 'std::Object'
-  ...(2)>   LIMIT 1
+  ...(2)>   filter .name = 'std::Object'
+  ...(2)>   limit 1
   ...(2)>  ")
   #EdgeDB.Object<name := "std::Object">
   iex(3)> object[:name]
@@ -32,15 +32,15 @@ defmodule EdgeDB.Object do
   iex(1)> {:ok, pid} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
   iex(2)>  EdgeDB.query_required_single!(pid, "
-  ...(2)>   SELECT schema::Property {
+  ...(2)>   select schema::Property {
   ...(2)>       name,
   ...(2)>       annotations: {
   ...(2)>         name,
   ...(2)>         @value
   ...(2)>       }
   ...(2)>   }
-  ...(2)>   FILTER .name = 'listen_port' AND .source.name = 'cfg::Config'
-  ...(2)>   LIMIT 1
+  ...(2)>   filter .name = 'listen_port' and .source.name = 'cfg::Config'
+  ...(2)>   limit 1
   ...(2)>  ")
   #EdgeDB.Object<name := "listen_port", annotations := #EdgeDB.Set<{#EdgeDB.Object<name := "cfg::system", @value := "true">}>>
   iex(3)> annotations = object[:annotations]
@@ -218,15 +218,15 @@ defmodule EdgeDB.Object do
   iex(1)> {:ok, pid} = EdgeDB.start_link()
   iex(2)> object =
   iex(2)>  EdgeDB.query_required_single!(pid, "
-  ...(2)>   SELECT schema::Property {
+  ...(2)>   select schema::Property {
   ...(2)>       name,
   ...(2)>       annotations: {
   ...(2)>         name,
   ...(2)>         @value
   ...(2)>       }
   ...(2)>   }
-  ...(2)>   FILTER .name = 'listen_port' AND .source.name = 'cfg::Config'
-  ...(2)>   LIMIT 1
+  ...(2)>   filter .name = 'listen_port' and .source.name = 'cfg::Config'
+  ...(2)>   limit 1
   ...(2)>  ")
   iex(3)> EdgeDB.Object.to_map(object)
   %{"name" => "listen_port", "annotations" => [%{"name" => "cfg::system", "@value" => "true"}]}

@@ -5,12 +5,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
   test "decoding std::int64 value", %{conn: conn} do
     value = 1
-    assert ^value = EdgeDB.query_single!(conn, "SELECT <int64>1")
+    assert ^value = EdgeDB.query_single!(conn, "select <int64>1")
   end
 
   test "encoding std::int64 value", %{conn: conn} do
     value = 1
-    assert ^value = EdgeDB.query_single!(conn, "SELECT <int64>$0", [1])
+    assert ^value = EdgeDB.query_single!(conn, "select <int64>$0", [1])
   end
 
   test "error when passing non-number as std::int64 argument", %{conn: conn} do
@@ -18,7 +18,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "SELECT <int64>$0", [value])
+        EdgeDB.query_single!(conn, "select <int64>$0", [value])
       end
 
     assert exc ==
@@ -32,7 +32,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "SELECT <int64>$0", [value])
+        EdgeDB.query_single!(conn, "select <int64>$0", [value])
       end
 
     assert exc ==
@@ -46,7 +46,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "SELECT <int64>$0", [value])
+        EdgeDB.query_single!(conn, "select <int64>$0", [value])
       end
 
     assert exc ==
