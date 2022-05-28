@@ -7,7 +7,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.RelativeDurationTest do
 
   test "decoding cal::relative_duration value", %{conn: conn} do
     assert %RelativeDuration{months: 12} =
-             EdgeDB.query_single!(conn, "SELECT <cal::relative_duration>'1 year'")
+             EdgeDB.query_single!(conn, "select <cal::relative_duration>'1 year'")
   end
 
   test "encoding cal::relative_duration value", %{conn: conn} do
@@ -17,6 +17,6 @@ defmodule Tests.EdgeDB.Protocol.Codecs.RelativeDurationTest do
       microseconds: 42
     }
 
-    assert ^value = EdgeDB.query_single!(conn, "SELECT <cal::relative_duration>$0", [value])
+    assert ^value = EdgeDB.query_single!(conn, "select <cal::relative_duration>$0", [value])
   end
 end

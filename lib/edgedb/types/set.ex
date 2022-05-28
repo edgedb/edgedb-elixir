@@ -9,11 +9,11 @@ defmodule EdgeDB.Set do
   iex(1)> {:ok, pid} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Set{} =
   iex(2)>  EdgeDB.query!(pid, "
-  ...(2)>   SELECT schema::ObjectType{
+  ...(2)>   select schema::ObjectType{
   ...(2)>     name
   ...(2)>   }
-  ...(2)>   FILTER .name IN {'std::BaseObject', 'std::Object', 'std::FreeObject'}
-  ...(2)>   ORDER BY .name
+  ...(2)>   filter .name IN {'std::BaseObject', 'std::Object', 'std::FreeObject'}
+  ...(2)>   order by .name
   ...(2)>  ")
   #EdgeDB.Set<{#EdgeDB.Object<name := "std::BaseObject">, #EdgeDB.Object<name := "std::FreeObject">, #EdgeDB.Object<name := "std::Object">}>
   ```
@@ -33,7 +33,7 @@ defmodule EdgeDB.Set do
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> %EdgeDB.Set{} = set = EdgeDB.query!(pid, "SELECT Ticket")
+  iex(2)> %EdgeDB.Set{} = set = EdgeDB.query!(pid, "select Ticket")
   iex(3)> EdgeDB.Set.empty?(set)
   true
   ```

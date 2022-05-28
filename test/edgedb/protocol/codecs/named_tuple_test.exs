@@ -7,7 +7,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.NamedTupleTest do
     value = new_named_tuple([{"a", 1}, {"b", "string"}, {"c", true}, {"d", 1.0}])
 
     assert ^value =
-             EdgeDB.query_single!(conn, "SELECT (a := 1, b := \"string\", c := true, d := 1.0)")
+             EdgeDB.query_single!(conn, "select (a := 1, b := \"string\", c := true, d := 1.0)")
   end
 
   defp new_named_tuple(items) do

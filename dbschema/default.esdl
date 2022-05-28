@@ -16,7 +16,7 @@ module default {
             constraint max_value(5);
         }
         required property flag -> bool {
-            default := False;
+            default := false;
         }
 
         required link author -> User;
@@ -39,12 +39,12 @@ module default {
             (
                 (
                     (.first_name ++ ' ')
-                    IF .first_name != '' ELSE
+                    if .first_name != '' else
                     ''
                 ) ++
                 (
                     (.middle_name ++ ' ')
-                    IF .middle_name != '' ELSE
+                    if .middle_name != '' else
                     ''
                 ) ++
                 .last_name
@@ -78,7 +78,7 @@ module default {
         multi link directors extending crew -> Person;
         multi link actors extending crew -> Person;
 
-        property avg_rating := math::mean(.<movie[IS Review].rating);
+        property avg_rating := math::mean(.<movie[is Review].rating);
     }
 
     scalar type TicketNo extending sequence;
@@ -103,7 +103,7 @@ module default {
     alias MovieAlias := Movie {
         # A computable link for accessing all the
         # reviews for this movie.
-        reviews := .<movie[IS Review]
+        reviews := .<movie[is Review]
     };
 
     scalar type Color extending enum<Red, Green, Blue>;

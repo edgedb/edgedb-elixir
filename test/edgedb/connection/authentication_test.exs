@@ -15,7 +15,7 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     test "connects successfully", context do
       assert {:ok, conn} = EdgeDB.start_link(context.connection_params)
 
-      assert 1 = EdgeDB.query_single!(conn, "SELECT 1")
+      assert 1 = EdgeDB.query_single!(conn, "select 1")
     end
   end
 
@@ -34,7 +34,7 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     test "login successfully", context do
       assert {:ok, conn} = EdgeDB.start_link(context.connection_params)
 
-      assert 1 = EdgeDB.query_single!(conn, "SELECT 1")
+      assert 1 = EdgeDB.query_single!(conn, "select 1")
     end
   end
 

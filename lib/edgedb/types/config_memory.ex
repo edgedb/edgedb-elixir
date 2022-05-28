@@ -4,7 +4,7 @@ defmodule EdgeDB.ConfigMemory do
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> mem = EdgeDB.query_required_single!(pid, "SELECT <cfg::memory>'5KiB'")
+  iex(2)> mem = EdgeDB.query_required_single!(pid, "select <cfg::memory>'5KiB'")
   #EdgeDB.ConfigMemory<"5KiB">
   iex(3)> EdgeDB.ConfigMemory.bytes(mem)
   5120

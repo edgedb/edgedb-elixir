@@ -10,7 +10,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DurationTest do
       value = Timex.Duration.from_microseconds(175_507_600_000)
 
       assert ^value =
-               EdgeDB.query_single!(conn, "SELECT <duration>'48 hours 45 minutes 7.6 seconds'")
+               EdgeDB.query_single!(conn, "select <duration>'48 hours 45 minutes 7.6 seconds'")
     end
 
     test "encoding std::duration value", %{conn: conn} do
@@ -19,7 +19,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DurationTest do
       assert {:ok, true} =
                EdgeDB.query_single(
                  conn,
-                 "SELECT <duration>'48 hours 45 minutes 7.6 seconds' = <duration>$0",
+                 "select <duration>'48 hours 45 minutes 7.6 seconds' = <duration>$0",
                  [value]
                )
     end
@@ -28,7 +28,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DurationTest do
       value = 175_507_600_000
 
       assert ^value =
-               EdgeDB.query_single!(conn, "SELECT <duration>'48 hours 45 minutes 7.6 seconds'")
+               EdgeDB.query_single!(conn, "select <duration>'48 hours 45 minutes 7.6 seconds'")
     end
 
     test "encoding std::duration value", %{conn: conn} do
@@ -37,7 +37,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DurationTest do
       assert {:ok, true} =
                EdgeDB.query_single(
                  conn,
-                 "SELECT <duration>'48 hours 45 minutes 7.6 seconds' = <duration>$0",
+                 "select <duration>'48 hours 45 minutes 7.6 seconds' = <duration>$0",
                  [value]
                )
     end

@@ -5,64 +5,64 @@ defmodule EdgeDB.Connection.QueryBuilder do
 
   @spec start_transaction_statement(list(EdgeDB.edgedb_transaction_option())) :: statement()
   def start_transaction_statement(opts) do
-    # only SERIALIZABLE exists at the moment
+    # only serializable exists at the moment
     isolation =
       case Keyword.get(opts, :isolation, :serializable) do
         _isolation ->
-          "ISOLATION SERIALIZABLE"
+          "isolation serializable"
       end
 
     read =
       if Keyword.get(opts, :readonly, false) do
-        "READ ONLY"
+        "read only"
       else
-        "READ WRITE"
+        "read write"
       end
 
     deferrable =
       if Keyword.get(opts, :deferrable, false) do
-        "DEFERRABLE"
+        "deferrable"
       else
-        "NOT DEFERRABLE"
+        "not deferrable"
       end
 
     mode = Enum.join([isolation, read, deferrable], ", ")
-    "START TRANSACTION #{mode};"
+    "start transaction #{mode};"
   end
 
   @spec commit_transaction_statement() :: statement()
   def commit_transaction_statement do
-    "COMMIT;"
+    "commit;"
   end
 
   @spec rollback_transaction_statement() :: statement()
   def rollback_transaction_statement do
-    "ROLLBACK;"
+    "rollback;"
   end
 
   @spec declare_savepoint_statement(String.t()) :: statement()
   def declare_savepoint_statement(savepoint_name) do
-    "DECLARE SAVEPOINT #{savepoint_name};"
+    "declare savepoint #{savepoint_name};"
   end
 
   @spec release_savepoint_statement(String.t()) :: statement()
   def release_savepoint_statement(savepoint_name) do
-    "RELEASE SAVEPOINT #{savepoint_name};"
+    "release savepoint #{savepoint_name};"
   end
 
   @spec rollback_to_savepoint_statement(String.t()) :: statement()
   def rollback_to_savepoint_statement(savepoint_name) do
-    "ROLLBACK TO SAVEPOINT #{savepoint_name};"
+    "rollback to savepoint #{savepoint_name};"
   end
 
   @spec scalars_type_ids_by_names_statement() :: statement()
   def scalars_type_ids_by_names_statement do
     """
-      SELECT schema::ScalarType {
+      select schema::ScalarType {
         id,
         name,
       }
-      FILTER contains(<array<str>>$0, .name);
+      filter contains(<array<str>>$0, .name);
     """
   end
 end

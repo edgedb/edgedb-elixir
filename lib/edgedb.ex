@@ -10,11 +10,11 @@ defmodule EdgeDB do
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
   iex(2)> EdgeDB.query!(pid, "
-  ...(2)>   SELECT Person{
+  ...(2)>   select Person{
   ...(2)>     first_name,
   ...(2)>     middle_name,
   ...(2)>     last_name
-  ...(2)>   } FILTER .last_name = <str>$last_name;
+  ...(2)>   } filter .last_name = <str>$last_name;
   ...(2)> ", last_name: "Radcliffe")
   #EdgeDB.Set<{#EdgeDB.Object<first_name := "Daniel", middle_name := "Jacob", last_name := "Radcliffe">}>
   ```
@@ -156,12 +156,12 @@ defmodule EdgeDB do
 
   Supported options:
 
-    * `:isolation` - If `:serializable` is used, the built statement will use the `ISOLATION SERIALIZABLE` mode.
+    * `:isolation` - If `:serializable` is used, the built statement will use the `isolation serializable` mode.
       Currently only `:serializable` is supported by this driver and EdgeDB.
-    * `:readonly` - if set to `true` then the built statement will use `READ ONLY` mode,
-      otherwise `READ WRITE` will be used. The default is `false`.
-    * `:deferrable` - if set to `true` then the built statement will use `DEFERRABLE` mode,
-      otherwise `NOT DEFERRABLE` will be used. The default is `false`.
+    * `:readonly` - if set to `true` then the built statement will use `read only` mode,
+      otherwise `read write` will be used. The default is `false`.
+    * `:deferrable` - if set to `true` then the built statement will use `deferrable` mode,
+      otherwise `not deferrable` will be used. The default is `false`.
   """
   @type edgedb_transaction_option() ::
           {:isolation, :serializable}
@@ -306,7 +306,7 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "SELECT 42")
+  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "select 42")
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
@@ -316,7 +316,7 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(pid, "SELECT UndefinedType")
+  iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(pid, "select UndefinedType")
   iex(2)> raise error
   ** (EdgeDB.Error) InvalidReferenceError: object type or alias 'default::UndefinedType' does not exist
   ```
@@ -326,14 +326,14 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "SELECT <int64>$0", [42])
+  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "select <int64>$0", [42])
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "SELECT <int64>$arg", arg: 42)
+  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "select <int64>$arg", arg: 42)
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
@@ -341,7 +341,7 @@ defmodule EdgeDB do
   ### Automatic retries of read-only queries
 
   If the driver is able to recognize the query as a read-only query
-    (i.e. the query does not change the data in the database using `DELETE`, `INSERT` or other statements),
+    (i.e. the query does not change the data in the database using `delete`, `insert` or other statements),
     then the driver will try to repeat the query automatically (as long as the query is not executed in a transaction,
     because then [retrying transactions](`EdgeDB.transaction/3`) are used).
 
@@ -553,8 +553,8 @@ defmodule EdgeDB do
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
   iex(2)> {:ok, tickets} = EdgeDB.transaction(pid, fn conn ->
-  ...(2)>  EdgeDB.query!(conn, "INSERT Ticket{ number := 2}")
-  ...(2)>  EdgeDB.query!(conn, "SELECT Ticket")
+  ...(2)>  EdgeDB.query!(conn, "insert Ticket{ number := 2}")
+  ...(2)>  EdgeDB.query!(conn, "select Ticket")
   ...(2)> end)
   iex(3)> tickets
   #EdgeDB.Set<{#EdgeDB.Object<>}>
@@ -602,8 +602,8 @@ defmodule EdgeDB do
   ...(2)>      EdgeDB.subtransaction(tx_conn, fn subtx_conn1 ->
   ...(2)>        {:ok, tickets} =
   ...(2)>          EdgeDB.subtransaction(subtx_conn1, fn subtx_conn2 ->
-  ...(2)>            EdgeDB.query!(subtx_conn2, "INSERT Ticket{ number := 2}")
-  ...(2)>            EdgeDB.query!(subtx_conn2, "SELECT Ticket{ number }")
+  ...(2)>            EdgeDB.query!(subtx_conn2, "insert Ticket{ number := 2}")
+  ...(2)>            EdgeDB.query!(subtx_conn2, "select Ticket{ number }")
   ...(2)>          end)
   ...(2)>        tickets
   ...(2)>      end)
@@ -692,7 +692,7 @@ defmodule EdgeDB do
   ...(2)>   {:ok, result} =
   ...(2)>     EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
   ...(2)>      EdgeDB.rollback(subtx_conn, continue: true)
-  ...(2)>      EdgeDB.query_required_single!(subtx_conn, "SELECT 42")
+  ...(2)>      EdgeDB.query_required_single!(subtx_conn, "select 42")
   ...(2)>     end)
   ...(2)>   result
   ...(2)>  end)
