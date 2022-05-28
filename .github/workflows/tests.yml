@@ -25,7 +25,6 @@ jobs:
 
         edgedb-version:
           - "1.0"
-          - "1.3"
 
     steps:
       - uses: actions/checkout@v3
@@ -53,22 +52,21 @@ jobs:
           key: tests-${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-${{ hashFiles('mix.lock') }}
 
       - name: Install dependencies
-        if: steps.mix-cache.outputs.cache-hit != 'true'
+        if: steps.cache.outputs.cache-hit != 'true'
         run: mix deps.get --only test
 
       - name: Create requried users
-        run: |
-          mix edgedb.roles.setup
+        run: mix edgedb.roles.setup
 
       - name: Run tests
         run: mix coveralls
 
   result:
-    name: Collect tests results
+    name: Tests conclusion
 
     needs: tests
 
     runs-on: ubuntu-18.04
 
     steps:
-      - uses: actions/checkout@v3
+      - run: "echo 'Completed!'"
