@@ -37,14 +37,14 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.BigInt do
 
   @impl Codec
   def encode(_codec, number, _codec_storage) when is_float(number) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as std::bigint: value is float: #{inspect(number)}"
           )
   end
 
   @impl Codec
   def encode(_codec, %Decimal{exp: exp} = number, _codec_storage) when exp != 0 do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as std::bigint: bigint numbers can not contain exponent part: #{inspect(number)}"
           )
   end
@@ -61,7 +61,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.BigInt do
     e in EdgeDB.Error ->
       "value can not be encoded as std::decimal: " <> reason = e.message
 
-      reraise EdgeDB.Error.invalid_argument_error(
+      reraise EdgeDB.InvalidArgumentError.new(
                 "value can not be encoded as std::bigint: #{reason}"
               ),
               __STACKTRACE__

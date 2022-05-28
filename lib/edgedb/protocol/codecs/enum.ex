@@ -24,7 +24,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Enum do
     if value in members do
       Codec.encode(@str_codec, value, codec_storage)
     else
-      raise EdgeDB.Error.invalid_argument_error(
+      raise EdgeDB.InvalidArgumentError.new(
               "value can not be encoded as enum: not enum member: #{inspect(value)}"
             )
     end

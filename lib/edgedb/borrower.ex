@@ -86,11 +86,11 @@ defmodule EdgeDB.Borrower do
   end
 
   defp error_for_reason(:transaction) do
-    EdgeDB.Error.interface_error("connection is already borrowed for transaction")
+    EdgeDB.InterfaceError.new("connection is already borrowed for transaction")
   end
 
   defp error_for_reason(:subtransaction) do
-    EdgeDB.Error.interface_error("connection is already borrowed for subtransaction")
+    EdgeDB.InterfaceError.new("connection is already borrowed for subtransaction")
   end
 
   defp execute_on_borrowed(conn, callback) do

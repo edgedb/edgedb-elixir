@@ -24,7 +24,7 @@ defimpl EdgeDB.Protocol.Codec, for: Tests.Support.Codecs.ShortStr do
     if String.length(value) <= 5 do
       Codec.encode(@str_codec, value, codec_storage)
     else
-      raise EdgeDB.Error.invalid_argument_error("string is too long")
+      raise EdgeDB.InvalidArgumentError.new("string is too long")
     end
   end
 

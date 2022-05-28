@@ -40,12 +40,12 @@ defmodule EdgeDB.Result do
           | {:error, Exception.t()}
 
   def extract(%__MODULE__{set: data}) when is_list(data) do
-    {:error, EdgeDB.Error.interface_error("result hasn't been decoded yet")}
+    {:error, EdgeDB.InterfaceError.new("result hasn't been decoded yet")}
   end
 
   def extract(%__MODULE__{cardinality: :at_most_one, required: required, set: set}) do
     if EdgeDB.Set.empty?(set) and required do
-      {:error, EdgeDB.Error.no_data_error("expected result, but query did not return any data")}
+      {:error, EdgeDB.NoDataError.new("expected result, but query did not return any data")}
     else
       value =
         set
@@ -61,7 +61,7 @@ defmodule EdgeDB.Result do
   end
 
   def extract(%__MODULE__{cardinality: :no_result, required: true}) do
-    {:error, EdgeDB.Error.interface_error("query does not return data")}
+    {:error, EdgeDB.InterfaceError.new("query does not return data")}
   end
 
   def extract(%__MODULE__{cardinality: :no_result}) do

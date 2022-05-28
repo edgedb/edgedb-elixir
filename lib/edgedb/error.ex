@@ -16,6 +16,7 @@ defmodule EdgeDB.Error do
 
   defexception [
     :message,
+    :type,
     :name,
     :code,
     attributes: %{},
@@ -38,6 +39,7 @@ defmodule EdgeDB.Error do
   """
   @type t() :: %__MODULE__{
           message: String.t(),
+          type: module(),
           name: String.t(),
           code: integer(),
           attributes: map(),
@@ -73,9 +75,12 @@ defmodule EdgeDB.Error do
     attributes = Keyword.get(opts, :attributes, %{})
     query = opts[:query]
 
+    name = name_from_code(code)
+
     %__MODULE__{
       message: message,
-      name: name_from_code(code),
+      type: type_from_name(name),
+      name: name,
       code: code,
       attributes: attributes,
       tags: tags_for_error(code),
@@ -124,7 +129,33 @@ defmodule EdgeDB.Error do
       |> Macro.underscore()
       |> String.to_atom()
 
-    Module.put_attribute(__MODULE__, :supported_error_types, snake_cased_name)
+    # create a module for error type with shorthand builder
+
+    # this is safe, since this is the compile time
+    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
+    error_mod_name = Module.concat([EdgeDB, error_desc.name])
+
+    error_mod_ast =
+      quote do
+        @moduledoc since: "0.3.0"
+        @moduledoc """
+        A shorthand module to create `EdgeDB.Error` of `#{inspect(__MODULE__)}` type.
+        """
+
+        alias EdgeDB.Error
+
+        @doc """
+        Create a new `EdgeDB.Error` with `#{inspect(__MODULE__)}` type.
+        """
+        @spec new(String.t(), list(EdgeDB.Error.option())) :: EdgeDB.Error.t()
+        def new(message, opts \\ []) do
+          EdgeDB.Error.unquote(snake_cased_name)(message, opts)
+        end
+      end
+
+    Module.create(error_mod_name, error_mod_ast, Macro.Env.location(__ENV__))
+
+    Module.put_attribute(__MODULE__, :supported_error_types, error_mod_name)
 
     @spec unquote(snake_cased_name)(String.t(), list(option())) :: t()
 
@@ -140,18 +171,22 @@ defmodule EdgeDB.Error do
     defp tags_for_error(unquote(error_desc.code)) do
       unquote(error_desc.tags)
     end
+
+    defp type_from_name(unquote(error_desc.name)) do
+      unquote(error_mod_name)
+    end
   end
 
   @doc since: "0.2.0"
   @doc """
   Check if the exception is an inheritor of another EdgeDB error.
   """
-  @spec inheritor?(t(), atom()) :: boolean()
+  @spec inheritor?(t(), module()) :: boolean()
   def inheritor?(exception, base_error_type)
 
   def inheritor?(%__MODULE__{code: code}, base_error_type)
       when base_error_type in @supported_error_types do
-    base_error = apply(__MODULE__, base_error_type, [""])
+    base_error = base_error_type.new("")
     Bitwise.band(base_error.code, code) == base_error.code
   end
 

@@ -42,7 +42,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Decimal do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, %Decimal{coef: coef} = number, _codec_storage) when not is_number(coef) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as std::decimal: coef #{inspect(coef)} is not a number: #{inspect(number)}"
           )
   end
@@ -97,7 +97,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Decimal do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as std::decimal: #{inspect(value)}"
           )
   end

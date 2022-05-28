@@ -47,11 +47,11 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Null do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
-    EdgeDB.Error.invalid_argument_error("value can not be encoded as null: #{inspect(value)}")
+    EdgeDB.InvalidArgumentError.new("value can not be encoded as null: #{inspect(value)}")
   end
 
   @impl EdgeDB.Protocol.Codec
   def decode(_codec, _data, _codec_storage) do
-    raise EdgeDB.Error.internal_client_error("binary data can not be decoded as null")
+    raise EdgeDB.InternalClientError.new("binary data can not be decoded as null")
   end
 end

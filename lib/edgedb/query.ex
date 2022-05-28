@@ -85,7 +85,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
 
   @impl DBConnection.Query
   def encode(%EdgeDB.Query{input_codec: nil}, _params, _opts) do
-    raise EdgeDB.Error.interface_error("query hasn't been prepared")
+    raise EdgeDB.InterfaceError.new("query hasn't been prepared")
   end
 
   @impl DBConnection.Query
@@ -97,7 +97,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
 
   @impl DBConnection.Query
   def parse(%EdgeDB.Query{cached: true}, _opts) do
-    raise EdgeDB.Error.interface_error("query has been prepared")
+    raise EdgeDB.InterfaceError.new("query has been prepared")
   end
 
   @impl DBConnection.Query

@@ -22,7 +22,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int32Test do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::int32: #{inspect(value)}"
              )
   end
@@ -36,7 +36,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int32Test do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::int32: #{inspect(value)}"
              )
   end
@@ -50,7 +50,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int32Test do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::int32: #{inspect(value)}"
              )
   end

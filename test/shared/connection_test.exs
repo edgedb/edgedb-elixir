@@ -15,10 +15,12 @@ if File.exists?(testcases_file) do
       "credentials_file_not_found" => {RuntimeError, message: ~r/could not read/},
       "project_not_initialised" =>
         {EdgeDB.Error,
+         type: EdgeDB.ClientConnectionError,
          name: "ClientConnectionError",
          message: ~r/found "edgedb.toml" but the project is not initialized/},
       "no_options_or_toml" =>
         {EdgeDB.Error,
+         type: EdgeDB.ClientConnectionError,
          name: "ClientConnectionError",
          message: ~r/no "edgedb.toml" found and no connection options specified/},
       "invalid_credentials_file" => {RuntimeError, message: ~r/invalid credentials/},
@@ -31,17 +33,21 @@ if File.exists?(testcases_file) do
       "invalid_database" => {RuntimeError, message: ~r/invalid database/},
       "multiple_compound_env" => {
         EdgeDB.Error,
+        type: EdgeDB.ClientConnectionError,
         name: "ClientConnectionError",
         message: ~r/can not have more than one of the following connection environment variables/
       },
       "multiple_compound_opts" => {
         EdgeDB.Error,
+        type: EdgeDB.ClientConnectionError,
         name: "ClientConnectionError",
         message: ~r/can not have more than one of the following connection options/
       },
       "exclusive_options" => {
         EdgeDB.Error,
-        name: "ClientConnectionError", message: ~r/are mutually exclusive/
+        type: EdgeDB.ClientConnectionError,
+        name: "ClientConnectionError",
+        message: ~r/are mutually exclusive/
       },
       "env_not_found" => {RuntimeError, message: ~r/environment variable ".*" doesn't exist/},
       "file_not_found" => {File.Error, message: ~r/could not read/},

@@ -52,7 +52,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Flaot64Test do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::float64: #{inspect(value)}"
              )
   end

@@ -34,7 +34,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::decimal: #{inspect(value)}"
              )
   end
@@ -48,7 +48,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::decimal: coef #{inspect(value.coef)} is not a number: #{inspect(value)}"
              )
   end

@@ -268,12 +268,12 @@ defmodule EdgeDB.Object do
 
   @impl Access
   def get_and_update(%__MODULE__{}, _key, _function) do
-    raise EdgeDB.Error.interface_error("objects can't be mutated")
+    raise EdgeDB.InterfaceError.new("objects can't be mutated")
   end
 
   @impl Access
   def pop(%__MODULE__{}, _key) do
-    raise EdgeDB.Error.interface_error("objects can't be mutated")
+    raise EdgeDB.InterfaceError.new("objects can't be mutated")
   end
 end
 

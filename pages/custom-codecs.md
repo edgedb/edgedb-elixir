@@ -86,7 +86,7 @@ defimpl EdgeDB.Protocol.Codec, for: MyApp.EdgeDB.Codecs.JSONPayload do
 
   @impl Codec
   def encode(_codec, value, codec_storage) do
-    raise EdgeDB.Error.interface_error(
+    raise EdgeDB.InterfaceError.new(
             "unexpected value to encode as #{inspect(JSONPayload.name())}: #{inspect(value)}"
           )
   end

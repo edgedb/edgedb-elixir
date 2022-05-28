@@ -105,12 +105,12 @@ defmodule EdgeDB.NamedTuple do
 
   @impl Access
   def get_and_update(%__MODULE__{}, _key, _function) do
-    raise EdgeDB.Error.interface_error("named tuples can't be mutated")
+    raise EdgeDB.InterfaceError.new("named tuples can't be mutated")
   end
 
   @impl Access
   def pop(%__MODULE__{}, _key) do
-    raise EdgeDB.Error.interface_error("named tuples can't be mutated")
+    raise EdgeDB.InterfaceError.new("named tuples can't be mutated")
   end
 end
 

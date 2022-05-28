@@ -28,16 +28,14 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Set do
 
   @impl Codec
   def encode(_codec, %EdgeDB.Set{}, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as set: set encoding is not supported"
           )
   end
 
   @impl Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
-            "value can not be encoded as set: #{inspect(value)}"
-          )
+    raise EdgeDB.InvalidArgumentError.new("value can not be encoded as set: #{inspect(value)}")
   end
 
   @impl Codec
