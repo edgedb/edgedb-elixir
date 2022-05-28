@@ -639,7 +639,7 @@ defmodule EdgeDB do
   end
 
   def subtransaction(_conn, _callback) do
-    raise EdgeDB.Error.interface_error(
+    raise EdgeDB.InterfaceError.new(
             "EdgeDB.subtransaction/2 can be used only with connection " <>
               "that is already in transaction (check out EdgeDB.transaction/3) " <>
               "or in another subtransaction"
@@ -921,10 +921,10 @@ defmodule EdgeDB do
   defp rule_for_retry(%EdgeDB.Error{} = exception, retry_opts) do
     rule =
       cond do
-        EdgeDB.Error.inheritor?(exception, :transaction_conflict_error) ->
+        EdgeDB.Error.inheritor?(exception, EdgeDB.TransactionConflictError) ->
           Keyword.get(retry_opts, :transaction_conflict, [])
 
-        EdgeDB.Error.inheritor?(exception, :client_error) ->
+        EdgeDB.Error.inheritor?(exception, EdgeDB.ClientError) ->
           Keyword.get(retry_opts, :network_error, [])
 
         true ->

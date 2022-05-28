@@ -35,7 +35,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   @impl Codec
   def encode(%{codec: codec, dimensions: dimensions}, list, codec_storage) when is_list(list) do
     if Keyword.keyword?(list) do
-      raise EdgeDB.Error.invalid_argument_error(
+      raise EdgeDB.InvalidArgumentError.new(
               "value can not be encoded as array: keyword list can be encoded as named tuple: #{inspect(list)}"
             )
     end
@@ -51,7 +51,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
 
   @impl Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as array: #{inspect(value)}"
           )
   end

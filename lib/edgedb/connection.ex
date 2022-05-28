@@ -157,7 +157,7 @@ defmodule EdgeDB.Connection do
     else
       {:error, reason} ->
         exc =
-          EdgeDB.Error.client_connection_error(
+          EdgeDB.ClientConnectionError.new(
             "unable to establish connection: #{inspect(reason)}"
           )
 
@@ -175,7 +175,7 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def disconnect(
-        %EdgeDB.Error{name: "ClientConnectionClosedError"},
+        %EdgeDB.Error{type: EdgeDB.ClientConnectionClosedError},
         %State{socket: socket}
       ) do
     :ssl.close(socket)
@@ -222,13 +222,13 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_deallocate/4 callback hasn't been implemented")
+    exc = EdgeDB.InterfaceError.new("handle_deallocate/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_declare/4 callback hasn't been implemented")
+    exc = EdgeDB.InterfaceError.new("handle_declare/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -377,14 +377,14 @@ defmodule EdgeDB.Connection do
   @impl DBConnection
   def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
     exc =
-      EdgeDB.Error.interface_error("unknown internal request to connection: #{inspect(request)}")
+      EdgeDB.InterfaceError.new("unknown internal request to connection: #{inspect(request)}")
 
     {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_fetch/4 callback hasn't been implemented")
+    exc = EdgeDB.InterfaceError.new("handle_fetch/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -505,7 +505,7 @@ defmodule EdgeDB.Connection do
        when major_ver != @major_ver or
               (major_ver == 0 and (minor_ver < @minor_ver_min or minor_ver > @minor_ver)) do
     exc =
-      EdgeDB.Error.client_connection_error(
+      EdgeDB.ClientConnectionError.new(
         "the server requested an unsupported version of the protocol #{major_ver}.#{minor_ver}"
       )
 
@@ -528,7 +528,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_authentication_flow(%AuthenticationSASL{}, nil, %State{} = state) do
     exc =
-      EdgeDB.Error.authentication_error(
+      EdgeDB.AuthenticationError.new(
         "password should be provided for #{inspect(state.user)} authentication authentication"
       )
 
@@ -571,7 +571,7 @@ defmodule EdgeDB.Connection do
     else
       {:error, reason} ->
         exc =
-          EdgeDB.Error.authentication_error(
+          EdgeDB.AuthenticationError.new(
             "unable to continue SASL authentication: #{inspect(reason)}"
           )
 
@@ -593,7 +593,7 @@ defmodule EdgeDB.Connection do
     else
       {:error, reason} ->
         exc =
-          EdgeDB.Error.authentication_error(
+          EdgeDB.AuthenticationError.new(
             "unable to complete SASL authentication: #{inspect(reason)}"
           )
 
@@ -688,7 +688,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      EdgeDB.Error.cardinality_violation_error(
+      EdgeDB.CardinalityViolationError.new(
         "can't execute query since expected single result and query doesn't return any data",
         query: %EdgeDB.Query{query | capabilities: capabilities}
       )
@@ -754,7 +754,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      EdgeDB.Error.cardinality_violation_error(
+      EdgeDB.CardinalityViolationError.new(
         "can't execute query since expected single result and query doesn't return any data",
         query: query
       )
@@ -874,7 +874,7 @@ defmodule EdgeDB.Connection do
          state
        ) do
     exc =
-      EdgeDB.Error.cardinality_violation_error(
+      EdgeDB.CardinalityViolationError.new(
         "can't execute query since expected single result and query doesn't return any data",
         query: query
       )
@@ -1171,20 +1171,20 @@ defmodule EdgeDB.Connection do
         {:ok, {message, %State{state | last_active: System.monotonic_time(:second)}}}
 
       {:error, :closed} ->
-        exc = EdgeDB.Error.client_connection_closed_error("connection has been closed")
+        exc = EdgeDB.ClientConnectionClosedError.new("connection has been closed")
         {:disconnect, exc, state}
 
       {:error, :etimedout} ->
-        exc = EdgeDB.Error.client_connection_timeout_error("exceeded timeout")
+        exc = EdgeDB.ClientConnectionTimeoutError.new("exceeded timeout")
         {:disconnect, exc, state}
 
       {:error, :timeout} ->
-        exc = EdgeDB.Error.client_connection_timeout_error("exceeded timeout")
+        exc = EdgeDB.ClientConnectionTimeoutError.new("exceeded timeout")
         {:disconnect, exc, state}
 
       {:error, reason} ->
         exc =
-          EdgeDB.Error.client_connection_error(
+          EdgeDB.ClientConnectionError.new(
             "unexpected error while receiving data from socket: #{inspect(reason)}"
           )
 
@@ -1198,16 +1198,16 @@ defmodule EdgeDB.Connection do
         {:ok, %State{state | last_active: System.monotonic_time(:second)}}
 
       {:error, :closed} ->
-        exc = EdgeDB.Error.client_connection_closed_error("connection has been closed")
+        exc = EdgeDB.ClientConnectionClosedError.new("connection has been closed")
         {:disconnect, exc, state}
 
       {:error, :etimedout} ->
-        exc = EdgeDB.Error.client_connection_timeout_error("exceeded timeout")
+        exc = EdgeDB.ClientConnectionTimeoutError.new("exceeded timeout")
         {:disconnect, exc, state}
 
       {:error, reason} ->
         exc =
-          EdgeDB.Error.client_connection_error(
+          EdgeDB.ClientConnectionError.new(
             "unexpected error while receiving data from socket: #{inspect(reason)}"
           )
 

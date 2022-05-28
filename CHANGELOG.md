@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - maps as valid type for query arguments.
 - `EdgeDB.Object.to_map/1` and `EdgeDB.NamedTuple.to_map/1` functions.
 - optional support for `std::datetime` EdgeDB type via `Timex.Duration` structure.
+- custom modules for each EdgeDB exception with `new/2` function, that will return an `EdgeDB.Error` exception.
 
 ### Removed
 
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `EdgeQL` queries to be lowercase.
+- `EdgeDB.Error.inheritor?/2` to work with generated module names for EdgeDB exceptions instead of atoms.
 
 ## [0.2.1] - 2022-05-19
 

@@ -30,7 +30,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
 
   @impl Codec
   def encode(_codec, _value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error("tuples encoding is not supported by clients")
+    raise EdgeDB.InvalidArgumentError.new("tuples encoding is not supported by clients")
   end
 
   @impl Codec

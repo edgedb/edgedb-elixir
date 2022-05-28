@@ -33,7 +33,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ConfigMemoryTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as cfg::memory: #{inspect(value)}"
              )
   end
@@ -47,7 +47,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ConfigMemoryTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as cfg::memory: #{inspect(value)}"
              )
   end

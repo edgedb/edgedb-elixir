@@ -28,7 +28,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::bigint: #{inspect(value)}"
              )
   end
@@ -42,7 +42,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::bigint: value is float: #{inspect(value)}"
              )
   end
@@ -56,7 +56,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::bigint: bigint numbers can not contain exponent part: #{inspect(value)}"
              )
   end

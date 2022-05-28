@@ -33,7 +33,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.UUID do
     <<16::uint32, UUID.string_to_binary!(uuid)::uuid>>
   rescue
     e in ArgumentError ->
-      reraise EdgeDB.Error.invalid_argument_error(
+      reraise EdgeDB.InvalidArgumentError.new(
                 "value can not be encoded as std::uuid: #{e.message}"
               ),
               __STACKTRACE__
@@ -41,7 +41,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.UUID do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as std::uuid: #{inspect(value)}"
           )
   end

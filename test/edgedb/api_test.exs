@@ -426,7 +426,7 @@ defmodule Tests.EdgeDB.APITest do
           EdgeDB.query!(conn, "insert Ticket")
         end
 
-      assert exc.name == "DisabledCapabilityError"
+      assert exc.type == EdgeDB.DisabledCapabilityError
     end
 
     test "configures connection that will fail for non-readonly requests in transaction", %{
@@ -439,7 +439,7 @@ defmodule Tests.EdgeDB.APITest do
           end)
         end
 
-      assert exc.name == "DisabledCapabilityError"
+      assert exc.type == EdgeDB.DisabledCapabilityError
     end
 
     test "configures connection that executes readonly requests", %{conn: conn} do
@@ -467,7 +467,7 @@ defmodule Tests.EdgeDB.APITest do
           end)
         end
 
-      assert exc.name == "TransactionError"
+      assert exc.type == EdgeDB.TransactionError
     end
   end
 
@@ -491,13 +491,13 @@ defmodule Tests.EdgeDB.APITest do
           )
           |> EdgeDB.transaction(fn conn ->
             EdgeDB.query!(conn, "insert Ticket{ number := 1 }")
-            raise EdgeDB.Error.transaction_conflict_error("test error")
+            raise EdgeDB.TransactionConflictError.new("test error")
           end)
         end
 
       assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
 
-      assert exc.name == "TransactionConflictError"
+      assert exc.type == EdgeDB.TransactionConflictError
 
       for attempt <- 1..5 do
         assert_receive {:attempt, ^attempt}
@@ -522,13 +522,13 @@ defmodule Tests.EdgeDB.APITest do
           )
           |> EdgeDB.transaction(fn conn ->
             EdgeDB.query!(conn, "insert Ticket{ number := 1 }")
-            raise EdgeDB.Error.client_connection_failed_temporarily_error("test error")
+            raise EdgeDB.ClientConnectionFailedTemporarilyError.new("test error")
           end)
         end
 
       assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
 
-      assert exc.name == "ClientConnectionFailedTemporarilyError"
+      assert exc.type == EdgeDB.ClientConnectionFailedTemporarilyError
 
       for attempt <- 1..3 do
         assert_receive {:attempt, ^attempt}

@@ -34,7 +34,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
 
   @impl Codec
   def encode(_codec, %EdgeDB.Object{}, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as object: objects encoding is not supported"
           )
   end
@@ -42,7 +42,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   # maybe worth adding in future, but for now it's not allowed
   @impl Codec
   def encode(_codec, %{__struct__: _struct_mod}, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as object: structs encoding is not supported"
           )
   end
@@ -69,7 +69,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
 
   @impl Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.Error.invalid_argument_error(
+    raise EdgeDB.InvalidArgumentError.new(
             "value can not be encoded as object: #{inspect(value)}"
           )
   end
@@ -164,7 +164,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
         error_message
       end
 
-    raise EdgeDB.Error.query_argument_error(error_message)
+    raise EdgeDB.QueryArgumentError.new(error_message)
   end
 
   defp do_object_encoding(%{shape_elements: elements, codecs: codecs}, arguments, codec_storage) do
@@ -200,7 +200,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
         end
 
       if is_nil(value) and (cardinality == :one or cardinality == :at_least_one) do
-        raise EdgeDB.Error.invalid_argument_error(
+        raise EdgeDB.InvalidArgumentError.new(
                 "argument #{inspect(name)} is required, but received nil"
               )
       end

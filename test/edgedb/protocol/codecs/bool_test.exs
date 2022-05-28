@@ -23,7 +23,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BoolTest do
       end
 
     assert exc ==
-             EdgeDB.Error.invalid_argument_error(
+             EdgeDB.InvalidArgumentError.new(
                "value can not be encoded as std::bool: #{inspect(value)}"
              )
   end

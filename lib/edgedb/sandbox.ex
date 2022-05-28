@@ -133,13 +133,13 @@ defmodule EdgeDB.Sandbox do
 
   @impl DBConnection
   def handle_deallocate(_query, _cursor, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_deallocate/4 callback hasn't been implemented")
+    exc = EdgeDB.InterfaceError.new("handle_deallocate/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
   @impl DBConnection
   def handle_declare(_query, _params, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_declare/4 callback hasn't been implemented")
+    exc = EdgeDB.InterfaceError.new("handle_declare/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -180,7 +180,7 @@ defmodule EdgeDB.Sandbox do
 
   @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
-    exc = EdgeDB.Error.interface_error("handle_fetch/4 callback hasn't been implemented")
+    exc = EdgeDB.InterfaceError.new("handle_fetch/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
@@ -222,7 +222,7 @@ defmodule EdgeDB.Sandbox do
         {:ok, %State{state | conn_state: :not_in_transaction, internal_state: internal_state}}
 
       {_status, internal_state} ->
-        exc = EdgeDB.Error.client_error("unable to start transaction for sandbox connection")
+        exc = EdgeDB.ClientError.new("unable to start transaction for sandbox connection")
         {:error, exc, %State{conn_state: :not_in_transaction, internal_state: internal_state}}
 
       {:disconnect, exc, internal_state} ->
@@ -243,12 +243,12 @@ defmodule EdgeDB.Sandbox do
         {:ok, %State{state | internal_state: internal_state}}
 
       {_status, internal_state} ->
-        exc = EdgeDB.Error.client_error("unable to rollback transaction for sandbox connection")
+        exc = EdgeDB.ClientError.new("unable to rollback transaction for sandbox connection")
         {:error, exc, %State{conn_state: :in_failed_transaction, internal_state: internal_state}}
 
       {:disconnect, exc, internal_state} ->
         exc =
-          EdgeDB.Error.client_error(
+          EdgeDB.ClientError.new(
             "unable to rollback transaction for sandbox connection: #{exc.message}"
           )
 
