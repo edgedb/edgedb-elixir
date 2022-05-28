@@ -51,9 +51,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
 
   @impl Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.InvalidArgumentError.new(
-            "value can not be encoded as array: #{inspect(value)}"
-          )
+    raise EdgeDB.InvalidArgumentError.new("value can not be encoded as array: #{inspect(value)}")
   end
 
   @impl Codec

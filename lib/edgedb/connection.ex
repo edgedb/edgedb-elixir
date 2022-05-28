@@ -157,9 +157,7 @@ defmodule EdgeDB.Connection do
     else
       {:error, reason} ->
         exc =
-          EdgeDB.ClientConnectionError.new(
-            "unable to establish connection: #{inspect(reason)}"
-          )
+          EdgeDB.ClientConnectionError.new("unable to establish connection: #{inspect(reason)}")
 
         {:error, exc}
 
@@ -376,8 +374,7 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
-    exc =
-      EdgeDB.InterfaceError.new("unknown internal request to connection: #{inspect(request)}")
+    exc = EdgeDB.InterfaceError.new("unknown internal request to connection: #{inspect(request)}")
 
     {:error, exc, state}
   end
