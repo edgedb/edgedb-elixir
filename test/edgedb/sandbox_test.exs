@@ -9,7 +9,7 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
 
   setup %{conn: conn} do
     for type <- @involved_types do
-      query = "DELETE #{type}"
+      query = "delete #{type}"
       EdgeDB.query!(conn, query)
     end
 
@@ -32,7 +32,7 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
       Process.unlink(conn)
 
       for type <- @involved_types do
-        query = "SELECT count(#{type})"
+        query = "select count(#{type})"
         assert EdgeDB.query_required_single!(conn, query) == 0
       end
 
@@ -44,17 +44,17 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
 
   describe "EdgeDB.Sandbox" do
     test "doesn't apply transactions from wrapped connections", %{conn: conn} do
-      EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
-      assert EdgeDB.query_required_single!(conn, "SELECT Ticket { number } LIMIT 1")[:number] == 1
+      EdgeDB.query!(conn, "insert Ticket { number := 1 }")
+      assert EdgeDB.query_required_single!(conn, "select Ticket { number } limit 1")[:number] == 1
     end
 
     test "works with EdgeDB.transaction/3", %{conn: conn} do
       {:ok, _result} =
         EdgeDB.transaction(conn, fn conn ->
-          EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
+          EdgeDB.query!(conn, "insert Ticket { number := 1 }")
         end)
 
-      assert EdgeDB.query_required_single!(conn, "SELECT Ticket { number } LIMIT 1")[:number] == 1
+      assert EdgeDB.query_required_single!(conn, "select Ticket { number } limit 1")[:number] == 1
     end
 
     test "works with EdgeDB.subtransaction/2", %{conn: conn} do
@@ -64,14 +64,14 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
             EdgeDB.subtransaction(tx_conn, fn subtx_conn1 ->
               {:ok, _result} =
                 EdgeDB.subtransaction(subtx_conn1, fn subtx_conn2 ->
-                  EdgeDB.query!(subtx_conn2, "INSERT Ticket { number := 1 }")
+                  EdgeDB.query!(subtx_conn2, "insert Ticket { number := 1 }")
                 end)
             end)
 
           :ok
         end)
 
-      assert EdgeDB.query_required_single!(conn, "SELECT Ticket { number } LIMIT 1")[:number] == 1
+      assert EdgeDB.query_required_single!(conn, "select Ticket { number } limit 1")[:number] == 1
     end
   end
 
@@ -79,14 +79,14 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
     test "explicitly rollbacks transaction", %{conn: conn} do
       {:ok, _result} =
         EdgeDB.transaction(conn, fn conn ->
-          EdgeDB.query!(conn, "INSERT Ticket { number := 1 }")
+          EdgeDB.query!(conn, "insert Ticket { number := 1 }")
         end)
 
-      assert EdgeDB.query_required_single!(conn, "SELECT Ticket { number } LIMIT 1")[:number] == 1
+      assert EdgeDB.query_required_single!(conn, "select Ticket { number } limit 1")[:number] == 1
 
       EdgeDB.Sandbox.clean(conn)
 
-      refute EdgeDB.query_single!(conn, "SELECT Ticket { number } LIMIT 1")
+      refute EdgeDB.query_single!(conn, "select Ticket { number } limit 1")
     end
   end
 end

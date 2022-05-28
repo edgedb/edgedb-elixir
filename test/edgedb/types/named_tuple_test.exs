@@ -49,6 +49,6 @@ defmodule Tests.EdgeDB.Types.NamedTupleTest do
     nt_arg = Enum.map_join(1..100, ",", &"key_#{&1} := #{&1}")
     nt_arg = "(#{nt_arg})"
 
-    "SELECT #{nt_arg}"
+    "select #{nt_arg}"
   end
 end

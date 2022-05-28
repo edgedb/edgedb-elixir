@@ -11,20 +11,20 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     test "forbids using EdgeDB.Object as arguments", %{conn: conn} do
       anonymous_user =
         EdgeDB.query_required_single!(conn, """
-        SELECT {
+        select {
           name := "username",
           image := "http://example.com/some/url"
         }
         """)
 
       assert_raise EdgeDB.Error, ~r/objects encoding is not supported/, fn ->
-        EdgeDB.query!(conn, "SELECT {<str>$name, <str>$image}", anonymous_user)
+        EdgeDB.query!(conn, "select {<str>$name, <str>$image}", anonymous_user)
       end
     end
 
     test "forbids using custom structs as arguments", %{conn: conn} do
       assert_raise EdgeDB.Error, ~r/structs encoding is not supported/, fn ->
-        EdgeDB.query!(conn, "SELECT {<str>$arg1, <str>$arg2}", %StructForArguments{
+        EdgeDB.query!(conn, "select {<str>$arg1, <str>$arg2}", %StructForArguments{
           arg1: "arg1",
           arg2: "arg2"
         })
@@ -33,7 +33,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
 
     test "allows usage of plain maps as arguments", %{conn: conn} do
       assert set =
-               EdgeDB.query!(conn, "SELECT {<str>$arg1, <str>$arg2}", %{
+               EdgeDB.query!(conn, "select {<str>$arg1, <str>$arg2}", %{
                  arg1: "arg1",
                  arg2: "arg2"
                })
@@ -43,51 +43,51 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
 
     test "allows usage of keywords as arguments", %{conn: conn} do
       assert set =
-               EdgeDB.query!(conn, "SELECT {<str>$arg1, <str>$arg2}", arg1: "arg1", arg2: "arg2")
+               EdgeDB.query!(conn, "select {<str>$arg1, <str>$arg2}", arg1: "arg1", arg2: "arg2")
 
       assert Enum.to_list(set) == ["arg1", "arg2"]
     end
 
     test "allows usage of plain lists as positional arguments", %{conn: conn} do
-      assert set = EdgeDB.query!(conn, "SELECT {<str>$0, <str>$1}", ["arg1", "arg2"])
+      assert set = EdgeDB.query!(conn, "select {<str>$0, <str>$1}", ["arg1", "arg2"])
       assert Enum.to_list(set) == ["arg1", "arg2"]
     end
 
     test "allows nils for optional arguments", %{conn: conn} do
-      assert is_nil(EdgeDB.query_single!(conn, "SELECT <optional str>$arg", arg: nil))
+      assert is_nil(EdgeDB.query_single!(conn, "select <optional str>$arg", arg: nil))
     end
   end
 
   describe "error for wrong query arguments" do
     test "contains expected arguments information", %{conn: conn} do
       assert_raise EdgeDB.Error, ~r/expected nothing/, fn ->
-        EdgeDB.query!(conn, "SELECT 'Hello world'", arg: "Hello world")
+        EdgeDB.query!(conn, "select 'Hello world'", arg: "Hello world")
       end
 
       assert_raise EdgeDB.Error, ~r/expected \["arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "SELECT <str>$arg")
+        EdgeDB.query!(conn, "select <str>$arg")
       end
     end
 
     test "contains passed arguments information", %{conn: conn} do
       assert_raise EdgeDB.Error, ~r/passed \["arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "SELECT 'Hello world'", arg: "Hello world")
+        EdgeDB.query!(conn, "select 'Hello world'", arg: "Hello world")
       end
 
       assert_raise EdgeDB.Error, ~r/passed nothing/, fn ->
-        EdgeDB.query!(conn, "SELECT <str>$arg")
+        EdgeDB.query!(conn, "select <str>$arg")
       end
     end
 
     test "contains missed arguments information", %{conn: conn} do
       assert_raise EdgeDB.Error, ~r/missed \["arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "SELECT <str>$arg", another_arg: "Hello world")
+        EdgeDB.query!(conn, "select <str>$arg", another_arg: "Hello world")
       end
     end
 
     test "contains extra arguments information", %{conn: conn} do
       assert_raise EdgeDB.Error, ~r/passed extra \["another_arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "SELECT <str>$arg", another_arg: "Hello world")
+        EdgeDB.query!(conn, "select <str>$arg", another_arg: "Hello world")
       end
     end
   end
@@ -95,13 +95,13 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   test "decoding single object", %{conn: conn} do
     rollback(conn, fn conn ->
       EdgeDB.query!(conn, """
-      INSERT User {
+      insert User {
         name := "username",
         image := "http://example.com/some/url"
       }
       """)
 
-      user = EdgeDB.query_required_single!(conn, "SELECT User { name, image } LIMIT 1")
+      user = EdgeDB.query_required_single!(conn, "select User { name, image } limit 1")
       assert user[:name] == "username"
       assert user[:image] == "http://example.com/some/url"
     end)
@@ -111,7 +111,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     rollback(conn, fn conn ->
       anonymous_user =
         EdgeDB.query_required_single!(conn, """
-        SELECT {
+        select {
           name := "username",
           image := "http://example.com/some/url"
         }
@@ -125,16 +125,16 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   test "decoding object with links", %{conn: conn} do
     rollback(conn, fn conn ->
       EdgeDB.query!(conn, """
-      WITH
+      with
         director := (
-          INSERT Person {
+          insert Person {
             first_name := "Chris",
             middle_name := "Joseph",
             last_name := "Columbus",
             image := "",
           }
         )
-      INSERT Movie {
+      insert Movie {
         title := "Harry Potter and the Philosopher's Stone",
         year := 2001,
         image := "",
@@ -144,14 +144,14 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
 
       movie =
         EdgeDB.query_required_single!(conn, """
-        SELECT Movie {
+        select Movie {
           title,
           year,
           directors: {
             first_name,
             last_name,
           },
-        } LIMIT 1
+        } limit 1
         """)
 
       assert movie[:title] == "Harry Potter and the Philosopher's Stone"
@@ -170,9 +170,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   test "decoding object with links that have properties", %{conn: conn} do
     rollback(conn, fn conn ->
       EdgeDB.query!(conn, """
-      WITH
+      with
         director := (
-          INSERT Person {
+          insert Person {
             first_name := "Chris",
             middle_name := "Joseph",
             last_name := "Columbus",
@@ -191,7 +191,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
           last_name := "Watson",
           image := "",
         )
-      INSERT Movie {
+      insert Movie {
         title := "Harry Potter and the Philosopher's Stone",
         year := 2001,
         image := "",
@@ -200,9 +200,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
         $$,
         directors := director,
         actors := (
-          FOR a in {(1, actor1), (2, actor2)}
-          UNION (
-            INSERT Person {
+          for a in {(1, actor1), (2, actor2)}
+          union (
+            insert Person {
               first_name := a.1.first_name,
               middle_name := a.1.middle_name,
               last_name := a.1.last_name,
@@ -216,12 +216,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
 
       movie =
         EdgeDB.query_required_single!(conn, """
-        SELECT Movie {
+        select Movie {
           title,
           actors: {
             @list_order
-          } ORDER BY @list_order,
-        } LIMIT 1
+          } order by @list_order,
+        } limit 1
         """)
 
       assert movie[:title] == "Harry Potter and the Philosopher's Stone"
@@ -236,10 +236,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     rollback(conn, fn conn ->
       object =
         EdgeDB.query_required_single!(conn, """
-        SELECT {
+        select {
           a := <str>{}
         }
-        LIMIT 1
+        limit 1
         """)
 
       assert Enum.empty?(object[:a])
