@@ -159,6 +159,10 @@ defmodule EdgeDB.Error do
 
     @spec unquote(snake_cased_name)(String.t(), list(option())) :: t()
 
+    @doc """
+    Create a new `EdgeDB.Error` with `#{inspect(error_mod_name)}` type.
+    """
+
     # credo:disable-for-next-line Credo.Check.Readability.Specs
     def unquote(snake_cased_name)(msg, opts \\ []) do
       exception(msg, Keyword.merge(opts, code: unquote(error_desc.code)))

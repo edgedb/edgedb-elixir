@@ -5,6 +5,9 @@ on:
     types:
       - "published"
 
+env:
+  MIX_ENV: CI
+
 jobs:
   release:
     runs-on: ubuntu-18.04
