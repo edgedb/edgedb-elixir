@@ -9,9 +9,6 @@ on:
     branches:
       - "*"
 
-env:
-  MIX_ENV: ci
-
 jobs:
   tests:
     name: Run tests (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }} / EdgeDB ${{ matrix.edgedb-version }})

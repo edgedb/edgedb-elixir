@@ -69,7 +69,7 @@ defmodule EdgeDB.MixProject do
     ]
   end
 
-  defp consolidate_protocols?(env) when env in [:test, :ci] do
+  defp consolidate_protocols?(:test) do
     false
   end
 
@@ -88,7 +88,7 @@ defmodule EdgeDB.MixProject do
       dialyzer: :ci,
       credo: :ci,
       docs: :ci,
-      coveralls: :ci,
+      coveralls: :test,
       "coveralls.detail": :test,
       "coveralls.html": :test
     ]
