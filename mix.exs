@@ -15,15 +15,15 @@ defmodule EdgeDB.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: elixirc_options(),
       start_permanent: Mix.env() == :prod,
-      consolidate_protocols: Mix.env() != :test,
+      consolidate_protocols: consolidate_protocols?(Mix.env()),
       test_coverage: test_coverage(),
       preferred_cli_env: preferred_cli_env(),
       dialyzer: dialyzer(),
-      aliases: aliases(),
       name: "EdgeDB",
       description: @description,
+      package: package(),
       docs: docs(),
-      package: package()
+      aliases: aliases()
     ]
   end
 
@@ -47,11 +47,11 @@ defmodule EdgeDB.MixProject do
       {:jason, "~> 1.2", optional: true},
       {:timex, "~> 3.7", optional: true},
       # dev/test
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.2", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.14", only: :test},
-      {:mox, "~> 1.0", only: :test},
-      {:ex_doc, "~> 0.28", only: :dev, runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:credo, "~> 1.2", only: [:dev, :ci], runtime: false},
+      {:ex_doc, "~> 0.28", only: [:dev, :ci], runtime: false},
+      {:excoveralls, "~> 0.14", only: [:test, :ci]},
+      {:mox, "~> 1.0", only: [:test, :ci]}
     ]
   end
 
@@ -69,15 +69,12 @@ defmodule EdgeDB.MixProject do
     ]
   end
 
-  defp dialyzer do
-    [
-      plt_add_apps: [
-        :ex_unit,
-        :jason,
-        :timex
-      ],
-      plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
-    ]
+  defp consolidate_protocols?(:test) do
+    false
+  end
+
+  defp consolidate_protocols?(_env) do
+    true
   end
 
   defp test_coverage do
@@ -88,12 +85,23 @@ defmodule EdgeDB.MixProject do
 
   defp preferred_cli_env do
     [
-      dialyzer: :dev,
-      credo: :test,
+      dialyzer: :ci,
+      credo: :ci,
+      docs: :ci,
       coveralls: :test,
       "coveralls.detail": :test,
-      "coveralls.github": :test,
       "coveralls.html": :test
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_apps: [
+        :ex_unit,
+        :jason,
+        :timex
+      ],
+      plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
     ]
   end
 
@@ -132,7 +140,8 @@ defmodule EdgeDB.MixProject do
           EdgeDB.Protocol.CustomCodec,
           EdgeDB.Protocol.CodecStorage,
           EdgeDB.Protocol.Enums
-        ]
+        ],
+        Errors: edgedb_errors(Mix.env())
       ]
     ]
   end
@@ -147,5 +156,19 @@ defmodule EdgeDB.MixProject do
         "cmd priv/scripts/setup-roles.sh"
       ]
     ]
+  end
+
+  # this may take some time, so make sure we only do it when necessary
+  defp edgedb_errors(:ci) do
+    error_regex = ~r/^0x(_[0-9A-Fa-f]{2}){4}\s*(?<error_name>\w+)/
+
+    for line <- File.stream!("./priv/edgedb/api/errors.txt"), Regex.match?(error_regex, line) do
+      %{"error_name" => error_name} = Regex.named_captures(error_regex, line)
+      Module.concat([EdgeDB, error_name])
+    end
+  end
+
+  defp edgedb_errors(_env) do
+    []
   end
 end
