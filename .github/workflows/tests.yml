@@ -10,7 +10,7 @@ on:
       - "*"
 
 env:
-  MIX_ENV: CI
+  MIX_ENV: ci
 
 jobs:
   tests:

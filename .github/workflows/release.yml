@@ -6,7 +6,7 @@ on:
       - "published"
 
 env:
-  MIX_ENV: CI
+  MIX_ENV: ci
 
 jobs:
   release:
