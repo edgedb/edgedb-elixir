@@ -67,7 +67,7 @@ defmodule EdgeDB.Protocol.Types do
           }
   end
 
-  defmodule Header do
+  defmodule KeyValue do
     @moduledoc false
 
     defstruct [
@@ -78,6 +78,20 @@ defmodule EdgeDB.Protocol.Types do
     @type t() :: %__MODULE__{
             code: pos_integer(),
             value: binary()
+          }
+  end
+
+  defmodule Annotation do
+    @moduledoc false
+
+    defstruct [
+      :name,
+      :value
+    ]
+
+    @type t() :: %__MODULE__{
+            name: String.t(),
+            value: String.t()
           }
   end
 
@@ -100,12 +114,12 @@ defmodule EdgeDB.Protocol.Types do
 
     defstruct [
       :name,
-      :headers
+      :annotations
     ]
 
     @type t() :: %__MODULE__{
             name: String.t(),
-            headers: list(Header.t())
+            annotations: %{String.t() => String.t()}
           }
   end
 

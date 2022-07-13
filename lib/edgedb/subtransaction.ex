@@ -183,9 +183,17 @@ defmodule EdgeDB.Subtransaction do
 
     statement = QueryBuilder.declare_savepoint_statement(savepoint_name)
 
+    query = %EdgeDB.Query{
+      statement: statement,
+      output_format: :none,
+      capabilities: [:transaction]
+    }
+
     case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
            statement: statement,
-           headers: %{}
+           headers: %{},
+           query: query,
+           params: []
          }) do
       {:ok, _query, result} ->
         {:ok, result,
@@ -203,9 +211,17 @@ defmodule EdgeDB.Subtransaction do
   defp release_savepoint(%State{} = state) do
     statement = QueryBuilder.release_savepoint_statement(state.savepoint)
 
+    query = %EdgeDB.Query{
+      statement: statement,
+      output_format: :none,
+      capabilities: [:transaction]
+    }
+
     case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
            statement: statement,
-           headers: %{}
+           headers: %{},
+           query: query,
+           params: []
          }) do
       {:ok, _query, result} ->
         {:ok, result,
@@ -222,9 +238,17 @@ defmodule EdgeDB.Subtransaction do
   defp rollback_to_savepoint(%State{} = state) do
     statement = QueryBuilder.rollback_to_savepoint_statement(state.savepoint)
 
+    query = %EdgeDB.Query{
+      statement: statement,
+      output_format: :none,
+      capabilities: [:transaction]
+    }
+
     case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
            statement: statement,
-           headers: %{}
+           headers: %{},
+           query: query,
+           params: []
          }) do
       {:ok, _query, result} ->
         {:ok, result, state}

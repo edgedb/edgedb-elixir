@@ -25,6 +25,7 @@ jobs:
 
         edgedb-version:
           - "1.0"
+          - "2.0"
 
     steps:
       - uses: actions/checkout@v3

@@ -33,6 +33,25 @@ defmodule EdgeDB.Protocol.Enums do
   """
   @type capabilities() :: list(capability())
 
+  @typedoc """
+  Compilation flags for query to extend it's features.
+
+  Values:
+
+    * `:inject_output_type_ids` - inject `__tid__` property as `.__type__.id` alias into returned objects.
+    * `:inject_output_type_names` - inject `__tname__` property as `.__type__.name` alias into returned objects.
+    * `:inject_output_object_ids` - inject `id` property into returned objects.
+  """
+  @type compilation_flag() ::
+          :inject_output_type_ids
+          | :inject_output_type_names
+          | :inject_output_object_ids
+
+  @typedoc """
+  Compilation flags for query to extend it's features.
+  """
+  @type compilation_flags() :: list(compilation_flag())
+
   @typedoc false
   @type transaction_state() ::
           :not_in_transaction
@@ -40,7 +59,7 @@ defmodule EdgeDB.Protocol.Enums do
           | :in_failed_transcation
 
   @typedoc """
-  Data I/O format.
+  Data output format.
 
   Values:
 
@@ -49,11 +68,13 @@ defmodule EdgeDB.Protocol.Enums do
       the result set as a single JSON array.
     * `:json_elements` - return a single JSON string per top-level set element.
       This can be used to iterate over a large result set efficiently.
+    * `:none` - prevent EdgeDB from returning anything event if EdgeQL query does it.
   """
-  @type io_format() ::
+  @type output_format() ::
           :binary
           | :json
           | :json_elements
+          | :none
 
   @typedoc """
   Cardinality of the query result.

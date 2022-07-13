@@ -14,8 +14,12 @@ defmodule EdgeDB.Query do
 
   defstruct [
     :statement,
+    output_format: :binary,
+    implicit_limit: 0,
+    inline_type_names: false,
+    inline_type_ids: false,
+    inline_object_ids: true,
     cardinality: :many,
-    io_format: :binary,
     required: false,
     capabilities: [],
     input_codec: nil,
@@ -32,7 +36,7 @@ defmodule EdgeDB.Query do
 
     * `:statement` - EdgeQL statement for execution.
     * `:cardinality` - the expected number of elements in the returned set as a result of the query.
-    * `:io_format` - the preferred format of the query result.
+    * `:output_format` - the preferred format of the query result.
     * `:capabilities` - query capabilities. See
       [RFC](https://github.com/edgedb/rfcs/blob/master/text/1004-transactions-api.rst#edgedb-changes)
       for more information.
@@ -44,10 +48,14 @@ defmodule EdgeDB.Query do
   """
   @type t() :: %__MODULE__{
           statement: String.t(),
+          output_format: Enums.output_format(),
+          implicit_limit: non_neg_integer(),
+          inline_type_names: boolean(),
+          inline_type_ids: boolean(),
+          inline_object_ids: boolean(),
           cardinality: Enums.cardinality(),
-          io_format: Enums.io_format(),
-          capabilities: Enums.capabilities(),
           required: boolean(),
+          capabilities: Enums.capabilities(),
           input_codec: Codec.id() | nil,
           output_codec: Codec.id() | nil,
           codec_storage: CodecStorage.t(),

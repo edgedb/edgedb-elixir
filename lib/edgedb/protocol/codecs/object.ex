@@ -10,12 +10,13 @@ defmodule EdgeDB.Protocol.Codecs.Object do
   defstruct [
     :id,
     :shape_elements,
-    :codecs
+    :codecs,
+    :is_spare
   ]
 
-  @spec new(Codec.id(), list(Types.ShapeElement.t()), list(Codec.id())) :: Codec.t()
-  def new(id, shape_elements, codecs) do
-    %__MODULE__{id: id, shape_elements: shape_elements, codecs: codecs}
+  @spec new(Codec.id(), list(Types.ShapeElement.t()), list(Codec.id()), boolean()) :: Codec.t()
+  def new(id, shape_elements, codecs, spare?) do
+    %__MODULE__{id: id, shape_elements: shape_elements, codecs: codecs, is_spare: spare?}
   end
 end
 
@@ -31,6 +32,11 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   @field_is_implicit Bitwise.bsl(1, 0)
   @field_is_link_property Bitwise.bsl(1, 1)
   @field_is_link Bitwise.bsl(1, 2)
+
+  @impl Codec
+  def encode(%{is_spare: true} = codec, session, codec_storage) do
+    do_spare_object_encoding(codec, session, codec_storage)
+  end
 
   @impl Codec
   def encode(_codec, %EdgeDB.Object{}, _codec_storage) do
@@ -50,12 +56,17 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   @impl Codec
   def encode(%{shape_elements: elements} = codec, arguments, codec_storage)
       when is_list(arguments) and length(arguments) == length(elements) do
+    if Keyword.keyword?(arguments) do
+      ensure_input_params_are_named!(elements)
+    end
+
     do_object_encoding(codec, arguments, codec_storage)
   end
 
   @impl Codec
   def encode(%{shape_elements: elements} = codec, arguments, codec_storage)
       when is_map(arguments) and map_size(arguments) == length(elements) do
+    ensure_input_params_are_named!(elements)
     do_object_encoding(codec, arguments, codec_storage)
   end
 
@@ -165,20 +176,59 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     raise EdgeDB.QueryArgumentError.new(error_message)
   end
 
+  defp ensure_input_params_are_named!(elements) do
+    for element <- elements do
+      case Integer.parse(element.name) do
+        :error ->
+          :ok
+
+        {_pos_index, _rest} ->
+          raise EdgeDB.QueryArgumentError.new(
+                  "only named arguments are allowed to use with parameters in map/keyword list, " <>
+                    "to use positional arguments pass parameters as plain list"
+                )
+      end
+    end
+  end
+
   defp do_object_encoding(%{shape_elements: elements, codecs: codecs}, arguments, codec_storage) do
     values =
       arguments
       |> process_arguments(elements, codecs, codec_storage)
-      |> Enum.map(fn
-        {nil, _codec} ->
-          <<0::int32, -1::int32>>
+      |> Enum.with_index()
+      |> Enum.reduce([], fn
+        {{:__edgedb_skip__, _codec}, _index}, acc ->
+          acc
 
-        {value, codec} ->
-          [<<0::int32>> | Codec.encode(codec, value, codec_storage)]
+        {{nil, _codec}, index}, acc ->
+          [[<<index::int32, -1::int32>>] | acc]
+
+        {{value, codec}, index}, acc ->
+          [[<<index::int32>> | Codec.encode(codec, value, codec_storage)] | acc]
       end)
+      |> Enum.reverse()
 
     data = [<<length(values)::int32>> | values]
     [<<IO.iodata_length(data)::uint32>> | data]
+  end
+
+  defp do_spare_object_encoding(
+         %{shape_elements: elements} = codec,
+         %EdgeDB.Object{} = object,
+         codec_storage
+       ) do
+    arguments =
+      Enum.into(elements, %{}, fn element ->
+        case Access.fetch(object, element.name) do
+          {:ok, value} ->
+            {element.name, value}
+
+          :error ->
+            {element.name, :__edgedb_skip__}
+        end
+      end)
+
+    do_object_encoding(codec, arguments, codec_storage)
   end
 
   defp process_arguments(arguments, elements, codecs, codec_storage) do

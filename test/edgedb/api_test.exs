@@ -17,20 +17,12 @@ defmodule Tests.EdgeDB.APITest do
   describe "EdgeDB.query/4 for readonly queries" do
     setup :reconnectable_edgedb_connection
 
-    test "retries failed query", %{conn: conn, pid: conn_pid} do
-      test_pid = self()
-
-      %{
-        mod_state: %{
-          state: %EdgeDB.Connection.State{
-            socket: socket
-          }
-        }
-      } = :sys.get_state(conn_pid)
-
+    test "retries failed query", %{conn: conn, socket: socket} do
       EdgeDB.query!(conn, "select Ticket")
 
       :ssl.close(socket)
+
+      test_pid = self()
 
       assert %EdgeDB.Set{} =
                EdgeDB.query!(conn, "select Ticket", [],
