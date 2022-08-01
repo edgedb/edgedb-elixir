@@ -198,12 +198,7 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_close(
-        %EdgeDB.Query{input_codec: in_codec, output_codec: out_codec} = query,
-        _opts,
-        state
-      )
-      when not is_nil(in_codec) and not is_nil(out_codec) do
+  def handle_close(%EdgeDB.Query{} = query, _opts, state) do
     close_prepared_query(query, state)
   end
 
