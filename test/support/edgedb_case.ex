@@ -13,10 +13,22 @@ defmodule Tests.Support.EdgeDBCase do
 
       import unquote(__MODULE__)
 
+      require Logger
+
       setup [
         :setup_stubs_fallbacks,
         :verify_on_exit!
       ]
+    end
+  end
+
+  defmacro skip_if(filter, reason, do: block) do
+    quote do
+      if var!(ctx)[unquote(filter)] do
+        Logger.warn("skip #{var!(ctx).test}: #{inspect(unquote(reason))}")
+      else
+        unquote(block)
+      end
     end
   end
 
