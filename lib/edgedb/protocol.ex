@@ -590,6 +590,19 @@ defmodule EdgeDB.Protocol do
     {codec, rest}
   end
 
+  defp do_codec_parsing(9, <<type_pos::uint16, rest::binary>>, id, codecs, create?) do
+    sub_codec = codecs[type_pos]
+
+    codec =
+      if create? do
+        Codecs.Range.new(id, sub_codec)
+      else
+        nil
+      end
+
+    {codec, rest}
+  end
+
   defp do_codec_parsing(
          0xFF,
          <<type_name_size::uint32, _type_name::binary(type_name_size), rest::binary>>,
