@@ -41,12 +41,20 @@ defmodule EdgeDB.Protocol.CodecStorage do
     Codecs.Null
   ]
 
+  @null_codec_id <<0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0>>
+
   @doc false
   @spec new() :: t()
   def new do
     storage = :ets.new(:codec_storage, [:set, :public, {:read_concurrency, true}])
     register_base_scalar_codecs(storage)
     storage
+  end
+
+  @doc false
+  @spec null_codec_id() :: binary()
+  def null_codec_id do
+    @null_codec_id
   end
 
   @doc """

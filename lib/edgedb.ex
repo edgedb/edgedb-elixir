@@ -136,14 +136,14 @@ defmodule EdgeDB do
   Supported options:
 
     * `:cardinality` - expected number of items in set.
-    * `:io_format` - preferred format of query result.
+    * `:output_format` - preferred format of query result.
     * `:retry` - options for read-only queries retries.
     * `:raw` - flag to return internal driver structures for inspecting.
     * other - check `t:DBConnection.start_option/0`.
   """
   @type query_option() ::
           {:cardinality, Enums.cardinality()}
-          | {:io_format, Enums.io_format()}
+          | {:output_format, Enums.output_format()}
           | {:retry, list(retry_option())}
           | {:raw, boolean()}
           | DBConnection.option()
@@ -354,12 +354,12 @@ defmodule EdgeDB do
     q = %EdgeDB.Query{
       statement: statement,
       cardinality: Keyword.get(opts, :cardinality, :many),
-      io_format: Keyword.get(opts, :io_format, :binary),
+      output_format: Keyword.get(opts, :output_format, :binary),
       required: Keyword.get(opts, :required, false),
       params: params
     }
 
-    prepare_execute_query(conn, q, q.params, opts)
+    parse_execute_query(conn, q, q.params, opts)
   end
 
   @doc """
@@ -452,7 +452,7 @@ defmodule EdgeDB do
           {:ok, result()}
           | {:error, Exception.t()}
   def query_json(conn, statement, params \\ [], opts \\ []) do
-    query(conn, statement, params, Keyword.merge(opts, io_format: :json))
+    query(conn, statement, params, Keyword.merge(opts, output_format: :json))
   end
 
   @doc """
@@ -785,13 +785,13 @@ defmodule EdgeDB do
     end)
   end
 
-  defp prepare_execute_query(
+  defp parse_execute_query(
          %EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks},
          query,
          params,
          opts
        ) do
-    prepare_execute_callback = &prepare_execute_query(&1, query, params, opts)
+    prepare_execute_callback = &parse_execute_query(&1, query, params, opts)
 
     execution_callback =
       Enum.reduce([prepare_execute_callback | callbacks], fn next, last ->
@@ -801,17 +801,17 @@ defmodule EdgeDB do
     execution_callback.(conn)
   end
 
-  defp prepare_execute_query(conn, query, params, opts) do
+  defp parse_execute_query(conn, query, params, opts) do
     EdgeDB.Borrower.ensure_unborrowed!(conn)
 
     with {:ok, _query, retry_opts} <-
            DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []) do
       retry_opts = Keyword.merge(retry_opts, opts[:retry] || [])
-      prepare_execute_query(1, conn, query, params, Keyword.merge(opts, retry: retry_opts))
+      parse_execute_query(1, conn, query, params, Keyword.merge(opts, retry: retry_opts))
     end
   end
 
-  defp prepare_execute_query(attempt, conn, query, params, opts) do
+  defp parse_execute_query(attempt, conn, query, params, opts) do
     case DBConnection.prepare_execute(conn, query, params, opts) do
       {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} ->
         handle_query_result(q, r, opts)
@@ -829,7 +829,7 @@ defmodule EdgeDB do
       opts[:raw] ->
         {:ok, {query, result}}
 
-      opts[:io_format] == :json ->
+      opts[:output_format] == :json ->
         # in result set there will be only a single value
 
         extracting_result =
@@ -873,7 +873,7 @@ defmodule EdgeDB do
     with true <- :readonly in capabilities,
          {:ok, backoff} <- retry?(exc, attempt, opts[:retry] || []) do
       Process.sleep(backoff)
-      prepare_execute_query(attempt + 1, conn, query, params, opts)
+      parse_execute_query(attempt + 1, conn, query, params, opts)
     else
       _other ->
         {:error, exc}

@@ -10,10 +10,38 @@ defmodule EdgeDB.Connection.QueriesCache do
     :ets.new(:connection_queries_cache, [:set, :public, {:read_concurrency, true}])
   end
 
-  @spec get(t(), String.t(), Enums.cardinality(), Enums.io_format(), boolean()) ::
-          EdgeDB.Query.t() | nil
-  def get(cache, statement, cardinality, io_format, required) do
-    key = {statement, cardinality, io_format, required}
+  @spec get(
+          cache :: t(),
+          statement :: String.t(),
+          output_format :: Enums.output_format(),
+          implicit_limit :: non_neg_integer(),
+          inline_type_names :: boolean(),
+          inline_type_ids :: boolean(),
+          inline_object_ids :: boolean(),
+          cardinality :: Enums.cardinality(),
+          required :: boolean()
+        ) :: EdgeDB.Query.t() | nil
+  def get(
+        cache,
+        statement,
+        output_format,
+        implicit_limit,
+        inline_type_names,
+        inline_type_ids,
+        inline_object_ids,
+        cardinality,
+        required
+      ) do
+    key = {
+      statement,
+      output_format,
+      implicit_limit,
+      inline_type_names,
+      inline_type_ids,
+      inline_object_ids,
+      cardinality,
+      required
+    }
 
     case :ets.lookup(cache, key) do
       [{^key, query}] ->
@@ -26,15 +54,28 @@ defmodule EdgeDB.Connection.QueriesCache do
 
   @spec add(t(), EdgeDB.Query.t()) :: :ok
   def add(cache, %EdgeDB.Query{} = query) do
-    key = {query.statement, query.cardinality, query.io_format, query.required}
+    key = query_to_key(query)
     :ets.insert(cache, {key, %EdgeDB.Query{query | cached: true}})
     :ok
   end
 
   @spec clear(t(), EdgeDB.Query.t()) :: :ok
   def clear(cache, %EdgeDB.Query{} = query) do
-    key = {query.statement, query.cardinality, query.io_format, query.required}
+    key = query_to_key(query)
     :ets.delete(cache, key)
     :ok
+  end
+
+  defp query_to_key(query) do
+    {
+      query.statement,
+      query.output_format,
+      query.implicit_limit,
+      query.inline_type_names,
+      query.inline_type_ids,
+      query.inline_object_ids,
+      query.cardinality,
+      query.required
+    }
   end
 end

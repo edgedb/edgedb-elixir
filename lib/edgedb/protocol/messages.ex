@@ -10,6 +10,128 @@ defmodule EdgeDB.Protocol.Messages do
   defmodule Client do
     @moduledoc false
 
+    defmodule V0.Flush do
+      @moduledoc false
+
+      defstruct []
+
+      @type t() :: %__MODULE__{}
+    end
+
+    defmodule V0.Prepare do
+      @moduledoc false
+
+      defstruct [
+        :headers,
+        :io_format,
+        :expected_cardinality,
+        :statement_name,
+        :command
+      ]
+
+      @type headers() :: %{
+              optional(:implicit_limit) => String.t(),
+              optional(:implicit_typenames) => String.t(),
+              optional(:implicit_typeids) => String.t(),
+              optional(:allow_capabilities) => Enums.capabilities(),
+              optional(:explicit_objectids) => String.t()
+            }
+
+      @type t() :: %__MODULE__{
+              headers: headers(),
+              io_format: Enums.output_format(),
+              expected_cardinality: Enums.cardinality(),
+              statement_name: binary(),
+              command: String.t()
+            }
+    end
+
+    defmodule V0.DescribeStatement do
+      @moduledoc false
+
+      defstruct [
+        :headers,
+        :aspect,
+        :statement_name
+      ]
+
+      @type t() :: %__MODULE__{
+              headers: map(),
+              aspect: Enums.describe_aspect(),
+              statement_name: binary()
+            }
+    end
+
+    defmodule V0.ExecuteScript do
+      @moduledoc false
+
+      defstruct [
+        :headers,
+        :script
+      ]
+
+      @type headers() :: %{
+              optional(:allow_capabilities) => Enums.capabilities()
+            }
+
+      @type t() :: %__MODULE__{
+              headers: headers(),
+              script: String.t()
+            }
+    end
+
+    defmodule V0.Execute do
+      @moduledoc false
+
+      defstruct [
+        :headers,
+        :statement_name,
+        :arguments
+      ]
+
+      @type headers() :: %{
+              optional(:allow_capabilities) => Enums.capabilities()
+            }
+
+      @type t() :: %__MODULE__{
+              headers: headers(),
+              statement_name: binary(),
+              arguments: iodata()
+            }
+    end
+
+    defmodule V0.OptimisticExecute do
+      @moduledoc false
+
+      defstruct [
+        :headers,
+        :io_format,
+        :expected_cardinality,
+        :command_text,
+        :input_typedesc_id,
+        :output_typedesc_id,
+        :arguments
+      ]
+
+      @type headers() :: %{
+              optional(:implicit_limit) => String.t(),
+              optional(:implicit_typenames) => String.t(),
+              optional(:implicit_typeids) => String.t(),
+              optional(:allow_capabilities) => Enums.capabilities(),
+              optional(:explicit_objectids) => String.t()
+            }
+
+      @type t() :: %__MODULE__{
+              headers: headers(),
+              io_format: Enums.output_format(),
+              expected_cardinality: Enums.cardinality(),
+              command_text: String.t(),
+              input_typedesc_id: Codec.id(),
+              output_typedesc_id: Codec.id(),
+              arguments: iodata()
+            }
+    end
+
     defmodule AuthenticationSASLInitialResponse do
       @moduledoc false
 
@@ -54,37 +176,31 @@ defmodule EdgeDB.Protocol.Messages do
             }
     end
 
-    defmodule DescribeStatement do
+    defmodule Parse do
       @moduledoc false
 
       defstruct [
-        :headers,
-        :aspect,
-        :statement_name
+        :annotations,
+        :allowed_capabilities,
+        :compilation_flags,
+        :implicit_limit,
+        :output_format,
+        :expected_cardinality,
+        :command_text,
+        :state_typedesc_id,
+        :state_data
       ]
 
       @type t() :: %__MODULE__{
-              headers: map(),
-              aspect: Enums.describe_aspect(),
-              statement_name: binary()
-            }
-    end
-
-    defmodule ExecuteScript do
-      @moduledoc false
-
-      defstruct [
-        :headers,
-        :script
-      ]
-
-      @type headers() :: %{
-              optional(:allow_capabilities) => Enums.capabilities()
-            }
-
-      @type t() :: %__MODULE__{
-              headers: headers(),
-              script: String.t()
+              annotations: %{String.t() => term()},
+              allowed_capabilities: Enums.capabilities(),
+              compilation_flags: Enums.compilation_flags(),
+              implicit_limit: pos_integer(),
+              output_format: Enums.output_format(),
+              expected_cardinality: Enums.cardinality(),
+              command_text: String.t(),
+              state_typedesc_id: Codec.id(),
+              state_data: binary()
             }
     end
 
@@ -92,87 +208,33 @@ defmodule EdgeDB.Protocol.Messages do
       @moduledoc false
 
       defstruct [
-        :headers,
-        :statement_name,
-        :arguments
-      ]
-
-      @type headers() :: %{
-              optional(:allow_capabilities) => Enums.capabilities()
-            }
-
-      @type t() :: %__MODULE__{
-              headers: headers(),
-              statement_name: binary(),
-              arguments: iodata()
-            }
-    end
-
-    defmodule Flush do
-      @moduledoc false
-
-      defstruct []
-
-      @type t() :: %__MODULE__{}
-    end
-
-    defmodule OptimisticExecute do
-      @moduledoc false
-
-      defstruct [
-        :headers,
-        :io_format,
+        :annotations,
+        :allowed_capabilities,
+        :compilation_flags,
+        :implicit_limit,
+        :output_format,
         :expected_cardinality,
         :command_text,
+        :state_typedesc_id,
+        :state_data,
         :input_typedesc_id,
         :output_typedesc_id,
         :arguments
       ]
 
-      @type headers() :: %{
-              optional(:implicit_limit) => String.t(),
-              optional(:implicit_typenames) => String.t(),
-              optional(:implicit_typeids) => String.t(),
-              optional(:allow_capabilities) => Enums.capabilities(),
-              optional(:explicit_objectids) => String.t()
-            }
-
       @type t() :: %__MODULE__{
-              headers: headers(),
-              io_format: Enums.io_format(),
+              annotations: %{String.t() => term()},
+              allowed_capabilities: Enums.capabilities(),
+              compilation_flags: Enums.compilation_flags(),
+              implicit_limit: pos_integer(),
+              output_format: Enums.output_format(),
               expected_cardinality: Enums.cardinality(),
               command_text: String.t(),
+              state_typedesc_id: Codec.id(),
+              state_data: binary(),
               input_typedesc_id: Codec.id(),
               output_typedesc_id: Codec.id(),
-              arguments: iodata()
-            }
-    end
-
-    defmodule Prepare do
-      @moduledoc false
-
-      defstruct [
-        :headers,
-        :io_format,
-        :expected_cardinality,
-        :statement_name,
-        :command
-      ]
-
-      @type headers() :: %{
-              optional(:implicit_limit) => String.t(),
-              optional(:implicit_typenames) => String.t(),
-              optional(:implicit_typeids) => String.t(),
-              optional(:allow_capabilities) => Enums.capabilities(),
-              optional(:explicit_objectids) => String.t()
-            }
-
-      @type t() :: %__MODULE__{
-              headers: headers(),
-              io_format: Enums.io_format(),
-              expected_cardinality: Enums.cardinality(),
-              statement_name: binary(),
-              command: String.t()
+              arguments: binary()
             }
     end
 
@@ -196,6 +258,24 @@ defmodule EdgeDB.Protocol.Messages do
   defmodule Server do
     @moduledoc false
 
+    defmodule V0.PrepareComplete do
+      @moduledoc false
+
+      defstruct [
+        :headers,
+        :cardinality,
+        :input_typedesc_id,
+        :output_typedesc_id
+      ]
+
+      @type t() :: %__MODULE__{
+              headers: map(),
+              cardinality: Enums.cardinality(),
+              input_typedesc_id: Codec.id(),
+              output_typedesc_id: Codec.t()
+            }
+    end
+
     defmodule AuthenticationOK do
       @moduledoc false
 
@@ -205,6 +285,20 @@ defmodule EdgeDB.Protocol.Messages do
 
       @type t() :: %__MODULE__{
               auth_status: non_neg_integer()
+            }
+    end
+
+    defmodule AuthenticationSASL do
+      @moduledoc false
+
+      defstruct [
+        :auth_status,
+        :methods
+      ]
+
+      @type t() :: %__MODULE__{
+              auth_status: non_neg_integer(),
+              methods: list(String.t())
             }
     end
 
@@ -236,26 +330,16 @@ defmodule EdgeDB.Protocol.Messages do
             }
     end
 
-    defmodule AuthenticationSASL do
-      @moduledoc false
-
-      defstruct [
-        :auth_status,
-        :methods
-      ]
-
-      @type t() :: %__MODULE__{
-              auth_status: non_neg_integer(),
-              methods: list(String.t())
-            }
-    end
-
     defmodule CommandComplete do
       @moduledoc false
 
       defstruct [
-        :headers,
-        :status
+        :annotations,
+        :capabilities,
+        :status,
+        :state_typedesc_id,
+        :state_data,
+        :__headers__
       ]
 
       @type headers() :: %{
@@ -263,8 +347,12 @@ defmodule EdgeDB.Protocol.Messages do
             }
 
       @type t() :: %__MODULE__{
-              headers: headers(),
-              status: String.t()
+              annotations: %{String.t() => term()},
+              capabilities: Enums.capabilities(),
+              status: String.t(),
+              state_typedesc_id: Codec.id(),
+              state_data: binary(),
+              __headers__: headers()
             }
     end
 
@@ -272,21 +360,25 @@ defmodule EdgeDB.Protocol.Messages do
       @moduledoc false
 
       defstruct [
-        :headers,
+        :annotations,
+        :capabilities,
         :result_cardinality,
         :input_typedesc_id,
         :input_typedesc,
         :output_typedesc_id,
-        :output_typedesc
+        :output_typedesc,
+        :__headers__
       ]
 
       @type t() :: %__MODULE__{
-              headers: map(),
+              annotations: %{String.t() => term()},
+              capabilities: Enums.capabilities(),
               result_cardinality: Enums.cardinality(),
               input_typedesc_id: Codec.id(),
               input_typedesc: binary(),
               output_typedesc_id: Codec.id(),
-              output_typedesc: binary()
+              output_typedesc: binary(),
+              __headers__: map()
             }
     end
 
@@ -343,14 +435,14 @@ defmodule EdgeDB.Protocol.Messages do
         :severity,
         :code,
         :text,
-        :attributes
+        :annotations
       ]
 
       @type t() :: %__MODULE__{
               severity: Enums.message_severity(),
               code: non_neg_integer(),
               text: String.t(),
-              attributes: map()
+              annotations: %{String.t() => term()}
             }
     end
 
@@ -368,35 +460,19 @@ defmodule EdgeDB.Protocol.Messages do
             }
     end
 
-    defmodule PrepareComplete do
-      @moduledoc false
-
-      defstruct [
-        :headers,
-        :cardinality,
-        :input_typedesc_id,
-        :output_typedesc_id
-      ]
-
-      @type t() :: %__MODULE__{
-              headers: map(),
-              cardinality: Enums.cardinality(),
-              input_typedesc_id: Codec.id(),
-              output_typedesc_id: Codec.t()
-            }
-    end
-
     defmodule ReadyForCommand do
       @moduledoc false
 
       defstruct [
-        :headers,
-        :transaction_state
+        :annotations,
+        :transaction_state,
+        :__headers__
       ]
 
       @type t() :: %__MODULE__{
-              headers: map(),
-              transaction_state: Enums.transaction_state()
+              annotations: %{String.t() => term()},
+              transaction_state: Enums.transaction_state(),
+              __headers__: map()
             }
     end
 
@@ -425,6 +501,20 @@ defmodule EdgeDB.Protocol.Messages do
 
       @type t() :: %__MODULE__{
               data: binary()
+            }
+    end
+
+    defmodule StateDataDescription do
+      @moduledoc false
+
+      defstruct [
+        :typedesc_id,
+        :typedesc
+      ]
+
+      @type t() :: %__MODULE__{
+              typedesc_id: Codec.id(),
+              typedesc: binary()
             }
     end
   end

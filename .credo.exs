@@ -124,7 +124,8 @@
         #
         {Credo.Check.Refactor.CondStatements, []},
         {Credo.Check.Refactor.CyclomaticComplexity, false},
-        {Credo.Check.Refactor.FunctionArity, []},
+        # increase default (8) because cache key is quite complex
+        {Credo.Check.Refactor.FunctionArity, [max_arity: 9]},
         {Credo.Check.Refactor.LongQuoteBlocks, []},
         # {Credo.Check.Refactor.MapInto, []},
         {Credo.Check.Refactor.MatchInCondition, []},

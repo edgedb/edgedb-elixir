@@ -270,11 +270,19 @@ defmodule EdgeDB.Sandbox do
 
     statement = QueryBuilder.declare_savepoint_statement(savepoint_name)
 
+    query = %EdgeDB.Query{
+      statement: statement,
+      output_format: :none,
+      capabilities: [:transaction]
+    }
+
     case Connection.handle_execute(
            %InternalRequest{request: :execute_script_flow},
            %{
              statement: statement,
-             headers: %{}
+             headers: %{},
+             query: query,
+             params: []
            },
            [],
            internal_state
@@ -296,11 +304,19 @@ defmodule EdgeDB.Sandbox do
   defp release_savepoint(%State{} = state) do
     statement = QueryBuilder.release_savepoint_statement(state.savepoint)
 
+    query = %EdgeDB.Query{
+      statement: statement,
+      output_format: :none,
+      capabilities: [:transaction]
+    }
+
     case Connection.handle_execute(
            %InternalRequest{request: :execute_script_flow},
            %{
              statement: statement,
-             headers: %{}
+             headers: %{},
+             query: query,
+             params: []
            },
            [],
            state.internal_state
@@ -322,11 +338,19 @@ defmodule EdgeDB.Sandbox do
   defp rollback_to_savepoint(%State{} = state) do
     statement = QueryBuilder.rollback_to_savepoint_statement(state.savepoint)
 
+    query = %EdgeDB.Query{
+      statement: statement,
+      output_format: :none,
+      capabilities: [:transaction]
+    }
+
     case Connection.handle_execute(
            %InternalRequest{request: :execute_script_flow},
            %{
              statement: statement,
-             headers: %{}
+             headers: %{},
+             query: query,
+             params: []
            },
            [],
            state.internal_state

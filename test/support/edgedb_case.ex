@@ -45,7 +45,15 @@ defmodule Tests.Support.EdgeDBCase do
 
     assert_receive {:connected, conn_pid}, 1000
 
-    %{conn: conn, pid: conn_pid}
+    %{
+      mod_state: %{
+        state: %EdgeDB.Connection.State{
+          socket: socket
+        }
+      }
+    } = :sys.get_state(conn_pid)
+
+    %{conn: conn, pid: conn_pid, socket: socket}
   end
 
   @spec rollback(EdgeDB.connection(), (EdgeDB.connection() -> any())) :: :ok

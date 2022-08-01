@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.3.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.3.0...HEAD)
 
+### Added
+
+- support for `EdgeDB 2.0` with new binary protocol.
+
+### Changed
+
+- `io_format` option to `output_format`.
+
+### Fixed
+
+- the ability to pass maps or keyword lists in a query that requires positional arguments.
+
 ## [0.3.0] - 2022-05-29
 
 [Compare with 0.2.1](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.1...v0.3.0)
