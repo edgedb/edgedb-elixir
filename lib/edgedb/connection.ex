@@ -245,6 +245,66 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_execute(
+        %EdgeDB.Query{is_script: true, params: []} = query,
+        _params,
+        _opts,
+        %State{protocol_version: 0} = state
+      ) do
+    execution_result =
+      legacy_execute_script_query(
+        query.statement,
+        %{allow_capabilities: [:legacy_execute]},
+        state
+      )
+
+    case execution_result do
+      {:ok, result, state} ->
+        {:ok, query, result, state}
+
+      {reason, %EdgeDB.Error{query: nil} = exc, state} ->
+        {reason, %EdgeDB.Error{exc | query: query}, state}
+
+      {reason, exc, state} ->
+        {reason, exc, state}
+    end
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %EdgeDB.Query{is_script: true} = query,
+        _params,
+        _opts,
+        %State{protocol_version: 0} = state
+      ) do
+    exc =
+      EdgeDB.QueryArgumentError.new("EdgeDB 1.0 doesn't support scripts with parameters",
+        query: query
+      )
+
+    {:error, exc, state}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %EdgeDB.Query{is_script: true} = query,
+        params,
+        opts,
+        %State{} = state
+      ) do
+    case execute_query(query, params, opts, state) do
+      {:ok, query, result, state} ->
+        {:ok, query, result, state}
+
+      {reason, %EdgeDB.Error{query: nil} = exc, state} ->
+        {reason, %EdgeDB.Error{exc | query: query}, state}
+
+      {reason, exc, state} ->
+        {reason, exc, state}
+    end
+  end
+
+  @impl DBConnection
+  def handle_execute(
         %EdgeDB.Query{cached: true} = query,
         params,
         opts,
@@ -459,11 +519,19 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_prepare(
-        %EdgeDB.Query{} = query,
-        opts,
-        %State{protocol_version: 0} = state
-      ) do
+  def handle_prepare(%EdgeDB.Query{is_script: true} = query, _opts, %State{} = state) do
+    query = %EdgeDB.Query{
+      query
+      | input_codec: @null_codec_id,
+        output_codec: @null_codec_id,
+        codec_storage: state.codec_storage
+    }
+
+    {:ok, query, state}
+  end
+
+  @impl DBConnection
+  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{protocol_version: 0} = state) do
     cached_query =
       QueriesCache.get(
         state.queries_cache,
