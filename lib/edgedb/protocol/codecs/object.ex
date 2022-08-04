@@ -11,12 +11,12 @@ defmodule EdgeDB.Protocol.Codecs.Object do
     :id,
     :shape_elements,
     :codecs,
-    :is_spare
+    :is_sparse
   ]
 
   @spec new(Codec.id(), list(Types.ShapeElement.t()), list(Codec.id()), boolean()) :: Codec.t()
-  def new(id, shape_elements, codecs, spare?) do
-    %__MODULE__{id: id, shape_elements: shape_elements, codecs: codecs, is_spare: spare?}
+  def new(id, shape_elements, codecs, sparse?) do
+    %__MODULE__{id: id, shape_elements: shape_elements, codecs: codecs, is_sparse: sparse?}
   end
 end
 
@@ -34,8 +34,8 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   @field_is_link Bitwise.bsl(1, 2)
 
   @impl Codec
-  def encode(%{is_spare: true} = codec, session, codec_storage) do
-    do_spare_object_encoding(codec, session, codec_storage)
+  def encode(%{is_sparse: true} = codec, session, codec_storage) do
+    do_sparse_object_encoding(codec, session, codec_storage)
   end
 
   @impl Codec
@@ -119,13 +119,13 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   def transform_arguments(arguments) do
     cond do
       is_map(arguments) ->
-        transform_into_string_map(arguments)
+        transform_list_into_string_map(arguments)
 
       Keyword.keyword?(arguments) ->
-        transform_into_string_map(arguments)
+        transform_list_into_string_map(arguments)
 
       is_list(arguments) ->
-        transform_into_indexed_string_map(arguments)
+        transform_list_into_indexed_string_map(arguments)
     end
   end
 
@@ -212,12 +212,12 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     [<<IO.iodata_length(data)::uint32>> | data]
   end
 
-  defp do_spare_object_encoding(
+  defp do_sparse_object_encoding(
          %{shape_elements: elements} = codec,
-         %EdgeDB.Object{} = object,
+         %{} = object,
          codec_storage
        ) do
-    arguments =
+    items =
       Enum.into(elements, %{}, fn element ->
         case Access.fetch(object, element.name) do
           {:ok, value} ->
@@ -228,7 +228,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
         end
       end)
 
-    do_object_encoding(codec, arguments, codec_storage)
+    do_object_encoding(codec, items, codec_storage)
   end
 
   defp process_arguments(arguments, elements, codecs, codec_storage) do
@@ -257,7 +257,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     end)
   end
 
-  defp transform_into_string_map(list) do
+  defp transform_list_into_string_map(list) do
     Enum.into(list, %{}, fn
       {key, value} when is_atom(key) ->
         {to_string(key), value}
@@ -267,7 +267,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     end)
   end
 
-  defp transform_into_indexed_string_map(list) do
+  defp transform_list_into_indexed_string_map(list) do
     list
     |> Enum.with_index()
     |> Enum.into(%{}, fn {value, index} ->

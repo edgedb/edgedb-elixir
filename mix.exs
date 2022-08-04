@@ -133,7 +133,8 @@ defmodule EdgeDB.MixProject do
           EdgeDB.Set,
           EdgeDB.NamedTuple,
           EdgeDB.RelativeDuration,
-          EdgeDB.ConfigMemory
+          EdgeDB.ConfigMemory,
+          EdgeDB.Range
         ],
         Protocol: [
           EdgeDB.Protocol.Codec,

@@ -28,13 +28,13 @@ defmodule EdgeDB.Range do
     * `:inc_upper` - flag whether the range should strictly include the upper boundary.
     * `:is_empty` - flag for an empty range.
   """
-  @opaque t(value) :: %__MODULE__{
-            lower: value | nil,
-            upper: value | nil,
-            inc_lower: boolean(),
-            inc_upper: boolean(),
-            is_empty: boolean()
-          }
+  @type t(value) :: %__MODULE__{
+          lower: value | nil,
+          upper: value | nil,
+          inc_lower: boolean(),
+          inc_upper: boolean(),
+          is_empty: boolean()
+        }
   @type t() :: t(term())
 
   @typedoc """

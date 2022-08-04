@@ -13,8 +13,6 @@ defmodule Tests.Support.EdgeDBCase do
 
       import unquote(__MODULE__)
 
-      require Logger
-
       setup [
         :setup_stubs_fallbacks,
         :verify_on_exit!
@@ -22,13 +20,30 @@ defmodule Tests.Support.EdgeDBCase do
     end
   end
 
-  defmacro skip_if(filter, reason, do: block) do
-    quote do
-      if var!(ctx)[unquote(filter)] do
-        Logger.warn("skip #{var!(ctx).test}: #{inspect(unquote(reason))}")
-      else
-        unquote(block)
+  defmacro skip_before(opts \\ []) do
+    {edgedb_version, ""} =
+      "EDGEDB_VERSION"
+      |> System.get_env("9999")
+      |> Integer.parse()
+
+    requested_version = opts[:version]
+
+    tag_type =
+      case opts[:scope] do
+        :module ->
+          :moduletag
+
+        :describe ->
+          :describetag
+
+        _other ->
+          :tag
       end
+
+    if edgedb_version < requested_version do
+      {:@, [], [{tag_type, [], [:skip]}]}
+    else
+      {:__block__, [], []}
     end
   end
 

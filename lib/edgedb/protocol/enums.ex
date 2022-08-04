@@ -27,6 +27,7 @@ defmodule EdgeDB.Protocol.Enums do
           | :persistent_config
           | :all
           | :execute
+          | :legacy_execute
 
   @typedoc """
   Query capabilities.
@@ -42,6 +43,7 @@ defmodule EdgeDB.Protocol.Enums do
     * `:inject_output_type_names` - inject `__tname__` property as `.__type__.name` alias into returned objects.
     * `:inject_output_object_ids` - inject `id` property into returned objects.
   """
+  @typedoc since: "0.4.0"
   @type compilation_flag() ::
           :inject_output_type_ids
           | :inject_output_type_names
@@ -50,6 +52,7 @@ defmodule EdgeDB.Protocol.Enums do
   @typedoc """
   Compilation flags for query to extend it's features.
   """
+  @typedoc since: "0.4.0"
   @type compilation_flags() :: list(compilation_flag())
 
   @typedoc false
@@ -70,6 +73,7 @@ defmodule EdgeDB.Protocol.Enums do
       This can be used to iterate over a large result set efficiently.
     * `:none` - prevent EdgeDB from returning anything event if EdgeQL query does it.
   """
+  @typedoc since: "0.4.0"
   @type output_format() ::
           :binary
           | :json
