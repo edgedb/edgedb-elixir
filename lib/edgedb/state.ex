@@ -7,10 +7,13 @@ defmodule EdgeDB.State do
     3. session config.
     4. global values.
 
-  The most convenient way to use the `EdgeDB` API to change a part of state.
-  See `EdgeDB.with_default_module/2`, `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`,
-    `EdgeDB.with_config/2`/`EdgeDB.without_config/2`, `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2`
-    and `EdgeDB.with_state/2` for more information.
+  The most convenient way to work with the state is to use the `EdgeDB` API to change a required part of
+    the state.
+
+  See `EdgeDB.with_state/2`, `EdgeDB.with_default_module/2`,
+    `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`,
+    `EdgeDB.with_config/2`/`EdgeDB.without_config/2` and
+    `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2` for more information.
   """
 
   @default_module "default"

@@ -108,6 +108,8 @@ defmodule EdgeDB do
           | {:retry, list(retry_option())}
           | {:codecs, list(module())}
           | {:connection, module()}
+          | {:pool, module()}
+          | {:state, EdgeDB.State.t()}
 
   @typedoc """
   Options for `EdgeDB.start_link/1`.
@@ -684,6 +686,13 @@ defmodule EdgeDB do
           )
   end
 
+  @doc """
+  Open a subtransaction inside an already open transaction.
+
+  If an error in subtransaction occurs then subtransaction will automatically rollback.
+
+  See `EdgeDB.subtransaction/2` for more information.
+  """
   @spec subtransaction!(DBConnection.conn(), (DBConnection.conn() -> result())) :: result()
   def subtransaction!(conn, callback) do
     case subtransaction(conn, callback) do

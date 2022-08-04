@@ -1,6 +1,6 @@
 defmodule EdgeDB.Range do
   @moduledoc """
-  An immutable value representing some interval of values.
+  A value representing some interval of values.
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
@@ -18,7 +18,7 @@ defmodule EdgeDB.Range do
   ]
 
   @typedoc """
-  An immutable value representing some interval of values.
+  A value representing some interval of values.
 
   Fields:
 
@@ -35,6 +35,10 @@ defmodule EdgeDB.Range do
           inc_upper: boolean(),
           is_empty: boolean()
         }
+
+  @typedoc """
+  A value representing some interval of values.
+  """
   @type t() :: t(term())
 
   @typedoc """
