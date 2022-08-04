@@ -203,7 +203,6 @@ defmodule EdgeDB.Protocol do
        <<byte_size(message.command_text)::uint32>>,
        message.command_text,
        message.state_typedesc_id,
-       <<byte_size(message.state_data)::uint32>>,
        message.state_data
      ]}
   end
@@ -222,7 +221,6 @@ defmodule EdgeDB.Protocol do
        <<byte_size(message.command_text)::uint32>>,
        message.command_text,
        message.state_typedesc_id,
-       <<byte_size(message.state_data)::uint32>>,
        message.state_data,
        message.input_typedesc_id,
        message.output_typedesc_id,
@@ -1109,6 +1107,8 @@ defmodule EdgeDB.Protocol do
       transaction: 0x4,
       ddl: 0x8,
       persistent_config: 0x10,
+      execute: 0xFFFFFFFFFFFFFFF9,
+      legacy_execute: 0xFFFFFFFFFFFFFFFB,
       all: 0xFFFFFFFFFFFFFFFF
     }
 
@@ -1129,6 +1129,8 @@ defmodule EdgeDB.Protocol do
       0x4 => :transaction,
       0x8 => :ddl,
       0x10 => :persistent_config,
+      0xFFFFFFFFFFFFFFF9 => :execute,
+      0xFFFFFFFFFFFFFFFB => :legacy_execute,
       0xFFFFFFFFFFFFFFFF => :all
     }
 

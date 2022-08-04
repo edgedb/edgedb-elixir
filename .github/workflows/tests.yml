@@ -32,6 +32,23 @@ jobs:
         with:
           submodules: true
 
+      - name: Remove migrations for EdgeDB versions greater then current major version (${{ matrix.edgedb-version }})
+        env:
+          EDGEDB_VERSION: ${{ matrix.edgedb-version }}
+        run: |
+          EDGEDB_VERSION=${EDGEDB_VERSION%.*}
+
+          for migration_file in `ls priv/edgedb/schema/migrations/`
+          do
+              migration_number=${migration_file%.*}
+              if test ${migration_number} -gt ${EDGEDB_VERSION}
+              then
+                  rm "priv/edgedb/schema/migrations/${migration_file}"
+              fi
+          done
+
+          echo "EDGEDB_VERSION=${EDGEDB_VERSION}" >> ${GITHUB_ENV}
+
       - uses: edgedb/setup-edgedb@v1.2.2
         with:
           server-version: ${{ matrix.edgedb-version }}

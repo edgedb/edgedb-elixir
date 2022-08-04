@@ -75,6 +75,8 @@ defmodule EdgeDB.Connection do
   @edgedb_alpn_protocol "edgedb-binary"
   @message_header_length Protocol.message_header_length()
 
+  @null_codec_id CodecStorage.null_codec_id()
+
   defmodule State do
     @moduledoc false
 
@@ -96,6 +98,8 @@ defmodule EdgeDB.Connection do
       last_active: nil,
       savepoint_id: 0,
       edgeql_state_typedesc_id: CodecStorage.null_codec_id(),
+      edgeql_state: %EdgeDB.State{},
+      edgeql_state_cache: nil,
       protocol_version: 1
     ]
 
@@ -117,6 +121,8 @@ defmodule EdgeDB.Connection do
             last_active: integer() | nil,
             savepoint_id: integer(),
             edgeql_state_typedesc_id: Codec.id(),
+            edgeql_state: EdgeDB.State.t(),
+            edgeql_state_cache: {EdgeDB.State.t(), binary()} | nil,
             protocol_version: non_neg_integer()
           }
   end
@@ -135,6 +141,7 @@ defmodule EdgeDB.Connection do
     codec_modules = opts[:codecs] || []
     transaction_opts = opts[:transaction] || []
     retry_opts = opts[:retry] || []
+    edgeql_state = opts[:state] || %EdgeDB.State{}
 
     tcp_opts = (opts[:tcp] || []) ++ @tcp_socket_opts
 
@@ -152,7 +159,8 @@ defmodule EdgeDB.Connection do
       timeout: timeout,
       pool_pid: pool_pid,
       transaction_options: transaction_opts,
-      retry_options: retry_opts
+      retry_options: retry_opts,
+      edgeql_state: edgeql_state
     }
 
     qc = QueriesCache.new()
@@ -347,6 +355,26 @@ defmodule EdgeDB.Connection do
       end
 
     {:ok, request, :ok, %State{state | retry_options: retry_opts}}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :edgeql_state} = request,
+        _params,
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, state.edgeql_state, state}
+  end
+
+  @impl DBConnection
+  def handle_execute(
+        %InternalRequest{request: :set_edgeql_state} = request,
+        %{state: edgeql_state},
+        _opts,
+        %State{} = state
+      ) do
+    {:ok, request, :ok, %State{state | edgeql_state: edgeql_state}}
   end
 
   @impl DBConnection
@@ -814,10 +842,11 @@ defmodule EdgeDB.Connection do
     {:ok, state}
   end
 
-  # TODO: handle state
-  defp parse_query(%EdgeDB.Query{} = query, opts, state) do
+  defp parse_query(%EdgeDB.Query{} = query, opts, %State{} = state) do
     capabilities = prepare_capabilities(query, opts, state)
     compilation_flags = prepare_compilation_flags(query)
+
+    {state_data, state} = encode_edgeql_state(state.edgeql_state, state)
 
     message = %Parse{
       annotations: %{},
@@ -828,7 +857,7 @@ defmodule EdgeDB.Connection do
       expected_cardinality: query.cardinality,
       command_text: query.statement,
       state_typedesc_id: state.edgeql_state_typedesc_id,
-      state_data: <<>>
+      state_data: state_data
     }
 
     with {:ok, state} <- send_messages([message, %Sync{}], state),
@@ -1035,10 +1064,11 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  # TODO: handle state
   defp execute_query(%EdgeDB.Query{} = query, params, opts, %State{} = state) do
     capabilities = prepare_capabilities(query, opts, state)
     compilation_flags = prepare_compilation_flags(query)
+
+    {state_data, state} = encode_edgeql_state(state.edgeql_state, state)
 
     message = %Execute{
       annotations: %{},
@@ -1049,7 +1079,7 @@ defmodule EdgeDB.Connection do
       expected_cardinality: query.cardinality,
       command_text: query.statement,
       state_typedesc_id: state.edgeql_state_typedesc_id,
-      state_data: <<>>,
+      state_data: state_data,
       input_typedesc_id: query.input_codec || CodecStorage.null_codec_id(),
       output_typedesc_id: query.output_codec || CodecStorage.null_codec_id(),
       arguments: params
@@ -1193,13 +1223,12 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  # TODO: save state descriptor ID in state
-  defp describe_state(%StateDataDescription{} = message, state) do
+  defp describe_state(%StateDataDescription{} = message, %State{} = state) do
     if is_nil(CodecStorage.get(state.codec_storage, message.typedesc_id)) do
       Protocol.parse_type_description(message.typedesc, state.codec_storage)
     end
 
-    {:ok, state}
+    {:ok, %State{state | edgeql_state_typedesc_id: message.typedesc_id}}
   end
 
   defp legacy_optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
@@ -1475,6 +1504,31 @@ defmodule EdgeDB.Connection do
     end
   end
 
+  # if we haven't received state ID from EdgeDB then pretend state is default
+  defp encode_edgeql_state(
+         _edgeql_state,
+         %State{edgeql_state_typedesc_id: @null_codec_id} = state
+       ) do
+    codec = CodecStorage.get(state.codec_storage, @null_codec_id)
+    state_data = Codec.encode(codec, nil, state.codec_storage)
+    {state_data, state}
+  end
+
+  defp encode_edgeql_state(edgeql_state, %State{} = state) do
+    case state.edgeql_state_cache do
+      {^edgeql_state, state_data} ->
+        {state_data, state}
+
+      _other ->
+        codec = CodecStorage.get(state.codec_storage, state.edgeql_state_typedesc_id)
+
+        state_data =
+          Codec.encode(codec, EdgeDB.State.to_encodable(edgeql_state), state.codec_storage)
+
+        {state_data, %State{state | edgeql_state_cache: {edgeql_state, state_data}}}
+    end
+  end
+
   defp save_query_with_codecs_in_cache(
          queries_cache,
          query,
@@ -1671,8 +1725,12 @@ defmodule EdgeDB.Connection do
     query.capabilities
   end
 
-  defp prepare_capabilities(_query, opts, _state) do
-    opts[:allow_capabilities] || [:all]
+  defp prepare_capabilities(_query, _opts, %State{protocol_version: 0}) do
+    [:legacy_execute]
+  end
+
+  defp prepare_capabilities(_query, _opts, _state) do
+    [:execute]
   end
 
   defp prepare_compilation_flags(%EdgeDB.Query{} = query) do

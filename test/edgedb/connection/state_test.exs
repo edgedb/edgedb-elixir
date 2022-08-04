@@ -1,0 +1,108 @@
+defmodule Tests.EdgeDB.Connection.StateTest do
+  use Tests.Support.EdgeDBCase, async: false
+
+  skip_before(version: 2, scope: :module)
+
+  describe "EdgeDB.start_link/1 with state option" do
+    setup do
+      current_user = "current_user"
+
+      # 48:45:07:6
+      duration = Timex.Duration.from_microseconds(175_507_600_000)
+
+      state =
+        %EdgeDB.State{}
+        |> EdgeDB.State.with_default_module("schema")
+        |> EdgeDB.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
+
+      %{state: state, current_user: current_user, duration: duration}
+    end
+
+    test "passes state as default state to connection", %{
+      state: state,
+      current_user: current_user,
+      duration: duration
+    } do
+      {:ok, conn} =
+        start_supervised(
+          {EdgeDB,
+           backoff_type: :stop,
+           max_restarts: 0,
+           show_sensitive_data_on_connection_error: true,
+           state: state}
+        )
+
+      object =
+        EdgeDB.query_required_single!(conn, """
+          with
+            config := (select cfg_alias::Config limit 1),
+            abs_value := math_alias::abs(-1),
+            user_object_type := (select ObjectType filter .name = 'default::User' limit 1)
+          select {
+            current_user := global default::current_user,
+            config_query_execution_timeout := config.query_execution_timeout,
+            math_abs_value := abs_value,
+            user_type := user_object_type { name }
+          }
+        """)
+
+      assert object[:current_user] == current_user
+      assert object[:config_query_execution_timeout] == duration
+      assert object[:math_abs_value] == 1
+      assert object[:user_type][:name] == "default::User"
+    end
+  end
+
+  describe "EdgeDB.start_link/1 with state option in config" do
+    setup do
+      current_user = "current_user"
+
+      # 48:45:07:6
+      duration = Timex.Duration.from_microseconds(175_507_600_000)
+
+      state =
+        %EdgeDB.State{}
+        |> EdgeDB.State.with_default_module("schema")
+        |> EdgeDB.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
+
+      Application.put_env(:edgedb, :state, state)
+      on_exit(fn -> Application.delete_env(:edgedb, :state) end)
+
+      %{current_user: current_user, duration: duration}
+    end
+
+    test "passes state from config as default state to connection", %{
+      current_user: current_user,
+      duration: duration
+    } do
+      {:ok, conn} =
+        start_supervised(
+          {EdgeDB,
+           backoff_type: :stop, max_restarts: 0, show_sensitive_data_on_connection_error: true}
+        )
+
+      object =
+        EdgeDB.query_required_single!(conn, """
+          with
+            config := (select cfg_alias::Config limit 1),
+            abs_value := math_alias::abs(-1),
+            user_object_type := (select ObjectType filter .name = 'default::User' limit 1)
+          select {
+            current_user := global default::current_user,
+            config_query_execution_timeout := config.query_execution_timeout,
+            math_abs_value := abs_value,
+            user_type := user_object_type { name }
+          }
+        """)
+
+      assert object[:current_user] == current_user
+      assert object[:config_query_execution_timeout] == duration
+      assert object[:math_abs_value] == 1
+      assert object[:user_type][:name] == "default::User"
+    end
+  end
+end

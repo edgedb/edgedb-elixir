@@ -83,6 +83,9 @@ defmodule EdgeDB do
     * `:codecs` - list of custom codecs for EdgeDB scalars.
     * `:connection` - module that implements the `DBConnection` behavior for EdgeDB.
       For tests, it's possible to use `EdgeDB.Sandbox` to support automatic rollback after tests are done.
+    * `:pool` - module that will be used as pool for connections.
+      By default `DBConnection.ConnectionPool` will be used.
+    * `:state` - an `EdgeDB.State` struct that will be used in queries by default.
   """
   @type connect_option() ::
           {:dsn, String.t()}
@@ -780,6 +783,106 @@ defmodule EdgeDB do
         defer(fn -> callback.(conn) end, fn ->
           request = %InternalRequest{request: :set_retry_options}
           DBConnection.execute!(conn, request, %{options: retry_opts}, replace: true)
+        end)
+      end
+    end)
+  end
+
+  @doc """
+  Returns connection with adjusted state.
+
+  See `EdgeDB.with_default_module/2`, `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`,
+    `EdgeDB.with_config/2`/`EdgeDB.without_config/2`, `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2`
+    for more information.
+  """
+  @spec with_state(connection(), EdgeDB.State.t()) :: connection()
+  def with_state(conn, state) do
+    apply_state(conn, fn _edgeql_state -> state end)
+  end
+
+  @doc """
+  Returns connection with adjusted default module.
+
+  This is equivalent to using the `set module` command,
+    or using the `reset module` command when giving `nil`.
+  """
+  @spec with_default_module(connection(), String.t() | nil) :: connection()
+  def with_default_module(conn, module \\ nil) do
+    apply_state(conn, &EdgeDB.State.with_default_module(&1, module))
+  end
+
+  @doc """
+  Returns connection with adjusted module aliases.
+
+  This is equivalent to using the `set alias` command.
+  """
+  @spec with_module_aliases(connection(), %{String.t() => String.t()}) :: connection()
+  def with_module_aliases(conn, aliases \\ %{}) do
+    apply_state(conn, &EdgeDB.State.with_module_aliases(&1, aliases))
+  end
+
+  @doc """
+  Returns connection without specified module aliases.
+
+  This is equivalent to using the `reset alias` command.
+  """
+  @spec without_module_aliases(connection(), list(String.t())) :: connection()
+  def without_module_aliases(conn, aliases \\ []) do
+    apply_state(conn, &EdgeDB.State.without_module_aliases(&1, aliases))
+  end
+
+  @doc """
+  Returns connection with adjusted session config.
+
+  This is equivalent to using the `configure session set` command.
+  """
+  @spec with_config(connection(), %{atom() => term()}) :: connection()
+  def with_config(conn, config \\ %{}) do
+    apply_state(conn, &EdgeDB.State.with_config(&1, config))
+  end
+
+  @doc """
+  Returns connection without specified session config.
+
+  This is equivalent to using the `configure session reset` command.
+  """
+  @spec without_config(connection(), list(atom())) :: connection()
+  def without_config(conn, config_keys \\ []) do
+    apply_state(conn, &EdgeDB.State.without_config(&1, config_keys))
+  end
+
+  @doc """
+  Returns connection with adjusted global values.
+
+  This is equivalent to using the `set global` command.
+  """
+  @spec with_globals(connection(), %{String.t() => String.t()}) :: connection()
+  def with_globals(conn, globals \\ %{}) do
+    apply_state(conn, &EdgeDB.State.with_globals(&1, globals))
+  end
+
+  @doc """
+  Returns connection without specified globals.
+
+  This is equivalent to using the `reset global` command.
+  """
+  @spec without_globals(connection(), list(String.t())) :: connection()
+  def without_globals(conn, global_names \\ []) do
+    apply_state(conn, &EdgeDB.State.without_globals(&1, global_names))
+  end
+
+  defp apply_state(conn, state_callback) do
+    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
+      with {:ok, _query, edgeql_state} <-
+             DBConnection.execute(conn, %InternalRequest{request: :edgeql_state}, []),
+           new_edgeql_state = state_callback.(edgeql_state),
+           {:ok, _query, _result} <-
+             DBConnection.execute(conn, %InternalRequest{request: :set_edgeql_state}, %{
+               state: new_edgeql_state
+             }) do
+        defer(fn -> callback.(conn) end, fn ->
+          request = %InternalRequest{request: :set_edgeql_state}
+          DBConnection.execute!(conn, request, %{state: edgeql_state})
         end)
       end
     end)

@@ -1,4 +1,6 @@
 module default {
+    global current_user -> str;
+
     abstract type HasImage {
         # just a URL to the image
         required property image -> str;

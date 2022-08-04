@@ -46,6 +46,11 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Null do
   end
 
   @impl EdgeDB.Protocol.Codec
+  def encode(_codec, nil, _codec_storage) do
+    <<>>
+  end
+
+  @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
     EdgeDB.InvalidArgumentError.new("value can not be encoded as null: #{inspect(value)}")
   end

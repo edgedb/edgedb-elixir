@@ -527,4 +527,190 @@ defmodule Tests.EdgeDB.APITest do
       end
     end
   end
+
+  describe "EdgeDB.with_default_module/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      %{conn: EdgeDB.with_default_module(conn, "schema")}
+    end
+
+    test "passes module to EdgeDB", %{conn: conn} do
+      assert %EdgeDB.Object{} =
+               EdgeDB.query_required_single!(conn, """
+                  select ObjectType
+                  filter .name = 'std::BaseObject'
+                  limit 1
+               """)
+    end
+
+    test "without argument removes module from passing to EdgeDB", %{conn: conn} do
+      assert_raise EdgeDB.Error, ~r/'default::ObjectType' does not exist/, fn ->
+        conn
+        |> EdgeDB.with_default_module()
+        |> EdgeDB.query_required_single!("""
+          select ObjectType
+          filter .name = 'std::BaseObject'
+          limit 1
+        """)
+      end
+    end
+  end
+
+  describe "EdgeDB.with_module_aliases/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      %{
+        conn:
+          EdgeDB.with_module_aliases(conn, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
+      }
+    end
+
+    test "passes aliases to EdgeDB", %{conn: conn} do
+      assert %EdgeDB.Object{} =
+               EdgeDB.query_required_single!(conn, """
+                  select schema_alias::ObjectType
+                  filter .name = 'std::BaseObject'
+                  limit 1
+               """)
+
+      assert %EdgeDB.ConfigMemory{} =
+               EdgeDB.query_required_single!(conn, "select <cfg_alias::memory>'1B'")
+    end
+  end
+
+  describe "EdgeDB.without_module_aliases/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      %{
+        conn:
+          EdgeDB.without_module_aliases(conn, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
+      }
+    end
+
+    test "removes aliases from passed to EdgeDB", %{conn: conn} do
+      assert_raise EdgeDB.Error, ~r/type 'cfg_alias::memory' does not exist/, fn ->
+        conn
+        |> EdgeDB.without_module_aliases(["cfg_alias"])
+        |> EdgeDB.query_required_single!("select <cfg_alias::memory>'1B'")
+      end
+    end
+  end
+
+  describe "EdgeDB.with_config/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      # 48:45:07:6
+      duration = Timex.Duration.from_microseconds(175_507_600_000)
+
+      %{conn: EdgeDB.with_config(conn, %{query_execution_timeout: duration}), duration: duration}
+    end
+
+    test "passes config to EdgeDB", %{conn: conn, duration: duration} do
+      config_object =
+        EdgeDB.query_required_single!(conn, """
+          select cfg::Config {
+            query_execution_timeout
+          }
+          limit 1
+        """)
+
+      assert config_object[:query_execution_timeout] == duration
+    end
+  end
+
+  describe "EdgeDB.without_config/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      # 48:45:07:6
+      duration = Timex.Duration.from_microseconds(175_507_600_000)
+
+      %{conn: EdgeDB.with_config(conn, %{query_execution_timeout: duration})}
+    end
+
+    test "removes config keys from passed to EdgeDB", %{conn: conn} do
+      config_object =
+        conn
+        |> EdgeDB.without_config([:query_execution_timeout])
+        |> EdgeDB.query_required_single!("select cfg::Config { query_execution_timeout } limit 1")
+
+      assert config_object[:query_execution_timeout] == Timex.Duration.from_microseconds(0)
+    end
+  end
+
+  describe "EdgeDB.with_globals/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      current_user = "some_username"
+
+      %{
+        conn: EdgeDB.with_globals(conn, %{"current_user" => current_user}),
+        current_user: current_user
+      }
+    end
+
+    test "passes globals to EdgeDB", %{conn: conn, current_user: current_user} do
+      assert current_user == EdgeDB.query_required_single!(conn, "select global current_user")
+    end
+  end
+
+  describe "EdgeDB.without_globals/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      current_user = "some_username"
+      %{conn: EdgeDB.with_globals(conn, %{"current_user" => current_user})}
+    end
+
+    test "removes globals from passed to EdgeDB", %{conn: conn} do
+      conn = EdgeDB.without_globals(conn, ["current_user"])
+      refute EdgeDB.query_single!(conn, "select global current_user")
+    end
+  end
+
+  describe "EdgeDB.with_state/2" do
+    skip_before(version: 2, scope: :describe)
+
+    setup %{conn: conn} do
+      current_user = "current_user"
+
+      # 48:45:07:6
+      duration = Timex.Duration.from_microseconds(175_507_600_000)
+
+      state =
+        %EdgeDB.State{}
+        |> EdgeDB.State.with_default_module("schema")
+        |> EdgeDB.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
+
+      %{conn: EdgeDB.with_state(conn, state), current_user: current_user, duration: duration}
+    end
+
+    test "passes state to EdgeDB", %{conn: conn, current_user: current_user, duration: duration} do
+      object =
+        EdgeDB.query_required_single!(conn, """
+          with
+            config := (select cfg_alias::Config limit 1),
+            abs_value := math_alias::abs(-1),
+            user_object_type := (select ObjectType filter .name = 'default::User' limit 1)
+          select {
+            current_user := global default::current_user,
+            config_query_execution_timeout := config.query_execution_timeout,
+            math_abs_value := abs_value,
+            user_type := user_object_type { name }
+          }
+        """)
+
+      assert object[:current_user] == current_user
+      assert object[:config_query_execution_timeout] == duration
+      assert object[:math_abs_value] == 1
+      assert object[:user_type][:name] == "default::User"
+    end
+  end
 end
