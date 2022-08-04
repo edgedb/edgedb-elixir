@@ -140,6 +140,35 @@ defmodule Tests.EdgeDB.APITest do
     end
   end
 
+  describe "EdgeDB.execute/4" do
+    test "executes query", %{conn: conn} do
+      {:error, :rollback} =
+        EdgeDB.transaction(conn, fn conn ->
+          :ok =
+            EdgeDB.execute(conn, """
+              insert User { image := '', name := 'username1' };
+              insert User { image := '', name := 'username2' };
+            """)
+
+          EdgeDB.rollback(conn, reason: :rollback)
+        end)
+    end
+  end
+
+  describe "EdgeDB.execute!/4" do
+    test "executes query", %{conn: conn} do
+      {:error, :rollback} =
+        EdgeDB.transaction(conn, fn conn ->
+          EdgeDB.execute!(conn, """
+            insert User { image := '', name := 'username1' };
+            insert User { image := '', name := 'username2' };
+          """)
+
+          EdgeDB.rollback(conn, reason: :rollback)
+        end)
+    end
+  end
+
   describe "EdgeDB.transaction/3" do
     test "commit result if no error occured", %{conn: conn} do
       {:ok, %EdgeDB.Object{id: user_id}} =

@@ -21,6 +21,7 @@ defmodule EdgeDB.Query do
     inline_object_ids: true,
     cardinality: :many,
     required: false,
+    is_script: false,
     capabilities: [],
     input_codec: nil,
     output_codec: nil,
@@ -35,14 +36,20 @@ defmodule EdgeDB.Query do
   Fields:
 
     * `:statement` - EdgeQL statement for execution.
-    * `:cardinality` - the expected number of elements in the returned set as a result of the query.
     * `:output_format` - the preferred format of the query result.
+    * `:implicit_limit` - the implicit limit of elements count in the returned set as a result of the query.
+    * `:inline_type_names` - flag specifying that the result objects should contain type name as property.
+    * `:inline_type_ids` - flag specifying that the result objects should contain type ID as property.
+    * `:inline_object_ids` - flag specifying that the result objects should contain ID as property.
+    * `:cardinality` - the expected number of elements in the returned set as a result of the query.
+    * `:required` - flag specifying that the result should not be empty.
+    * `:is_script` - flag specifying that the query statement is a script that shouldn't have any return value.
     * `:capabilities` - query capabilities. See
       [RFC](https://github.com/edgedb/rfcs/blob/master/text/1004-transactions-api.rst#edgedb-changes)
       for more information.
-    * `:required` - flag specifying that the result should not be empty.
     * `:input_codec` - codec for encoding query parameters.
     * `:output_codec` - codec for decoding the query result.
+    * `:codec_storage` - codec storage from connection used by query to encode parameters.
     * `:cached` - flag specifying whether the request has already been cached by the connection.
     * `:params` - query parameters.
   """
@@ -55,6 +62,7 @@ defmodule EdgeDB.Query do
           inline_object_ids: boolean(),
           cardinality: Enums.cardinality(),
           required: boolean(),
+          is_script: boolean(),
           capabilities: Enums.capabilities(),
           input_codec: Codec.id() | nil,
           output_codec: Codec.id() | nil,

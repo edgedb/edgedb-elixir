@@ -149,6 +149,7 @@ defmodule EdgeDB do
           | {:output_format, Enums.output_format()}
           | {:retry, list(retry_option())}
           | {:raw, boolean()}
+          | {:script, boolean()}
           | DBConnection.option()
 
   @typedoc """
@@ -359,6 +360,7 @@ defmodule EdgeDB do
       cardinality: Keyword.get(opts, :cardinality, :many),
       output_format: Keyword.get(opts, :output_format, :binary),
       required: Keyword.get(opts, :required, false),
+      is_script: Keyword.get(opts, :script, false),
       params: params
     }
 
@@ -535,6 +537,39 @@ defmodule EdgeDB do
     conn
     |> query_required_single_json(statement, params, opts)
     |> unwrap!()
+  end
+
+  @doc """
+  Execute an EdgeQL command or commands on the connection without returning anything.
+
+  See `t:query_option/0` for supported options.
+  """
+  @spec execute(connection(), String.t(), list(), list(query_option())) ::
+          :ok | {:error, Exception.t()}
+  def execute(conn, statement, params \\ [], opts \\ []) do
+    opts = Keyword.merge(opts, output_format: :none, script: true, raw: true)
+
+    case query(conn, statement, params, opts) do
+      {:ok, _result} ->
+        :ok
+
+      {:error, _exc} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Execute an EdgeQL command or commands on the connection without returning
+    anything. If an error occurs while executing the query,
+    it will be raised as an `EdgeDB.Error` exception.
+
+  See `t:query_option/0` for supported options.
+  """
+  @spec execute!(connection(), String.t(), list(), list(query_option())) :: :ok
+  def execute!(conn, statement, params \\ [], opts \\ []) do
+    opts = Keyword.merge(opts, output_format: :none, script: true, raw: true)
+    query!(conn, statement, params, opts)
+    :ok
   end
 
   @doc """

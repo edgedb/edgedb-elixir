@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - support for `EdgeDB 2.0` with new binary protocol.
 - support for EdgeQL state via `EdgeDB.State`.
 - new `EdgeDB.Range` type to represent ranges from `EdgeDB 2.0`.
+- support for multiple EdgeQL statements execution via `EdgeDB.execute/4` and `EdgeDB.execute!/4`.
 
 ### Changed
 
