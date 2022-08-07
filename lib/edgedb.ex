@@ -28,13 +28,13 @@ defmodule EdgeDB do
   alias EdgeDB.Protocol.Enums
 
   @typedoc """
-  Connection process name, pid or the same
-    but wrapped in a separate structure that allows special actions on the connection.
+  Connection pool process name, pid or the separate structure
+    that allows adjusted configuration for queries executed on the connection.
 
   See `EdgeDB.as_readonly/1`, `EdgeDB.with_retry_options/2`, `EdgeDB.with_transaction_options/2`
     for more information.
   """
-  @type connection() :: DBConnection.conn() | EdgeDB.WrappedConnection.t()
+  @type client() :: DBConnection.conn() | EdgeDB.Client.t()
 
   @typedoc """
   Security modes for TLS connection to EdgeDB server.
@@ -78,13 +78,13 @@ defmodule EdgeDB do
     * `:ssl` - options for TLS connection.
     * `:transaction` - options for EdgeDB transactions, which correspond to
       [the EdgeQL transaction statement](https://www.edgedb.com/docs/reference/edgeql/tx_start#statement::start-transaction).
-      See `t:edgedb_transaction_option/0`.
+      See `t:EdgeDB.Client.transaction_option/0`.
     * `:retry` - options to retry transactions in case of errors. See `t:retry_option/0`.
     * `:codecs` - list of custom codecs for EdgeDB scalars.
     * `:connection` - module that implements the `DBConnection` behavior for EdgeDB.
       For tests, it's possible to use `EdgeDB.Sandbox` to support automatic rollback after tests are done.
     * `:pool` - module that will be used as pool for connections.
-      By default `DBConnection.ConnectionPool` will be used.
+      By default `EdgeDB.Pool` will be used.
     * `:state` - an `EdgeDB.State` struct that will be used in queries by default.
   """
   @type connect_option() ::
@@ -104,8 +104,8 @@ defmodule EdgeDB do
           | {:server_settings, map()}
           | {:tcp, list(:gen_tcp.option())}
           | {:ssl, list(:ssl.tls_client_option())}
-          | {:transaction, list(edgedb_transaction_option())}
-          | {:retry, list(retry_option())}
+          | {:transaction, list(EdgeDB.Client.transaction_option())}
+          | {:retry, list(EdgeDB.Client.retry_option())}
           | {:codecs, list(module())}
           | {:connection, module()}
           | {:pool, module()}
@@ -149,30 +149,10 @@ defmodule EdgeDB do
   @type query_option() ::
           {:cardinality, Enums.cardinality()}
           | {:output_format, Enums.output_format()}
-          | {:retry, list(retry_option())}
+          | {:retry, list(EdgeDB.Client.retry_option())}
           | {:raw, boolean()}
           | {:script, boolean()}
           | DBConnection.option()
-
-  @typedoc """
-  Options for EdgeDB transactions.
-
-  These options are responsible for building the appropriate EdgeQL statement to start transactions and
-    they correspond to [the EdgeQL transaction statement](https://www.edgedb.com/docs/reference/edgeql/tx_start#statement::start-transaction).
-
-  Supported options:
-
-    * `:isolation` - If `:serializable` is used, the built statement will use the `isolation serializable` mode.
-      Currently only `:serializable` is supported by this driver and EdgeDB.
-    * `:readonly` - if set to `true` then the built statement will use `read only` mode,
-      otherwise `read write` will be used. The default is `false`.
-    * `:deferrable` - if set to `true` then the built statement will use `deferrable` mode,
-      otherwise `not deferrable` will be used. The default is `false`.
-  """
-  @type edgedb_transaction_option() ::
-          {:isolation, :serializable}
-          | {:readonly, boolean()}
-          | {:deferrable, boolean()}
 
   @typedoc """
   Options for `EdgeDB.transaction/3`.
@@ -180,8 +160,8 @@ defmodule EdgeDB do
   See `t:edgedb_transaction_option/0` and `t:DBConnection.start_option/0`.
   """
   @type transaction_option() ::
-          edgedb_transaction_option()
-          | {:retry, list(retry_option())}
+          EdgeDB.Client.transaction_option()
+          | {:retry, list(EdgeDB.Client.retry_option())}
           | DBConnection.option()
 
   @typedoc """
@@ -191,40 +171,12 @@ defmodule EdgeDB do
 
     * `:reason` - the reason for the rollback. Will be returned from `EdgeDB.transaction/3`
       or `EdgeDB.subtransaction/2` as a `{:error, reason}` tuple in case block execution is interrupted.
-    * `:continue` - can be used when the connection is in a subtransaction
+    * `:continue` - can be used when the client is in a subtransaction
       and rollback should not stop further execution of the subtransaction block. See `EdgeDB.subtransaction/2`.
   """
   @type rollback_option() ::
           {:reason, term()}
           | {:continue, boolean()}
-
-  @typedoc """
-  Options for a retry rule for transactions retries.
-
-  See `EdgeDB.transaction/3`.
-
-  Supported options:
-
-    * `:attempts` - the number of attempts to retry the transaction in case of an error.
-    * `:backoff` - function to determine the backoff before the next attempt to run a transaction.
-  """
-  @type retry_rule() ::
-          {:attempts, pos_integer()}
-          | {:backoff, (pos_integer() -> timeout())}
-
-  @typedoc """
-  Options for transactions and read-only queries retries.
-
-  See `EdgeDB.transaction/3`.
-
-  Supported options:
-
-    * `:transaction_conflict` - the rule that will be used in case of any transaction conflict.
-    * `:network_error` - rule which will be used when any network error occurs on the client.
-  """
-  @type retry_option() ::
-          {:transaction_conflict, retry_rule()}
-          | {:network_error, retry_rule()}
 
   @typedoc """
   A tuple of the executed `EdgeDB.Query` and the received `EdgeDB.Result`.
@@ -260,14 +212,22 @@ defmodule EdgeDB do
 
   @spec start_link(String.t()) :: GenServer.on_start()
   def start_link(dsn) when is_binary(dsn) do
-    opts = Config.connect_opts(dsn: dsn)
+    opts =
+      [dsn: dsn]
+      |> Config.connect_opts()
+      |> Keyword.put_new(:pool, EdgeDB.Pool)
+
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.start_link(connection, opts)
   end
 
   @spec start_link(list(start_option())) :: GenServer.on_start()
   def start_link(opts) do
-    opts = Config.connect_opts(opts)
+    opts =
+      opts
+      |> Config.connect_opts()
+      |> Keyword.put_new(:pool, EdgeDB.Pool)
+
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.start_link(connection, opts)
   end
@@ -289,6 +249,7 @@ defmodule EdgeDB do
       opts
       |> Keyword.put(:dsn, dsn)
       |> Config.connect_opts()
+      |> Keyword.put_new(:pool, EdgeDB.Pool)
 
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.start_link(connection, opts)
@@ -301,13 +262,17 @@ defmodule EdgeDB do
   """
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts \\ []) do
-    opts = Config.connect_opts(opts)
+    opts =
+      opts
+      |> Config.connect_opts()
+      |> Keyword.put_new(:pool, EdgeDB.Pool)
+
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.child_spec(connection, opts)
   end
 
   @doc """
-  Execute the query on the connection and return the results as a `{:ok, set}` tuple
+  Execute the query on the client and return the results as a `{:ok, set}` tuple
     if successful, where `set` is `EdgeDB.Set`.
 
   ```elixir
@@ -353,10 +318,10 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query(connection(), String.t(), list() | Keyword.t(), list(query_option())) ::
+  @spec query(client(), String.t(), list() | Keyword.t(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query(conn, statement, params \\ [], opts \\ []) do
+  def query(client, statement, params \\ [], opts \\ []) do
     q = %EdgeDB.Query{
       statement: statement,
       cardinality: Keyword.get(opts, :cardinality, :many),
@@ -366,11 +331,11 @@ defmodule EdgeDB do
       params: params
     }
 
-    parse_execute_query(conn, q, q.params, opts)
+    parse_execute_query(client, q, q.params, opts)
   end
 
   @doc """
-  Execute the query on the connection and return the results as `EdgeDB.Set`.
+  Execute the query on the client and return the results as `EdgeDB.Set`.
     If an error occurs while executing the query, it will be raised as
     as an `EdgeDB.Error` exception.
 
@@ -378,30 +343,30 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query!(connection(), String.t(), list(), list(query_option())) :: result()
-  def query!(conn, statement, params \\ [], opts \\ []) do
-    conn
+  @spec query!(client(), String.t(), list(), list(query_option())) :: result()
+  def query!(client, statement, params \\ [], opts \\ []) do
+    client
     |> query(statement, params, opts)
     |> unwrap!()
   end
 
   @doc """
-  Execute the query on the connection and return an optional singleton-returning
+  Execute the query on the client and return an optional singleton-returning
     result as a `{:ok, result}` tuple.
 
   For the general usage, see `EdgeDB.query/4`.
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_single(connection(), String.t(), list(), list(query_option())) ::
+  @spec query_single(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query_single(conn, statement, params \\ [], opts \\ []) do
-    query(conn, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
+  def query_single(client, statement, params \\ [], opts \\ []) do
+    query(client, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
   end
 
   @doc """
-  Execute the query on the connection and return an optional singleton-returning result.
+  Execute the query on the client and return an optional singleton-returning result.
     If an error occurs while executing the query, it will be raised
     as an `EdgeDB.Error` exception.
 
@@ -409,30 +374,30 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_single!(connection(), String.t(), list(), list(query_option())) :: result()
-  def query_single!(conn, statement, params \\ [], opts \\ []) do
-    conn
+  @spec query_single!(client(), String.t(), list(), list(query_option())) :: result()
+  def query_single!(client, statement, params \\ [], opts \\ []) do
+    client
     |> query_single(statement, params, opts)
     |> unwrap!()
   end
 
   @doc """
-  Execute the query on the connection and return a singleton-returning result
+  Execute the query on the client and return a singleton-returning result
     as a `{:ok, result}` tuple.
 
   For the general usage, see `EdgeDB.query/4`.
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_required_single(connection(), String.t(), list(), list(query_option())) ::
+  @spec query_required_single(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query_required_single(conn, statement, params \\ [], opts \\ []) do
-    query_single(conn, statement, params, Keyword.merge(opts, required: true))
+  def query_required_single(client, statement, params \\ [], opts \\ []) do
+    query_single(client, statement, params, Keyword.merge(opts, required: true))
   end
 
   @doc """
-  Execute the query on the connection and return a singleton-returning result.
+  Execute the query on the client and return a singleton-returning result.
     If an error occurs while executing the query, it will be raised
     as an `EdgeDB.Error` exception.
 
@@ -440,30 +405,30 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_required_single!(connection(), String.t(), list(), list(query_option())) :: result()
-  def query_required_single!(conn, statement, params \\ [], opts \\ []) do
-    conn
+  @spec query_required_single!(client(), String.t(), list(), list(query_option())) :: result()
+  def query_required_single!(client, statement, params \\ [], opts \\ []) do
+    client
     |> query_required_single(statement, params, opts)
     |> unwrap!()
   end
 
   @doc """
-  Execute the query on the connection and return the results as a `{:ok, json}` tuple
+  Execute the query on the client and return the results as a `{:ok, json}` tuple
     if successful, where `json` is JSON encoded string.
 
   For the general usage, see `EdgeDB.query/4`.
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_json(connection(), String.t(), list(), list(query_option())) ::
+  @spec query_json(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query_json(conn, statement, params \\ [], opts \\ []) do
-    query(conn, statement, params, Keyword.merge(opts, output_format: :json))
+  def query_json(client, statement, params \\ [], opts \\ []) do
+    query(client, statement, params, Keyword.merge(opts, output_format: :json))
   end
 
   @doc """
-  Execute the query on the connection and return the results as JSON encoded string.
+  Execute the query on the client and return the results as JSON encoded string.
     If an error occurs while executing the query, it will be raised as
     as an `EdgeDB.Error` exception.
 
@@ -471,30 +436,30 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_json!(connection(), String.t(), list(), list(query_option())) :: result()
-  def query_json!(conn, statement, params \\ [], opts \\ []) do
-    conn
+  @spec query_json!(client(), String.t(), list(), list(query_option())) :: result()
+  def query_json!(client, statement, params \\ [], opts \\ []) do
+    client
     |> query_json(statement, params, opts)
     |> unwrap!()
   end
 
   @doc """
-  Execute the query on the connection and return an optional singleton-returning
+  Execute the query on the client and return an optional singleton-returning
     result as a `{:ok, json}` tuple.
 
   For the general usage, see `EdgeDB.query/4`.
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_single_json(connection(), String.t(), list(), list(query_option())) ::
+  @spec query_single_json(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query_single_json(conn, statement, params \\ [], opts \\ []) do
-    query_json(conn, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
+  def query_single_json(client, statement, params \\ [], opts \\ []) do
+    query_json(client, statement, params, Keyword.merge(opts, cardinality: :at_most_one))
   end
 
   @doc """
-  Execute the query on the connection and return an optional singleton-returning result
+  Execute the query on the client and return an optional singleton-returning result
     as JSON encoded string. If an error occurs while executing the query,
     it will be raised as an `EdgeDB.Error` exception.
 
@@ -502,30 +467,30 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_single_json!(connection(), String.t(), list(), list(query_option())) :: result()
-  def query_single_json!(conn, statement, params \\ [], opts \\ []) do
-    conn
+  @spec query_single_json!(client(), String.t(), list(), list(query_option())) :: result()
+  def query_single_json!(client, statement, params \\ [], opts \\ []) do
+    client
     |> query_single_json(statement, params, opts)
     |> unwrap!()
   end
 
   @doc """
-  Execute the query on the connection and return a singleton-returning result
+  Execute the query on the client and return a singleton-returning result
     as a `{:ok, json}` tuple.
 
   For the general usage, see `EdgeDB.query/4`.
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_required_single_json(connection(), String.t(), list(), list(query_option())) ::
+  @spec query_required_single_json(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
-  def query_required_single_json(conn, statement, params \\ [], opts \\ []) do
-    query_single_json(conn, statement, params, Keyword.merge(opts, required: true))
+  def query_required_single_json(client, statement, params \\ [], opts \\ []) do
+    query_single_json(client, statement, params, Keyword.merge(opts, required: true))
   end
 
   @doc """
-  Execute the query on the connection and return a singleton-returning result
+  Execute the query on the client and return a singleton-returning result
     as JSON string. If an error occurs while executing the query,
     it will be raised as an `EdgeDB.Error` exception.
 
@@ -533,25 +498,25 @@ defmodule EdgeDB do
 
   See `t:query_option/0` for supported options.
   """
-  @spec query_required_single_json!(connection(), String.t(), list(), list(query_option())) ::
+  @spec query_required_single_json!(client(), String.t(), list(), list(query_option())) ::
           result()
-  def query_required_single_json!(conn, statement, params \\ [], opts \\ []) do
-    conn
+  def query_required_single_json!(client, statement, params \\ [], opts \\ []) do
+    client
     |> query_required_single_json(statement, params, opts)
     |> unwrap!()
   end
 
   @doc """
-  Execute an EdgeQL command or commands on the connection without returning anything.
+  Execute an EdgeQL command or commands on the client without returning anything.
 
   See `t:query_option/0` for supported options.
   """
-  @spec execute(connection(), String.t(), list(), list(query_option())) ::
+  @spec execute(client(), String.t(), list(), list(query_option())) ::
           :ok | {:error, Exception.t()}
-  def execute(conn, statement, params \\ [], opts \\ []) do
+  def execute(client, statement, params \\ [], opts \\ []) do
     opts = Keyword.merge(opts, output_format: :none, script: true, raw: true)
 
-    case query(conn, statement, params, opts) do
+    case query(client, statement, params, opts) do
       {:ok, _result} ->
         :ok
 
@@ -561,16 +526,16 @@ defmodule EdgeDB do
   end
 
   @doc """
-  Execute an EdgeQL command or commands on the connection without returning
+  Execute an EdgeQL command or commands on the client without returning
     anything. If an error occurs while executing the query,
     it will be raised as an `EdgeDB.Error` exception.
 
   See `t:query_option/0` for supported options.
   """
-  @spec execute!(connection(), String.t(), list(), list(query_option())) :: :ok
-  def execute!(conn, statement, params \\ [], opts \\ []) do
+  @spec execute!(client(), String.t(), list(), list(query_option())) :: :ok
+  def execute!(client, statement, params \\ [], opts \\ []) do
     opts = Keyword.merge(opts, output_format: :none, script: true, raw: true)
-    query!(conn, statement, params, opts)
+    query!(client, statement, params, opts)
     :ok
   end
 
@@ -592,9 +557,9 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, tickets} = EdgeDB.transaction(pid, fn conn ->
-  ...(2)>  EdgeDB.query!(conn, "insert Ticket{ number := 2}")
-  ...(2)>  EdgeDB.query!(conn, "select Ticket")
+  iex(2)> {:ok, tickets} = EdgeDB.transaction(pid, fn client ->
+  ...(2)>  EdgeDB.query!(client, "insert Ticket{ number := 2}")
+  ...(2)>  EdgeDB.query!(client, "select Ticket")
   ...(2)> end)
   iex(3)> tickets
   #EdgeDB.Set<{#EdgeDB.Object<>}>
@@ -602,24 +567,24 @@ defmodule EdgeDB do
 
   See `t:transaction_option/0` for supported options.
   """
-  @spec transaction(
-          connection(),
-          (DBConnection.t() -> result()),
-          list(transaction_option())
-        ) ::
-          {:ok, result()}
-          | {:error, term()}
+  @spec transaction(client(), (EdgeDB.Client.t() -> result()), list(transaction_option())) ::
+          {:ok, result()} | {:error, term()}
 
-  def transaction(conn, callback, opts \\ [])
+  def transaction(client, callback, opts \\ [])
 
-  def transaction(%EdgeDB.WrappedConnection{} = conn, callback, opts) do
-    execute_wrapped_callbacks(conn, &transaction(&1, callback, opts))
+  def transaction(%EdgeDB.Client{} = client, callback, opts) do
+    EdgeDB.Borrower.borrow!(client, :transaction, fn ->
+      transaction_options = EdgeDB.Client.to_options(client)
+      retry_options = Keyword.merge(transaction_options[:retry_options], opts[:retry] || [])
+      transaction_options = Keyword.put(transaction_options, :retry_options, retry_options)
+      retrying_transaction(client, callback, Keyword.merge(opts, transaction_options))
+    end)
   end
 
-  def transaction(conn, callback, opts) do
-    EdgeDB.Borrower.borrow!(conn, :transaction, fn ->
-      retrying_transaction(conn, callback, opts)
-    end)
+  def transaction(client, callback, opts) do
+    client
+    |> to_client()
+    |> transaction(callback, opts)
   end
 
   @doc """
@@ -653,16 +618,25 @@ defmodule EdgeDB do
   #EdgeDB.Set<{#EdgeDB.Object<number := 2>}>
   ```
   """
-  @spec subtransaction(DBConnection.conn(), (DBConnection.t() -> result())) ::
+  @spec subtransaction(client(), (EdgeDB.Client.t() -> result())) ::
           {:ok, result()} | {:error, term()}
 
-  def subtransaction(%DBConnection{conn_mode: :transaction} = conn, callback) do
-    EdgeDB.Borrower.borrow!(conn, :subtransaction, fn ->
+  def subtransaction(
+        %EdgeDB.Client{conn: %DBConnection{conn_mode: :transaction} = conn} = client,
+        callback
+      ) do
+    EdgeDB.Borrower.borrow!(client, :subtransaction, fn ->
       {:ok, subtransaction_pid} =
         DBConnection.start_link(EdgeDB.Subtransaction, conn: conn, backoff_type: :stop)
 
+      callback = fn conn ->
+        callback.(%EdgeDB.Client{client | conn: conn})
+      end
+
+      transaction_options = EdgeDB.Client.to_options(client)
+
       try do
-        DBConnection.transaction(subtransaction_pid, callback)
+        DBConnection.transaction(subtransaction_pid, callback, transaction_options)
       rescue
         exc ->
           Process.unlink(subtransaction_pid)
@@ -678,9 +652,9 @@ defmodule EdgeDB do
     end)
   end
 
-  def subtransaction(_conn, _callback) do
+  def subtransaction(_client, _callback) do
     raise EdgeDB.InterfaceError.new(
-            "EdgeDB.subtransaction/2 can be used only with connection " <>
+            "EdgeDB.subtransaction/2 can be used only with client " <>
               "that is already in transaction (check out EdgeDB.transaction/3) " <>
               "or in another subtransaction"
           )
@@ -693,14 +667,14 @@ defmodule EdgeDB do
 
   See `EdgeDB.subtransaction/2` for more information.
   """
-  @spec subtransaction!(DBConnection.conn(), (DBConnection.conn() -> result())) :: result()
-  def subtransaction!(conn, callback) do
-    case subtransaction(conn, callback) do
+  @spec subtransaction!(client(), (EdgeDB.Client.t() -> result())) :: result()
+  def subtransaction!(client, callback) do
+    case subtransaction(client, callback) do
       {:ok, result} ->
         result
 
       {:error, rollback_reason} ->
-        rollback(conn, reason: rollback_reason)
+        rollback(client, reason: rollback_reason)
     end
   end
 
@@ -745,15 +719,17 @@ defmodule EdgeDB do
   ...(2)>  end)
   ```
   """
-  @spec rollback(connection(), list(rollback_option())) :: :ok | no_return()
-  def rollback(conn, opts \\ []) do
+  @spec rollback(EdgeDB.Client.t(), list(rollback_option())) :: :ok | no_return()
+  def rollback(client, opts \\ []) do
+    %EdgeDB.Client{conn: conn} = client = to_client(client)
     reason = opts[:reason] || :rollback
+    rollback_options = EdgeDB.Client.to_options(client)
 
     with true <- opts[:continue],
          {:ok, _query, true} <-
            DBConnection.execute(conn, %InternalRequest{request: :is_subtransaction}, [], []),
          {:ok, _query, _result} <-
-           DBConnection.execute(conn, %InternalRequest{request: :rollback}, [], []) do
+           DBConnection.execute(conn, %InternalRequest{request: :rollback}, [], rollback_options) do
       :ok
     else
       {:error, exc} ->
@@ -765,206 +741,158 @@ defmodule EdgeDB do
   end
 
   @doc """
-  Mark the connection as read-only.
+  Mark the client as read-only.
 
-  This function will mark the connection as read-only, so any modifying queries will return errors.
+  This function will mark the client as read-only, so any modifying queries will return errors.
   """
-  @spec as_readonly(connection()) :: connection()
-  def as_readonly(conn) do
-    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
-      with {:ok, _query, capabilities} <-
-             DBConnection.execute(conn, %InternalRequest{request: :capabilities}, []),
-           {:ok, _query, _result} <-
-             DBConnection.execute(conn, %InternalRequest{request: :set_capabilities}, %{
-               capabilities: [:readonly]
-             }) do
-        defer(fn -> callback.(conn) end, fn ->
-          DBConnection.execute!(conn, %InternalRequest{request: :set_capabilities}, %{
-            capabilities: capabilities
-          })
-        end)
-      end
-    end)
+  @spec as_readonly(client()) :: client()
+  def as_readonly(client) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.as_readonly()
   end
 
   @doc """
-  Configure the connection so that futher transactions are executed with custom transaction options.
+  Configure the client so that futher transactions are executed with custom transaction options.
 
   See `t:edgedb_transaction_option/0` for supported options.
   """
-  @spec with_transaction_options(connection(), list(edgedb_transaction_option())) :: connection()
-  def with_transaction_options(conn, opts) do
-    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
-      with {:ok, _query, transaction_opts} <-
-             DBConnection.execute(conn, %InternalRequest{request: :transaction_options}, []),
-           {:ok, _query, _result} <-
-             DBConnection.execute(conn, %InternalRequest{request: :set_transaction_options}, %{
-               options: opts
-             }) do
-        defer(fn -> callback.(conn) end, fn ->
-          DBConnection.execute!(conn, %InternalRequest{request: :set_transaction_options}, %{
-            options: transaction_opts
-          })
-        end)
-      end
-    end)
+  @spec with_transaction_options(client(), list(EdgeDB.Client.transaction_option())) :: client()
+  def with_transaction_options(client, opts) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_transaction_options(opts)
   end
 
   @doc """
-  Configure the connection so that futher transactions retries are executed with custom retries options.
+  Configure the client so that futher transactions retries are executed with custom retries options.
 
   See `t:retry_option/0` for supported options.
   """
-  @spec with_retry_options(connection(), list(retry_option())) :: connection()
-  def with_retry_options(conn, opts) do
-    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
-      with {:ok, _query, retry_opts} <-
-             DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []),
-           {:ok, _query, _result} <-
-             DBConnection.execute(conn, %InternalRequest{request: :set_retry_options}, %{
-               options: opts
-             }) do
-        defer(fn -> callback.(conn) end, fn ->
-          request = %InternalRequest{request: :set_retry_options}
-          DBConnection.execute!(conn, request, %{options: retry_opts}, replace: true)
-        end)
-      end
-    end)
+  @spec with_retry_options(client(), list(EdgeDB.Client.retry_option())) :: client()
+  def with_retry_options(client, opts) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_retry_options(opts)
   end
 
   @doc """
-  Returns connection with adjusted state.
+  Returns client with adjusted state.
 
   See `EdgeDB.with_default_module/2`, `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`,
     `EdgeDB.with_config/2`/`EdgeDB.without_config/2`, `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2`
     for more information.
   """
-  @spec with_state(connection(), EdgeDB.State.t()) :: connection()
-  def with_state(conn, state) do
-    apply_state(conn, fn _edgeql_state -> state end)
+  @spec with_state(client(), EdgeDB.State.t()) :: client()
+  def with_state(client, state) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_state(state)
   end
 
   @doc """
-  Returns connection with adjusted default module.
+  Returns client with adjusted default module.
 
   This is equivalent to using the `set module` command,
     or using the `reset module` command when giving `nil`.
   """
-  @spec with_default_module(connection(), String.t() | nil) :: connection()
-  def with_default_module(conn, module \\ nil) do
-    apply_state(conn, &EdgeDB.State.with_default_module(&1, module))
+  @spec with_default_module(client(), String.t() | nil) :: client()
+  def with_default_module(client, module \\ nil) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_default_module(module)
   end
 
   @doc """
-  Returns connection with adjusted module aliases.
+  Returns client with adjusted module aliases.
 
   This is equivalent to using the `set alias` command.
   """
-  @spec with_module_aliases(connection(), %{String.t() => String.t()}) :: connection()
-  def with_module_aliases(conn, aliases \\ %{}) do
-    apply_state(conn, &EdgeDB.State.with_module_aliases(&1, aliases))
+  @spec with_module_aliases(client(), %{String.t() => String.t()}) :: client()
+  def with_module_aliases(client, aliases \\ %{}) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_module_aliases(aliases)
   end
 
   @doc """
-  Returns connection without specified module aliases.
+  Returns client without specified module aliases.
 
   This is equivalent to using the `reset alias` command.
   """
-  @spec without_module_aliases(connection(), list(String.t())) :: connection()
-  def without_module_aliases(conn, aliases \\ []) do
-    apply_state(conn, &EdgeDB.State.without_module_aliases(&1, aliases))
+  @spec without_module_aliases(client(), list(String.t())) :: client()
+  def without_module_aliases(client, aliases \\ []) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.without_module_aliases(aliases)
   end
 
   @doc """
-  Returns connection with adjusted session config.
+  Returns client with adjusted session config.
 
   This is equivalent to using the `configure session set` command.
   """
-  @spec with_config(connection(), %{atom() => term()}) :: connection()
-  def with_config(conn, config \\ %{}) do
-    apply_state(conn, &EdgeDB.State.with_config(&1, config))
+  @spec with_config(client(), %{atom() => term()}) :: client()
+  def with_config(client, config \\ %{}) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_config(config)
   end
 
   @doc """
-  Returns connection without specified session config.
+  Returns client without specified session config.
 
   This is equivalent to using the `configure session reset` command.
   """
-  @spec without_config(connection(), list(atom())) :: connection()
-  def without_config(conn, config_keys \\ []) do
-    apply_state(conn, &EdgeDB.State.without_config(&1, config_keys))
+  @spec without_config(client(), list(atom())) :: client()
+  def without_config(client, config_keys \\ []) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.without_config(config_keys)
   end
 
   @doc """
-  Returns connection with adjusted global values.
+  Returns client with adjusted global values.
 
   This is equivalent to using the `set global` command.
   """
-  @spec with_globals(connection(), %{String.t() => String.t()}) :: connection()
-  def with_globals(conn, globals \\ %{}) do
-    apply_state(conn, &EdgeDB.State.with_globals(&1, globals))
+  @spec with_globals(client(), %{String.t() => String.t()}) :: client()
+  def with_globals(client, globals \\ %{}) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.with_globals(globals)
   end
 
   @doc """
-  Returns connection without specified globals.
+  Returns client without specified globals.
 
   This is equivalent to using the `reset global` command.
   """
-  @spec without_globals(connection(), list(String.t())) :: connection()
-  def without_globals(conn, global_names \\ []) do
-    apply_state(conn, &EdgeDB.State.without_globals(&1, global_names))
+  @spec without_globals(client(), list(String.t())) :: client()
+  def without_globals(client, global_names \\ []) do
+    client
+    |> to_client()
+    |> EdgeDB.Client.without_globals(global_names)
   end
 
-  defp apply_state(conn, state_callback) do
-    EdgeDB.WrappedConnection.wrap(conn, fn conn, callback ->
-      with {:ok, _query, edgeql_state} <-
-             DBConnection.execute(conn, %InternalRequest{request: :edgeql_state}, []),
-           new_edgeql_state = state_callback.(edgeql_state),
-           {:ok, _query, _result} <-
-             DBConnection.execute(conn, %InternalRequest{request: :set_edgeql_state}, %{
-               state: new_edgeql_state
-             }) do
-        defer(fn -> callback.(conn) end, fn ->
-          request = %InternalRequest{request: :set_edgeql_state}
-          DBConnection.execute!(conn, request, %{state: edgeql_state})
-        end)
-      end
-    end)
+  defp parse_execute_query(client, query, params, opts) do
+    client = to_client(client)
+    EdgeDB.Borrower.ensure_unborrowed!(client)
+    parse_execute_query(1, client, query, params, opts)
   end
 
-  defp parse_execute_query(
-         %EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks},
-         query,
-         params,
-         opts
-       ) do
-    prepare_execute_callback = &parse_execute_query(&1, query, params, opts)
+  defp parse_execute_query(attempt, client, query, params, opts) do
+    execution_opts =
+      client
+      |> EdgeDB.Client.to_options()
+      |> Keyword.merge(retry_options: opts[:retry] || [])
 
-    execution_callback =
-      Enum.reduce([prepare_execute_callback | callbacks], fn next, last ->
-        &next.(&1, last)
-      end)
-
-    execution_callback.(conn)
-  end
-
-  defp parse_execute_query(conn, query, params, opts) do
-    EdgeDB.Borrower.ensure_unborrowed!(conn)
-
-    with {:ok, _query, retry_opts} <-
-           DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []) do
-      retry_opts = Keyword.merge(retry_opts, opts[:retry] || [])
-      parse_execute_query(1, conn, query, params, Keyword.merge(opts, retry: retry_opts))
-    end
-  end
-
-  defp parse_execute_query(attempt, conn, query, params, opts) do
-    case DBConnection.prepare_execute(conn, query, params, opts) do
+    case DBConnection.prepare_execute(client.conn, query, params, execution_opts) do
       {:ok, %EdgeDB.Query{} = q, %EdgeDB.Result{} = r} ->
         handle_query_result(q, r, opts)
 
       {:error, %EdgeDB.Error{} = exc} ->
-        maybe_retry_readonly_query(attempt, exc, conn, query, params, opts)
+        maybe_retry_readonly_query(attempt, exc, client, query, params, execution_opts)
 
       {:error, exc} ->
         {:error, exc}
@@ -1001,7 +929,7 @@ defmodule EdgeDB do
   defp maybe_retry_readonly_query(
          _attempt,
          exc,
-         %DBConnection{conn_mode: :transaction},
+         %EdgeDB.Client{conn: %DBConnection{conn_mode: :transaction}},
          _query,
          _params,
          _opts
@@ -1012,40 +940,41 @@ defmodule EdgeDB do
   defp maybe_retry_readonly_query(
          attempt,
          %EdgeDB.Error{query: %EdgeDB.Query{capabilities: capabilities}} = exc,
-         conn,
+         client,
          query,
          params,
          opts
        ) do
     with true <- :readonly in capabilities,
-         {:ok, backoff} <- retry?(exc, attempt, opts[:retry] || []) do
+         {:ok, backoff} <- retry?(exc, attempt, opts[:retry_options]) do
       Process.sleep(backoff)
-      parse_execute_query(attempt + 1, conn, query, params, opts)
+      parse_execute_query(attempt + 1, client, query, params, opts)
     else
       _other ->
         {:error, exc}
     end
   end
 
-  defp maybe_retry_readonly_query(_attempt, exc, _conn, _query, _params, _opts) do
+  defp maybe_retry_readonly_query(_attempt, exc, _client, _query, _params, _opts) do
     {:error, exc}
   end
 
-  defp retrying_transaction(conn, callback, opts) do
-    with {:ok, _query, retry_opts} <-
-           DBConnection.execute(conn, %InternalRequest{request: :retry_options}, []) do
-      retrying_transaction(1, conn, callback, Keyword.merge(retry_opts, opts[:retry] || []))
+  defp retrying_transaction(client, callback, opts) do
+    callback = fn conn ->
+      callback.(%EdgeDB.Client{client | conn: conn})
     end
+
+    retrying_transaction(1, client, callback, opts)
   end
 
-  defp retrying_transaction(attempt, conn, callback, retry_opts) do
-    DBConnection.transaction(conn, callback, retry_opts)
+  defp retrying_transaction(attempt, client, callback, opts) do
+    DBConnection.transaction(client.conn, callback, opts)
   rescue
     exc in EdgeDB.Error ->
-      case retry?(exc, attempt, retry_opts) do
+      case retry?(exc, attempt, opts[:retry_options]) do
         {:ok, backoff} ->
           Process.sleep(backoff)
-          retrying_transaction(attempt + 1, conn, callback, retry_opts)
+          retrying_transaction(attempt + 1, client, callback, opts)
 
         :abort ->
           reraise exc, __STACKTRACE__
@@ -1086,29 +1015,6 @@ defmodule EdgeDB do
     Keyword.merge(default_rule, rule)
   end
 
-  defp execute_wrapped_callbacks(
-         %EdgeDB.WrappedConnection{conn: conn, callbacks: callbacks},
-         callback
-       ) do
-    DBConnection.run(conn, fn conn ->
-      Enum.reduce([callback | callbacks], fn next, last ->
-        &next.(&1, last)
-      end).(conn)
-    end)
-  end
-
-  defp defer(original_callback, deferred_callback) do
-    original_callback.()
-  rescue
-    exc ->
-      deferred_callback.()
-      reraise exc, __STACKTRACE__
-  else
-    result ->
-      deferred_callback.()
-      result
-  end
-
   defp default_backoff(attempt) do
     trunc(:math.pow(2, attempt) * Enum.random(0..100))
   end
@@ -1120,6 +1026,27 @@ defmodule EdgeDB do
 
       {:error, exc} ->
         raise exc
+    end
+  end
+
+  defp to_client(%EdgeDB.Client{} = client) do
+    client
+  end
+
+  defp to_client(client_name) when is_atom(client_name) do
+    client_name
+    |> Process.whereis()
+    |> to_client()
+  end
+
+  # ensure that client is really registered
+  defp to_client(client_pid) do
+    case Registry.lookup(EdgeDB.ClientsRegistry, client_pid) do
+      [{_pid, client}] ->
+        client
+
+      _other ->
+        raise EdgeDB.InterfaceError.new("client for pid(#{client_pid}) not found")
     end
   end
 end

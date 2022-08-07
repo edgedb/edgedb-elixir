@@ -1,24 +1,24 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.BytesTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
-  test "decoding std::bytes value", %{conn: conn} do
+  test "decoding std::bytes value", %{client: client} do
     value = <<16, 13, 2, 42>>
-    assert ^value = EdgeDB.query_single!(conn, "select <bytes>b\"\x10\x0d\x02\x2a\"")
+    assert ^value = EdgeDB.query_single!(client, "select <bytes>b\"\x10\x0d\x02\x2a\"")
   end
 
-  test "encoding std::bytes value", %{conn: conn} do
+  test "encoding std::bytes value", %{client: client} do
     value = <<16, 13, 2, 42>>
-    assert ^value = EdgeDB.query_single!(conn, "select <bytes>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <bytes>$0", [value])
   end
 
-  test "error when passing non bytes as std::bytes argument", %{conn: conn} do
+  test "error when passing non bytes as std::bytes argument", %{client: client} do
     value = 42
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "select <bytes>$0", [value])
+        EdgeDB.query_single!(client, "select <bytes>$0", [value])
       end
 
     assert exc ==

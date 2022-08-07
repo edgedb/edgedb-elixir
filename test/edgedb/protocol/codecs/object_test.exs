@@ -1,16 +1,16 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
   describe "encoding object as query arguments" do
     defmodule StructForArguments do
       defstruct [:arg1, :arg2]
     end
 
-    test "forbids using EdgeDB.Object as arguments", %{conn: conn} do
+    test "forbids using EdgeDB.Object as arguments", %{client: client} do
       anonymous_user =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
         select {
           name := "username",
           image := "http://example.com/some/url"
@@ -18,22 +18,22 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
         """)
 
       assert_raise EdgeDB.Error, ~r/objects encoding is not supported/, fn ->
-        EdgeDB.query!(conn, "select {<str>$name, <str>$image}", anonymous_user)
+        EdgeDB.query!(client, "select {<str>$name, <str>$image}", anonymous_user)
       end
     end
 
-    test "forbids using custom structs as arguments", %{conn: conn} do
+    test "forbids using custom structs as arguments", %{client: client} do
       assert_raise EdgeDB.Error, ~r/structs encoding is not supported/, fn ->
-        EdgeDB.query!(conn, "select {<str>$arg1, <str>$arg2}", %StructForArguments{
+        EdgeDB.query!(client, "select {<str>$arg1, <str>$arg2}", %StructForArguments{
           arg1: "arg1",
           arg2: "arg2"
         })
       end
     end
 
-    test "allows usage of plain maps as arguments", %{conn: conn} do
+    test "allows usage of plain maps as arguments", %{client: client} do
       assert set =
-               EdgeDB.query!(conn, "select {<str>$arg1, <str>$arg2}", %{
+               EdgeDB.query!(client, "select {<str>$arg1, <str>$arg2}", %{
                  arg1: "arg1",
                  arg2: "arg2"
                })
@@ -41,76 +41,76 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
       assert Enum.to_list(set) == ["arg1", "arg2"]
     end
 
-    test "allows usage of keywords as arguments", %{conn: conn} do
+    test "allows usage of keywords as arguments", %{client: client} do
       assert set =
-               EdgeDB.query!(conn, "select {<str>$arg1, <str>$arg2}", arg1: "arg1", arg2: "arg2")
+               EdgeDB.query!(client, "select {<str>$arg1, <str>$arg2}", arg1: "arg1", arg2: "arg2")
 
       assert Enum.to_list(set) == ["arg1", "arg2"]
     end
 
-    test "allows usage of plain lists as positional arguments", %{conn: conn} do
-      assert set = EdgeDB.query!(conn, "select {<str>$0, <str>$1}", ["arg1", "arg2"])
+    test "allows usage of plain lists as positional arguments", %{client: client} do
+      assert set = EdgeDB.query!(client, "select {<str>$0, <str>$1}", ["arg1", "arg2"])
       assert Enum.to_list(set) == ["arg1", "arg2"]
     end
 
-    test "allows nils for optional arguments", %{conn: conn} do
-      assert is_nil(EdgeDB.query_single!(conn, "select <optional str>$arg", arg: nil))
+    test "allows nils for optional arguments", %{client: client} do
+      assert is_nil(EdgeDB.query_single!(client, "select <optional str>$arg", arg: nil))
     end
   end
 
   describe "error for wrong query arguments" do
-    test "contains expected arguments information", %{conn: conn} do
+    test "contains expected arguments information", %{client: client} do
       assert_raise EdgeDB.Error, ~r/expected nothing/, fn ->
-        EdgeDB.query!(conn, "select 'Hello world'", arg: "Hello world")
+        EdgeDB.query!(client, "select 'Hello world'", arg: "Hello world")
       end
 
       assert_raise EdgeDB.Error, ~r/expected \["arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "select <str>$arg")
+        EdgeDB.query!(client, "select <str>$arg")
       end
     end
 
-    test "contains passed arguments information", %{conn: conn} do
+    test "contains passed arguments information", %{client: client} do
       assert_raise EdgeDB.Error, ~r/passed \["arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "select 'Hello world'", arg: "Hello world")
+        EdgeDB.query!(client, "select 'Hello world'", arg: "Hello world")
       end
 
       assert_raise EdgeDB.Error, ~r/passed nothing/, fn ->
-        EdgeDB.query!(conn, "select <str>$arg")
+        EdgeDB.query!(client, "select <str>$arg")
       end
     end
 
-    test "contains missed arguments information", %{conn: conn} do
+    test "contains missed arguments information", %{client: client} do
       assert_raise EdgeDB.Error, ~r/missed \["arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "select <str>$arg", another_arg: "Hello world")
+        EdgeDB.query!(client, "select <str>$arg", another_arg: "Hello world")
       end
     end
 
-    test "contains extra arguments information", %{conn: conn} do
+    test "contains extra arguments information", %{client: client} do
       assert_raise EdgeDB.Error, ~r/passed extra \["another_arg"\] keys/, fn ->
-        EdgeDB.query!(conn, "select <str>$arg", another_arg: "Hello world")
+        EdgeDB.query!(client, "select <str>$arg", another_arg: "Hello world")
       end
     end
   end
 
-  test "decoding single object", %{conn: conn} do
-    rollback(conn, fn conn ->
-      EdgeDB.query!(conn, """
+  test "decoding single object", %{client: client} do
+    rollback(client, fn client ->
+      EdgeDB.query!(client, """
       insert User {
         name := "username",
         image := "http://example.com/some/url"
       }
       """)
 
-      user = EdgeDB.query_required_single!(conn, "select User { name, image } limit 1")
+      user = EdgeDB.query_required_single!(client, "select User { name, image } limit 1")
       assert user[:name] == "username"
       assert user[:image] == "http://example.com/some/url"
     end)
   end
 
-  test "decoding single anonymous object", %{conn: conn} do
-    rollback(conn, fn conn ->
+  test "decoding single anonymous object", %{client: client} do
+    rollback(client, fn client ->
       anonymous_user =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
         select {
           name := "username",
           image := "http://example.com/some/url"
@@ -122,9 +122,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     end)
   end
 
-  test "decoding object with links", %{conn: conn} do
-    rollback(conn, fn conn ->
-      EdgeDB.query!(conn, """
+  test "decoding object with links", %{client: client} do
+    rollback(client, fn client ->
+      EdgeDB.query!(client, """
       with
         director := (
           insert Person {
@@ -143,7 +143,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
       """)
 
       movie =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
         select Movie {
           title,
           year,
@@ -167,9 +167,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     end)
   end
 
-  test "decoding object with links that have properties", %{conn: conn} do
-    rollback(conn, fn conn ->
-      EdgeDB.query!(conn, """
+  test "decoding object with links that have properties", %{client: client} do
+    rollback(client, fn client ->
+      EdgeDB.query!(client, """
       with
         director := (
           insert Person {
@@ -215,7 +215,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
       """)
 
       movie =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
         select Movie {
           title,
           actors: {
@@ -232,10 +232,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     end)
   end
 
-  test "decoding object with property equals to empty set", %{conn: conn} do
-    rollback(conn, fn conn ->
+  test "decoding object with property equals to empty set", %{client: client} do
+    rollback(client, fn client ->
       object =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
         select {
           a := <str>{}
         }

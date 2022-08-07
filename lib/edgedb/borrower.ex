@@ -14,7 +14,7 @@ defmodule EdgeDB.Borrower do
     defstruct borrowed: %{}
 
     @type t() :: %__MODULE__{
-            borrowed: %{DBConnection.conn() => :transaction | :subtransaction}
+            borrowed: %{EdgeDB.client() => :transaction | :subtransaction}
           }
   end
 
@@ -23,20 +23,20 @@ defmodule EdgeDB.Borrower do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec borrow!(DBConnection.conn(), term(), (() -> any())) :: any() | no_return()
-  def borrow!(conn, reason, callback) when reason in @reasons_to_borrow do
-    case borrow(conn, reason) do
+  @spec borrow!(EdgeDB.client(), term(), (() -> any())) :: any() | no_return()
+  def borrow!(client, reason, callback) when reason in @reasons_to_borrow do
+    case borrow(client, reason) do
       :ok ->
-        execute_on_borrowed(conn, callback)
+        execute_on_borrowed(client, callback)
 
       {:error, {:borrowed, reason}} ->
         raise error_for_reason(reason)
     end
   end
 
-  @spec ensure_unborrowed!(DBConnection.conn()) :: :ok | no_return()
-  def ensure_unborrowed!(conn) do
-    case GenServer.call(__MODULE__, {:check_borrowed, conn}) do
+  @spec ensure_unborrowed!(EdgeDB.client()) :: :ok | no_return()
+  def ensure_unborrowed!(client) do
+    case GenServer.call(__MODULE__, {:check_borrowed, client}) do
       :unborrowed ->
         :ok
 
@@ -51,10 +51,10 @@ defmodule EdgeDB.Borrower do
   end
 
   @impl GenServer
-  def handle_call({:borrow, conn, reason}, _from, %State{borrowed: borrowed} = state) do
-    case borrowed[conn] do
+  def handle_call({:borrow, client, reason}, _from, %State{borrowed: borrowed} = state) do
+    case borrowed[client] do
       nil ->
-        {:reply, :ok, %State{state | borrowed: Map.put(borrowed, conn, reason)}}
+        {:reply, :ok, %State{state | borrowed: Map.put(borrowed, client, reason)}}
 
       reason ->
         {:reply, {:error, {:borrowed, reason}}, state}
@@ -62,8 +62,8 @@ defmodule EdgeDB.Borrower do
   end
 
   @impl GenServer
-  def handle_call({:check_borrowed, conn}, _from, %State{borrowed: borrowed} = state) do
-    case borrowed[conn] do
+  def handle_call({:check_borrowed, client}, _from, %State{borrowed: borrowed} = state) do
+    case borrowed[client] do
       nil ->
         {:reply, :unborrowed, state}
 
@@ -73,35 +73,35 @@ defmodule EdgeDB.Borrower do
   end
 
   @impl GenServer
-  def handle_cast({:unborrow, conn}, %State{borrowed: borrowed} = state) do
-    {:noreply, %State{state | borrowed: Map.delete(borrowed, conn)}}
+  def handle_cast({:unborrow, client}, %State{borrowed: borrowed} = state) do
+    {:noreply, %State{state | borrowed: Map.delete(borrowed, client)}}
   end
 
-  defp borrow(conn, reason) do
-    GenServer.call(__MODULE__, {:borrow, conn, reason})
+  defp borrow(client, reason) do
+    GenServer.call(__MODULE__, {:borrow, client, reason})
   end
 
-  defp unborrow(conn) do
-    GenServer.cast(__MODULE__, {:unborrow, conn})
+  defp unborrow(client) do
+    GenServer.cast(__MODULE__, {:unborrow, client})
   end
 
   defp error_for_reason(:transaction) do
-    EdgeDB.InterfaceError.new("connection is already borrowed for transaction")
+    EdgeDB.InterfaceError.new("client is already borrowed for transaction")
   end
 
   defp error_for_reason(:subtransaction) do
-    EdgeDB.InterfaceError.new("connection is already borrowed for subtransaction")
+    EdgeDB.InterfaceError.new("client is already borrowed for subtransaction")
   end
 
-  defp execute_on_borrowed(conn, callback) do
+  defp execute_on_borrowed(client, callback) do
     callback.()
   rescue
     exc ->
-      unborrow(conn)
+      unborrow(client)
       reraise exc, __STACKTRACE__
   else
     result ->
-      unborrow(conn)
+      unborrow(client)
       result
   end
 end

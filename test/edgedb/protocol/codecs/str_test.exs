@@ -1,26 +1,26 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.StrTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
-  test "decoding std::str value", %{conn: conn} do
+  test "decoding std::str value", %{client: client} do
     value = "Harry Potter and the Sorcerer's Stone"
 
     assert ^value =
-             EdgeDB.query_single!(conn, "select <str>\"Harry Potter and the Sorcerer's Stone\"")
+             EdgeDB.query_single!(client, "select <str>\"Harry Potter and the Sorcerer's Stone\"")
   end
 
-  test "encoding std::str value", %{conn: conn} do
+  test "encoding std::str value", %{client: client} do
     value = "Harry Potter and the Sorcerer's Stone"
-    assert ^value = EdgeDB.query_single!(conn, "select <str>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <str>$0", [value])
   end
 
-  test "error when passing non str as std::str argument", %{conn: conn} do
+  test "error when passing non str as std::str argument", %{client: client} do
     value = 42
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "select <str>$0", [value])
+        EdgeDB.query_single!(client, "select <str>$0", [value])
       end
 
     assert exc ==

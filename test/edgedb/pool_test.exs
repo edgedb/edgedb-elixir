@@ -7,7 +7,7 @@ defmodule Tests.EdgeDB.PoolTest do
     {:ok, pool} =
       start_supervised(
         {EdgeDB,
-         pool: EdgeDB.Pool,
+         tls_security: :insecure,
          backoff_type: :stop,
          max_restarts: 0,
          idle_interval: 1,

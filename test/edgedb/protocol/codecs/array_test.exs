@@ -1,15 +1,15 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.ArrayTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
-  test "decoding array value", %{conn: conn} do
+  test "decoding array value", %{client: client} do
     value = [16, 13, 2]
-    assert ^value = EdgeDB.query_single!(conn, "select [16, 13, 2]")
+    assert ^value = EdgeDB.query_single!(client, "select [16, 13, 2]")
   end
 
-  test "encoding array value", %{conn: conn} do
+  test "encoding array value", %{client: client} do
     value = [16, 13, 2]
-    assert ^value = EdgeDB.query_single!(conn, "select <array<int64>>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <array<int64>>$0", [value])
   end
 end

@@ -9,6 +9,8 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Custom.NotRegisteredStringTest do
     assert capture_log(fn ->
              start_supervised(
                {EdgeDB,
+                tls_security: :insecure,
+                max_concurrency: 1,
                 codecs: [Codecs.NotRegisteredString],
                 show_sensitive_data_on_connection_error: true}
              )

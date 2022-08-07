@@ -27,7 +27,7 @@ defmodule EdgeDB.State do
   State is an execution context that affects the execution of EdgeQL commands.
   """
   @opaque t() :: %__MODULE__{
-            module: String.t(),
+            module: String.t() | nil,
             aliases: %{String.t() => String.t()},
             config: %{String.t() => term()},
             globals: %{String.t() => term()}

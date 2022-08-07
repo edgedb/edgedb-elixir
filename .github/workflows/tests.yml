@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "master"
+      - "introduce-client"
 
   pull_request:
     branches:

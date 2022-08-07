@@ -1,15 +1,15 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.ScalarTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
-  test "decoding custom scalar value", %{conn: conn} do
+  test "decoding custom scalar value", %{client: client} do
     value = "value"
-    assert ^value = EdgeDB.query_single!(conn, "select <short_str>'value'")
+    assert ^value = EdgeDB.query_single!(client, "select <short_str>'value'")
   end
 
-  test "encoding as custom scalar value", %{conn: conn} do
+  test "encoding as custom scalar value", %{client: client} do
     value = "value"
-    assert ^value = EdgeDB.query_single!(conn, "select <short_str>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <short_str>$0", [value])
   end
 end

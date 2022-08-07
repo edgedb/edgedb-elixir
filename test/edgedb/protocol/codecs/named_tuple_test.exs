@@ -1,13 +1,13 @@
 defmodule Tests.EdgeDB.Protocol.Codecs.NamedTupleTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
-  test "decoding named tuple value", %{conn: conn} do
+  test "decoding named tuple value", %{client: client} do
     value = new_named_tuple([{"a", 1}, {"b", "string"}, {"c", true}, {"d", 1.0}])
 
     assert ^value =
-             EdgeDB.query_single!(conn, "select (a := 1, b := \"string\", c := true, d := 1.0)")
+             EdgeDB.query_single!(client, "select (a := 1, b := \"string\", c := true, d := 1.0)")
   end
 
   defp new_named_tuple(items) do
