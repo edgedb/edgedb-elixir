@@ -795,7 +795,7 @@ defmodule EdgeDB.Connection do
          %ParameterStatus{name: "suggested_pool_concurrency", value: pool_concurrency},
          %State{} = state
        ) do
-    inform_pool_about_suggested_size(state.pool_pid, pool_concurrency)
+    inform_pool_about_suggested_concurrency(state.pool_pid, pool_concurrency)
     server_settings = Map.put(state.server_settings, :pool_concurrency, pool_concurrency)
     {:ok, %State{state | server_settings: server_settings}}
   end
@@ -1687,12 +1687,12 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp inform_pool_about_suggested_size(nil, _suggested_size) do
+  defp inform_pool_about_suggested_concurrency(nil, _suggested_concurrency) do
     :ok
   end
 
-  defp inform_pool_about_suggested_size(pool_pid, suggested_size) do
-    send(pool_pid, {:resize_pool, suggested_size})
+  defp inform_pool_about_suggested_concurrency(pool_pid, suggested_concurrency) do
+    send(pool_pid, {:resize_pool, suggested_concurrency})
   end
 
   # explicit capabilities

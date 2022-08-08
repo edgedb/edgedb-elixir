@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `EdgeDB.Client` module that is acceptable by all `EdgeDB` API.
-- `max_concurrency` option to start pool to control max connections count in `EdgeDB.Pool`.
+- `:max_concurrency` option to start pool to control max connections count in `EdgeDB.Pool`.
 
 ### Changed
 
