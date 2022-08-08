@@ -8,8 +8,8 @@ defmodule EdgeDB do
   A simple example of how to use it:
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> EdgeDB.query!(pid, "
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> EdgeDB.query!(client, "
   ...(2)>   select Person{
   ...(2)>     first_name,
   ...(2)>     middle_name,
@@ -198,14 +198,14 @@ defmodule EdgeDB do
     `[dsn: dsn]` keyword list to connect.
 
   ```elixir
-  iex(1)> {:ok, _pid} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb")
+  iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb")
   ```
 
   Otherwise, if the first argument is a list, it will be used as is to connect.
     See `t:start_option/0` for supported connection options.
 
   ```elixir
-  iex(1)> {:ok, _pid} = EdgeDB.start_link(instance: "edgedb_elixir")
+  iex(1)> {:ok, _client} = EdgeDB.start_link(instance: "edgedb_elixir")
   ```
   """
   def start_link(opts \\ [])
@@ -240,7 +240,7 @@ defmodule EdgeDB do
     See `t:start_option/0` for supported connection options.
 
   ```elixir
-  iex(1)> {:ok, _pid} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb", tls_security: :insecure)
+  iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb", tls_security: :insecure)
   ```
   """
   @spec start_link(String.t(), list(start_option())) :: GenServer.on_start()
@@ -276,8 +276,8 @@ defmodule EdgeDB do
     if successful, where `set` is `EdgeDB.Set`.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "select 42")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select 42")
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
@@ -286,8 +286,8 @@ defmodule EdgeDB do
     where `exception` is `EdgeDB.Error`.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(pid, "select UndefinedType")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(client, "select UndefinedType")
   iex(2)> raise error
   ** (EdgeDB.Error) InvalidReferenceError: object type or alias 'default::UndefinedType' does not exist
   ```
@@ -296,15 +296,15 @@ defmodule EdgeDB do
     or as a list of keywords for a query with named arguments.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "select <int64>$0", [42])
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$0", [42])
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(pid, "select <int64>$arg", arg: 42)
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$arg", arg: 42)
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
@@ -556,8 +556,8 @@ defmodule EdgeDB do
     which will declare a new savepoint for the current transaction.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> {:ok, tickets} = EdgeDB.transaction(pid, fn client ->
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> {:ok, tickets} = EdgeDB.transaction(client, fn client ->
   ...(2)>  EdgeDB.query!(client, "insert Ticket{ number := 2}")
   ...(2)>  EdgeDB.query!(client, "select Ticket")
   ...(2)> end)
@@ -600,9 +600,9 @@ defmodule EdgeDB do
     will declare a new savepoint for the current transaction.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, tickets} =
-  ...(2)>  EdgeDB.transaction(pid, fn tx_conn ->
+  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
   ...(2)>    {:ok, tickets} =
   ...(2)>      EdgeDB.subtransaction(tx_conn, fn subtx_conn1 ->
   ...(2)>        {:ok, tickets} =
@@ -687,17 +687,17 @@ defmodule EdgeDB do
   See `t:rollback_option/0` for supported options.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:error, :tx_rollback} =
-  ...(2)>  EdgeDB.transaction(pid, fn tx_conn ->
+  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
   ...(2)>   EdgeDB.rollback(tx_conn, reason: :tx_rollback)
   ...(2)>  end)
   ```
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:error, :subtx_rollback} =
-  ...(2)>  EdgeDB.transaction(pid, fn tx_conn ->
+  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
   ...(2)>   {:error, reason} =
   ...(2)>     EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
   ...(2)>      EdgeDB.rollback(subtx_conn, reason: :subtx_rollback)
@@ -707,9 +707,9 @@ defmodule EdgeDB do
   ```
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, 42} =
-  ...(2)>  EdgeDB.transaction(pid, fn tx_conn ->
+  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
   ...(2)>   {:ok, result} =
   ...(2)>     EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
   ...(2)>      EdgeDB.rollback(subtx_conn, continue: true)

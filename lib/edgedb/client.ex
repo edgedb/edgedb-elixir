@@ -1,14 +1,15 @@
 defmodule EdgeDB.Client do
   @moduledoc """
-  Client is structure with stored configuration for executing EdgeQL queries
-    and reference to pool or connection.
+  Сlient is a structure that stores a custom configuration to execute EdgeQL queries
+    and has a reference to a connection or pool of connections.
 
-  After starting pool via `EdgeDB.start_link/1` or siblings an instance of a client
-  for the pool will be implitly registered.
+  After starting the pool via `EdgeDB.start_link/1` or siblings,
+    the client instance for the pool will be implicitly registered.
 
-  In case you want to change the behaviour of your queries you'll use the `EdgeDB.Client`
-  structure which is acceptable by all `EdgeDB` API and will be provided to you in callbacks
-  in `EdgeDB.transaction/3`, `EdgeDB.subtransaction/2` and `EdgeDB.subtransaction!/2` functions.
+  In case you want to change the behavior of your queries, you will use the `EdgeDB.Client`,
+    which is acceptable by all `EdgeDB` API and will be provided to you in callbacks
+    in the `EdgeDB.transaction/3`, `EdgeDB.subtransaction/2` and `EdgeDB.subtransaction!/2`
+    functions.
   """
 
   defstruct [
@@ -86,121 +87,77 @@ defmodule EdgeDB.Client do
           {:transaction_conflict, retry_rule()}
           | {:network_error, retry_rule()}
 
-  @doc """
-  Mark the client as read-only.
-
-  See `EdgeDB.as_readonly/1` for more information.
-  """
+  @doc false
   @spec as_readonly(t()) :: t()
   def as_readonly(client) do
     client = to_client(client)
     %__MODULE__{client | readonly: true}
   end
 
-  @doc """
-  Configure the client so that futher transactions are executed with custom transaction options.
-
-  See `EdgeDB.with_transaction_options/2` for more information.
-  """
+  @doc false
   @spec with_transaction_options(t(), list(transaction_option())) :: t()
   def with_transaction_options(client, options) do
     client = to_client(client)
     %__MODULE__{client | transaction_options: options}
   end
 
-  @doc """
-  Configure the client so that futher transactions retries are executed with custom retries options.
-
-  See `EdgeDB.with_transaction_options/2` for more information.
-  """
+  @doc false
   @spec with_retry_options(t(), list(retry_option())) :: t()
   def with_retry_options(client, options) do
     client = to_client(client)
     %__MODULE__{client | retry_options: Keyword.merge(client.retry_options, options)}
   end
 
-  @doc """
-  Returns client with adjusted state.
-
-  See `EdgeDB.with_state/2` for more information.
-  """
+  @doc false
   @spec with_state(t(), EdgeDB.State.t()) :: t()
   def with_state(client, state) do
     client = to_client(client)
     %__MODULE__{client | state: state}
   end
 
-  @doc """
-  Returns client with adjusted default module.
-
-  See `EdgeDB.with_default_module/2` for more information.
-  """
+  @doc false
   @spec with_default_module(t(), String.t() | nil) :: t()
   def with_default_module(client, module \\ nil) do
     client = to_client(client)
     %__MODULE__{client | state: EdgeDB.State.with_default_module(client.state, module)}
   end
 
-  @doc """
-  Returns client with adjusted module aliases.
-
-  See `EdgeDB.with_module_aliases/2` for more information.
-  """
+  @doc false
   @spec with_module_aliases(t(), %{String.t() => String.t()}) :: t()
   def with_module_aliases(client, aliases \\ %{}) do
     client = to_client(client)
     %__MODULE__{client | state: EdgeDB.State.with_module_aliases(client.state, aliases)}
   end
 
-  @doc """
-  Returns client without specified module aliases.
-
-  See `EdgeDB.without_module_aliases/2` for more information.
-  """
+  @doc false
   @spec without_module_aliases(t(), list(String.t())) :: t()
   def without_module_aliases(client, aliases \\ []) do
     client = to_client(client)
     %__MODULE__{client | state: EdgeDB.State.without_module_aliases(client.state, aliases)}
   end
 
-  @doc """
-  Returns client with adjusted session config.
-
-  See `EdgeDB.with_config/2` for more information.
-  """
+  @doc false
   @spec with_config(t(), %{atom() => term()}) :: t()
   def with_config(client, config \\ %{}) do
     client = to_client(client)
     %__MODULE__{client | state: EdgeDB.State.with_config(client.state, config)}
   end
 
-  @doc """
-  Returns client without specified session config.
-
-  See `EdgeDB.without_config/2` for more information.
-  """
+  @doc false
   @spec without_config(t(), list(atom())) :: t()
   def without_config(client, config_keys \\ []) do
     client = to_client(client)
     %__MODULE__{client | state: EdgeDB.State.without_config(client.state, config_keys)}
   end
 
-  @doc """
-  Returns client with adjusted global values.
-
-  See `EdgeDB.with_globals/2` for more information.
-  """
+  @doc false
   @spec with_globals(t(), %{String.t() => String.t()}) :: t()
   def with_globals(client, globals \\ %{}) do
     client = to_client(client)
     %__MODULE__{client | state: EdgeDB.State.with_globals(client.state, globals)}
   end
 
-  @doc """
-  Returns client without specified globals.
-
-  See `EdgeDB.without_globals/2` for more information.
-  """
+  @doc false
   @spec without_globals(t(), list(String.t())) :: t()
   def without_globals(client, global_names \\ []) do
     client = to_client(client)

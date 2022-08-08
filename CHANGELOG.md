@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `EdgeDB.Client` structure that is acceptable by all `EdgeDB` API.
+- `EdgeDB.Client` module that is acceptable by all `EdgeDB` API.
 - `max_concurrency` option to start pool to control max connections count in `EdgeDB.Pool`.
 
 ### Changed
@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- `EdgeDB.WrappedConnection` module that was replaced by `EdgeDB.Client`.
+- `EdgeDB.WrappedConnection` module in favor of `EdgeDB.Client`.
 
 ## [0.4.0] - 2022-08-04
 
