@@ -26,7 +26,11 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
     {:ok, sandbox_client} = start_supervised(spec)
     EdgeDB.Sandbox.initialize(sandbox_client)
 
-    opts = EdgeDB.Connection.Config.connect_opts(max_concurrency: 1)
+    opts =
+      EdgeDB.Connection.Config.connect_opts(
+        max_concurrency: 1,
+        tls_security: :insecure
+      )
 
     on_exit(fn ->
       {:ok, client} = EdgeDB.start_link(opts)

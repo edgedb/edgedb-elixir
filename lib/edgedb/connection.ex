@@ -891,7 +891,7 @@ defmodule EdgeDB.Connection do
 
   defp legacy_prepare_query(%EdgeDB.Query{} = query, opts, state) do
     message = %Client.V0.Prepare{
-      headers: Enum.into(opts, %{}),
+      headers: prepare_legacy_headers(query, opts, state),
       io_format: query.output_format,
       expected_cardinality: query.cardinality,
       command: query.statement
@@ -1019,7 +1019,7 @@ defmodule EdgeDB.Connection do
 
   defp legacy_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
     message = %Client.V0.Execute{
-      headers: Enum.into(opts, %{}),
+      headers: prepare_legacy_headers(query, opts, state),
       arguments: params
     }
 
@@ -1204,7 +1204,7 @@ defmodule EdgeDB.Connection do
 
   defp legacy_optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
     message = %Client.V0.OptimisticExecute{
-      headers: Enum.into(opts, %{}),
+      headers: prepare_legacy_headers(query, opts, state),
       io_format: query.output_format,
       expected_cardinality: query.cardinality,
       command_text: query.statement,
@@ -1378,8 +1378,11 @@ defmodule EdgeDB.Connection do
     execute_query(query, params, opts, state)
   end
 
-  defp legacy_execute_script_query(statement, headers, state) do
-    message = %Client.V0.ExecuteScript{headers: headers, script: statement}
+  defp legacy_execute_script_query(statement, %{} = headers, state) do
+    message = %Client.V0.ExecuteScript{
+      headers: headers,
+      script: statement
+    }
 
     with {:ok, state} <- send_message(message, state),
          {:ok, {message, state}} <- receive_message(state) do
@@ -1710,6 +1713,20 @@ defmodule EdgeDB.Connection do
   # default capabilities to execute any common query (select/insert/etc) in protocol
   defp prepare_capabilities(_query, _opts, _state) do
     [:execute]
+  end
+
+  defp prepare_legacy_headers(query, %{capabilities: capabilities} = headers, state) do
+    Map.merge(headers, %{allow_capabilities: prepare_capabilities(query, capabilities, state)})
+  end
+
+  defp prepare_legacy_headers(query, opts, state) when is_list(opts) do
+    headers = Enum.into(opts, %{})
+    prepare_legacy_headers(query, headers, state)
+  end
+
+  # just use default capabilities
+  defp prepare_legacy_headers(query, headers, state) do
+    Map.merge(headers, %{allow_capabilities: prepare_capabilities(query, [], state)})
   end
 
   defp prepare_compilation_flags(%EdgeDB.Query{} = query) do
