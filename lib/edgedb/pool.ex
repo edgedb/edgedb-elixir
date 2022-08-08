@@ -41,15 +41,15 @@ defmodule EdgeDB.Pool do
   end
 
   @doc false
-  @spec size(t()) :: integer()
-  def size(pool) do
-    GenServer.call(pool, :get_current_size)
+  @spec concurrency(t()) :: integer()
+  def concurrency(pool) do
+    GenServer.call(pool, :get_current_concurrency)
   end
 
   @doc false
-  @spec set_max_size(t(), integer()) :: integer()
-  def set_max_size(pool, max_size) do
-    GenServer.call(pool, {:set_max_size, max_size})
+  @spec set_max_concurrency(t(), integer()) :: integer()
+  def set_max_concurrency(pool, max_concurrency) do
+    GenServer.call(pool, {:set_max_concurrency, max_concurrency})
   end
 
   @impl GenServer
@@ -79,7 +79,7 @@ defmodule EdgeDB.Pool do
     # since in EdgeDB there are only serializable transactions and concurrent requests
     # will break sandbox logic
     # similar if we're using subtransaction, then we should ensure it will have a single connection
-    max_size =
+    max_concurrency =
       if conn_mod == EdgeDB.Sandbox or conn_mod == EdgeDB.Subtransaction do
         1
       else
@@ -91,8 +91,8 @@ defmodule EdgeDB.Pool do
       queue: queue,
       codel: codel,
       ts: ts,
-      current_size: 1,
-      max_size: max_size,
+      current_concurrency: 1,
+      max_concurrency: max_concurrency,
       conn_mod: conn_mod,
       conn_opts: conn_opts
     }
@@ -110,13 +110,14 @@ defmodule EdgeDB.Pool do
   end
 
   @impl GenServer
-  def handle_call(:get_current_size, _from, %State{} = state) do
-    {:reply, state.current_size, state}
+  def handle_call(:get_current_concurrency, _from, %State{} = state) do
+    {:reply, state.current_concurrency, state}
   end
 
   @impl GenServer
-  def handle_call({:set_max_size, max_size}, _from, %State{} = state) do
-    {:reply, :ok, %State{state | max_size: max_size}}
+  def handle_call({:set_max_concurrency, max_concurrency}, _from, %State{} = state) do
+    state = maybe_resize_pool(%State{state | max_concurrency: max_concurrency}, nil)
+    {:reply, :ok, state}
   end
 
   @impl GenServer
@@ -183,29 +184,50 @@ defmodule EdgeDB.Pool do
   end
 
   defp maybe_resize_pool(
-         %State{current_size: current_size, max_size: max_size} = state,
-         suggested_size
+         %State{
+           current_concurrency: current_concurrency,
+           max_concurrency: max_concurrency
+         } = state,
+         suggested_concurrency
        )
-       when current_size < suggested_size and suggested_size <= max_size do
-    connections_to_add = suggested_size - current_size
+       when current_concurrency < suggested_concurrency and
+              suggested_concurrency <= max_concurrency do
+    connections_to_add = suggested_concurrency - current_concurrency
 
     for _id <- 1..connections_to_add do
       ConnectionSupervisor.start_connection(state.conn_sup, state.conn_opts)
     end
 
-    %State{state | current_size: suggested_size, suggested_size: suggested_size}
+    %State{
+      state
+      | current_concurrency: suggested_concurrency,
+        suggested_concurrency: suggested_concurrency
+    }
   end
 
   defp maybe_resize_pool(
-         %State{current_size: current_size, suggested_size: suggested_size} = state,
-         new_suggested_size
+         %State{
+           current_concurrency: current_concurrency,
+           max_concurrency: max_concurrency
+         } = state,
+         suggested_concurrency
        )
-       when current_size > new_suggested_size and suggested_size != new_suggested_size do
-    %State{state | suggested_size: new_suggested_size}
+       when current_concurrency < max_concurrency and is_integer(max_concurrency) do
+    connections_to_add = max_concurrency - current_concurrency
+
+    for _id <- 1..connections_to_add do
+      ConnectionSupervisor.start_connection(state.conn_sup, state.conn_opts)
+    end
+
+    %State{
+      state
+      | current_concurrency: max_concurrency,
+        suggested_concurrency: suggested_concurrency
+    }
   end
 
-  defp maybe_resize_pool(%State{} = state, _suggested_size) do
-    state
+  defp maybe_resize_pool(%State{} = state, suggested_concurrency) do
+    %State{state | suggested_concurrency: suggested_concurrency}
   end
 
   defp maybe_disconnect(
@@ -218,7 +240,7 @@ defmodule EdgeDB.Pool do
       err = DBConnection.ConnectionError.exception(message: message, severity: :debug)
       Holder.handle_disconnect(holder, err)
       ConnectionSupervisor.disconnect_connection(state.conn_sup, conn_pid)
-      {:noreply, %State{state | current_size: state.current_size - 1}}
+      {:noreply, %State{state | current_concurrency: state.current_concurrency - 1}}
     else
       formatted_state = State.to_connection_pool_format(state)
 
@@ -231,18 +253,18 @@ defmodule EdgeDB.Pool do
   end
 
   defp disconnect?(%State{
-         current_size: current_size,
-         max_size: max_size
+         current_concurrency: current_concurrency,
+         max_concurrency: max_concurrency
        })
-       when current_size > max_size do
+       when current_concurrency > max_concurrency do
     true
   end
 
   defp disconnect?(%State{
-         current_size: current_size,
-         suggested_size: suggested_size
+         current_concurrency: current_concurrency,
+         suggested_concurrency: suggested_concurrency
        })
-       when current_size > suggested_size do
+       when current_concurrency > suggested_concurrency do
     true
   end
 
