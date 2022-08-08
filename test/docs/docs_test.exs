@@ -1,10 +1,10 @@
 defmodule Tests.DocsTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
-  setup %{conn: conn} do
-    conn
+  setup %{client: client} do
+    client
     |> drop_tickets()
     |> drop_persons()
     |> add_person()
@@ -19,20 +19,20 @@ defmodule Tests.DocsTest do
   doctest EdgeDB.RelativeDuration
   doctest EdgeDB.Set
 
-  defp drop_tickets(conn) do
-    EdgeDB.query!(conn, "delete Ticket")
+  defp drop_tickets(client) do
+    EdgeDB.query!(client, "delete Ticket")
 
-    conn
+    client
   end
 
-  defp drop_persons(conn) do
-    EdgeDB.query!(conn, "delete Person")
+  defp drop_persons(client) do
+    EdgeDB.query!(client, "delete Person")
 
-    conn
+    client
   end
 
-  defp add_person(conn) do
-    EdgeDB.query!(conn, """
+  defp add_person(client) do
+    EdgeDB.query!(client, """
     insert Person {
       first_name := 'Daniel',
       middle_name := 'Jacob',
@@ -41,6 +41,6 @@ defmodule Tests.DocsTest do
     };
     """)
 
-    conn
+    client
   end
 end

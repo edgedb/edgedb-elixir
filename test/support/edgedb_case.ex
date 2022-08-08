@@ -47,28 +47,34 @@ defmodule Tests.Support.EdgeDBCase do
     end
   end
 
-  @spec edgedb_connection(term()) :: map()
-  def edgedb_connection(_context) do
-    {:ok, conn} =
+  @spec edgedb_client(term()) :: map()
+  def edgedb_client(_context) do
+    {:ok, client} =
       start_supervised(
         {EdgeDB,
-         backoff_type: :stop, max_restarts: 0, show_sensitive_data_on_connection_error: true}
+         tls_security: :insecure,
+         max_concurrency: 1,
+         backoff_type: :stop,
+         max_restarts: 0,
+         show_sensitive_data_on_connection_error: true}
       )
 
-    %{conn: conn}
+    %{client: client}
   end
 
-  @spec reconnectable_edgedb_connection(term()) :: map()
-  def reconnectable_edgedb_connection(_context) do
+  @spec reconnectable_edgedb_client(term()) :: map()
+  def reconnectable_edgedb_client(_context) do
     spec =
       EdgeDB.child_spec(
+        tls_security: :insecure,
+        max_concurrency: 1,
         show_sensitive_data_on_connection_error: true,
         connection_listeners: [self()]
       )
 
-    spec = %{spec | id: "reconnectable_edgedb_connection"}
+    spec = %{spec | id: "reconnectable_edgedb_client"}
 
-    {:ok, conn} = start_supervised(spec)
+    {:ok, client} = start_supervised(spec)
 
     assert_receive {:connected, conn_pid}, 1000
 
@@ -80,16 +86,16 @@ defmodule Tests.Support.EdgeDBCase do
       }
     } = :sys.get_state(conn_pid)
 
-    %{conn: conn, pid: conn_pid, socket: socket}
+    %{client: client, pid: conn_pid, socket: socket}
   end
 
-  @spec rollback(EdgeDB.connection(), (EdgeDB.connection() -> any())) :: :ok
-  def rollback(conn, callback) do
+  @spec rollback(EdgeDB.client(), (EdgeDB.client() -> any())) :: :ok
+  def rollback(client, callback) do
     assert {:error, :expected} =
-             EdgeDB.transaction(conn, fn conn ->
-               callback.(conn)
+             EdgeDB.transaction(client, fn client ->
+               callback.(client)
 
-               EdgeDB.rollback(conn, reason: :expected)
+               EdgeDB.rollback(client, reason: :expected)
              end)
 
     :ok

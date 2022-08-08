@@ -3,7 +3,7 @@ defmodule EdgeDB.Connection.QueryBuilder do
 
   @type statement() :: String.t()
 
-  @spec start_transaction_statement(list(EdgeDB.edgedb_transaction_option())) :: statement()
+  @spec start_transaction_statement(list(EdgeDB.Client.transaction_option())) :: statement()
   def start_transaction_statement(opts) do
     # only serializable exists at the moment
     isolation =

@@ -5,6 +5,8 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     setup do
       %{
         connection_params: [
+          tls_security: :insecure,
+          max_concurrency: 1,
           user: "edgedb_trust",
           max_restarts: 0,
           show_sensitive_data_on_connection_error: true
@@ -13,9 +15,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     end
 
     test "connects successfully", context do
-      assert {:ok, conn} = EdgeDB.start_link(context.connection_params)
+      assert {:ok, client} = EdgeDB.start_link(context.connection_params)
 
-      assert 1 = EdgeDB.query_single!(conn, "select 1")
+      assert 1 = EdgeDB.query_single!(client, "select 1")
     end
   end
 
@@ -32,9 +34,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     end
 
     test "login successfully", context do
-      assert {:ok, conn} = EdgeDB.start_link(context.connection_params)
+      assert {:ok, client} = EdgeDB.start_link(context.connection_params)
 
-      assert 1 = EdgeDB.query_single!(conn, "select 1")
+      assert 1 = EdgeDB.query_single!(client, "select 1")
     end
   end
 
@@ -53,9 +55,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     end
 
     test "disconnects", context do
-      assert {:ok, conn} = EdgeDB.start_link(context.connection_params)
+      assert {:ok, client} = EdgeDB.start_link(context.connection_params)
 
-      assert_receive {:EXIT, ^conn, :killed}, 500
+      assert_receive {:EXIT, ^client, :killed}, 500
     end
   end
 
@@ -75,9 +77,9 @@ defmodule Tests.EdgeDB.Connection.AuthenticationTest do
     end
 
     test "disconnects", context do
-      assert {:ok, conn} = EdgeDB.start_link(context.connection_params)
+      assert {:ok, client} = EdgeDB.start_link(context.connection_params)
 
-      assert_receive {:EXIT, ^conn, :killed}, 500
+      assert_receive {:EXIT, ^client, :killed}, 500
     end
   end
 end

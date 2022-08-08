@@ -1,12 +1,12 @@
 defmodule Tests.EdgeDB.Types.ObjectTest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
   describe "EdgeDB.Object.properties/2" do
-    test "returns list of object properties names", %{conn: conn} do
-      rollback(conn, fn conn ->
-        EdgeDB.query!(conn, """
+    test "returns list of object properties names", %{client: client} do
+      rollback(client, fn client ->
+        EdgeDB.query!(client, """
         insert User {
           name := "username",
           image := "http://example.com/some/url"
@@ -14,7 +14,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         """)
 
         user_properties =
-          conn
+          client
           |> EdgeDB.query_required_single!("select User { name, image } limit 1")
           |> EdgeDB.Object.properties()
           |> MapSet.new()
@@ -24,9 +24,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
       end)
     end
 
-    test "returns list of object properties names + id with `:id` option ", %{conn: conn} do
-      rollback(conn, fn conn ->
-        EdgeDB.query!(conn, """
+    test "returns list of object properties names + id with `:id` option ", %{client: client} do
+      rollback(client, fn client ->
+        EdgeDB.query!(client, """
         insert User {
           name := "username",
           image := "http://example.com/some/url"
@@ -34,7 +34,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         """)
 
         user_properties =
-          conn
+          client
           |> EdgeDB.query_required_single!("select User { name, image } limit 1")
           |> EdgeDB.Object.properties(id: true)
           |> MapSet.new()
@@ -45,10 +45,10 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     end
 
     test "returns list of object properties names + id with `:implicit` option ", %{
-      conn: conn
+      client: client
     } do
-      rollback(conn, fn conn ->
-        EdgeDB.query!(conn, """
+      rollback(client, fn client ->
+        EdgeDB.query!(client, """
         insert User {
           name := "username",
           image := "http://example.com/some/url"
@@ -56,7 +56,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         """)
 
         user_properties =
-          conn
+          client
           |> EdgeDB.query_required_single!("select User { name, image } limit 1")
           |> EdgeDB.Object.properties(implicit: true)
           |> MapSet.new()
@@ -68,9 +68,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
   end
 
   describe "EdgeDB.Object.links/1" do
-    test "returns list of object links names", %{conn: conn} do
-      rollback(conn, fn conn ->
-        EdgeDB.query!(conn, """
+    test "returns list of object links names", %{client: client} do
+      rollback(client, fn client ->
+        EdgeDB.query!(client, """
         with
           director := (
             insert Person {
@@ -116,7 +116,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         """)
 
         movie_links =
-          conn
+          client
           |> EdgeDB.query_required_single!("""
           select Movie {
             title,
@@ -136,9 +136,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
   end
 
   describe "EdgeDB.Object.link_properties/1" do
-    test "returns list of object link properties names", %{conn: conn} do
-      rollback(conn, fn conn ->
-        EdgeDB.query!(conn, """
+    test "returns list of object link properties names", %{client: client} do
+      rollback(client, fn client ->
+        EdgeDB.query!(client, """
         with
           director := (
             insert Person {
@@ -184,7 +184,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         """)
 
         movie =
-          EdgeDB.query_required_single!(conn, """
+          EdgeDB.query_required_single!(client, """
           select Movie {
             title,
             directors,
@@ -210,9 +210,9 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
   end
 
   describe "EdgeDB.Object.to_map/1" do
-    test "returns map converted from object", %{conn: conn} do
+    test "returns map converted from object", %{client: client} do
       object =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
          select schema::Property {
              name,
              annotations: {

@@ -25,9 +25,11 @@ defmodule Tests.EdgeDB.Connection.StateTest do
       current_user: current_user,
       duration: duration
     } do
-      {:ok, conn} =
+      {:ok, client} =
         start_supervised(
           {EdgeDB,
+           tls_security: :insecure,
+           max_concurrency: 1,
            backoff_type: :stop,
            max_restarts: 0,
            show_sensitive_data_on_connection_error: true,
@@ -35,7 +37,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
         )
 
       object =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
           with
             config := (select cfg_alias::Config limit 1),
             abs_value := math_alias::abs(-1),
@@ -79,14 +81,18 @@ defmodule Tests.EdgeDB.Connection.StateTest do
       current_user: current_user,
       duration: duration
     } do
-      {:ok, conn} =
+      {:ok, client} =
         start_supervised(
           {EdgeDB,
-           backoff_type: :stop, max_restarts: 0, show_sensitive_data_on_connection_error: true}
+           tls_security: :insecure,
+           max_concurrency: 1,
+           backoff_type: :stop,
+           max_restarts: 0,
+           show_sensitive_data_on_connection_error: true}
         )
 
       object =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
           with
             config := (select cfg_alias::Config limit 1),
             abs_value := math_alias::abs(-1),

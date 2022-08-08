@@ -1,31 +1,31 @@
 defmodule Tests.EdgeDB.APITest do
   use Tests.Support.EdgeDBCase
 
-  setup :edgedb_connection
+  setup :edgedb_client
 
   describe "EdgeDB.query/4" do
-    test "returns EdgeDB.Set on succesful query", %{conn: conn} do
-      assert {:ok, %EdgeDB.Set{}} = EdgeDB.query(conn, "select 1")
+    test "returns EdgeDB.Set on succesful query", %{client: client} do
+      assert {:ok, %EdgeDB.Set{}} = EdgeDB.query(client, "select 1")
     end
 
-    test "returns error on failed query", %{conn: conn} do
+    test "returns error on failed query", %{client: client} do
       assert {:error, %EdgeDB.Error{}} =
-               EdgeDB.query(conn, "select {1, 2, 3}", [], cardinality: :one)
+               EdgeDB.query(client, "select {1, 2, 3}", [], cardinality: :one)
     end
   end
 
   describe "EdgeDB.query/4 for readonly queries" do
-    setup :reconnectable_edgedb_connection
+    setup :reconnectable_edgedb_client
 
-    test "retries failed query", %{conn: conn, socket: socket} do
-      EdgeDB.query!(conn, "select Ticket")
+    test "retries failed query", %{client: client, socket: socket} do
+      EdgeDB.query!(client, "select Ticket")
 
       :ssl.close(socket)
 
       test_pid = self()
 
       assert %EdgeDB.Set{} =
-               EdgeDB.query!(conn, "select Ticket", [],
+               EdgeDB.query!(client, "select Ticket", [],
                  retry: [
                    network_error: [
                      attempts: 1,
@@ -42,108 +42,109 @@ defmodule Tests.EdgeDB.APITest do
   end
 
   describe "EdgeDB.query_json/4" do
-    test "returns decoded JSON on succesful query", %{conn: conn} do
-      assert {:ok, "[{\"number\" : 1}]"} = EdgeDB.query_json(conn, "select { number := 1 }")
+    test "returns decoded JSON on succesful query", %{client: client} do
+      assert {:ok, "[{\"number\" : 1}]"} = EdgeDB.query_json(client, "select { number := 1 }")
     end
   end
 
   describe "EdgeDB.query!/4" do
-    test "returns EdgeDB.Set on succesful query", %{conn: conn} do
-      assert %EdgeDB.Set{} = EdgeDB.query!(conn, "select 1")
+    test "returns EdgeDB.Set on succesful query", %{client: client} do
+      assert %EdgeDB.Set{} = EdgeDB.query!(client, "select 1")
     end
 
-    test "raises error on failed query", %{conn: conn} do
+    test "raises error on failed query", %{client: client} do
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query!(conn, "select {1, 2, 3}", [], cardinality: :one)
+        EdgeDB.query!(client, "select {1, 2, 3}", [], cardinality: :one)
       end
     end
   end
 
   describe "EdgeDB.query_json!/4" do
-    test "returns decoded JSON on succesful query", %{conn: conn} do
-      assert "[{\"number\" : 1}]" = EdgeDB.query_json!(conn, "select { number := 1 }")
+    test "returns decoded JSON on succesful query", %{client: client} do
+      assert "[{\"number\" : 1}]" = EdgeDB.query_json!(client, "select { number := 1 }")
     end
   end
 
   describe "EdgeDB.query_single/4" do
-    test "returns result on succesful query", %{conn: conn} do
-      assert {:ok, 1} = EdgeDB.query_single(conn, "select 1")
+    test "returns result on succesful query", %{client: client} do
+      assert {:ok, 1} = EdgeDB.query_single(client, "select 1")
     end
 
-    test "raises error on failed query", %{conn: conn} do
+    test "raises error on failed query", %{client: client} do
       {:error, %EdgeDB.Error{}} =
-        EdgeDB.query_single(conn, "select {1, 2, 3}", [], cardinality: :one)
+        EdgeDB.query_single(client, "select {1, 2, 3}", [], cardinality: :one)
     end
   end
 
   describe "EdgeDB.query_single!/4" do
-    test "returns result on succesful query", %{conn: conn} do
-      assert 1 = EdgeDB.query_single!(conn, "select 1")
+    test "returns result on succesful query", %{client: client} do
+      assert 1 = EdgeDB.query_single!(client, "select 1")
     end
 
-    test "raises error on failed query", %{conn: conn} do
+    test "raises error on failed query", %{client: client} do
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.transaction(conn, fn conn ->
-          EdgeDB.query_single!(conn, "select {1, 2, 3}", [], cardinality: :one)
+        EdgeDB.transaction(client, fn client ->
+          EdgeDB.query_single!(client, "select {1, 2, 3}", [], cardinality: :one)
         end)
       end
     end
   end
 
   describe "EdgeDB.query_required_single/4" do
-    test "returns result on succesful query", %{conn: conn} do
-      assert {:ok, 1} = EdgeDB.query_required_single(conn, "select 1")
+    test "returns result on succesful query", %{client: client} do
+      assert {:ok, 1} = EdgeDB.query_required_single(client, "select 1")
     end
 
-    test "raises error on failed query", %{conn: conn} do
-      {:error, %EdgeDB.Error{}} = EdgeDB.query_required_single(conn, "select <int64>{}", [])
+    test "raises error on failed query", %{client: client} do
+      {:error, %EdgeDB.Error{}} = EdgeDB.query_required_single(client, "select <int64>{}", [])
     end
   end
 
   describe "EdgeDB.query_required_single!/4" do
-    test "returns result on succesful query", %{conn: conn} do
-      assert 1 = EdgeDB.query_required_single!(conn, "select 1")
+    test "returns result on succesful query", %{client: client} do
+      assert 1 = EdgeDB.query_required_single!(client, "select 1")
     end
 
-    test "raises error on failed query", %{conn: conn} do
+    test "raises error on failed query", %{client: client} do
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_required_single!(conn, "select <int64>{}")
+        EdgeDB.query_required_single!(client, "select <int64>{}")
       end
     end
   end
 
   describe "EdgeDB.query_single_json/4" do
-    test "returns decoded JSON on succesful query", %{conn: conn} do
-      assert {:ok, "{\"number\" : 1}"} = EdgeDB.query_single_json(conn, "select { number := 1 }")
+    test "returns decoded JSON on succesful query", %{client: client} do
+      assert {:ok, "{\"number\" : 1}"} =
+               EdgeDB.query_single_json(client, "select { number := 1 }")
     end
 
-    test "returns JSON null for empty set", %{conn: conn} do
-      assert {:ok, "null"} = EdgeDB.query_single_json(conn, "select <int64>{}")
+    test "returns JSON null for empty set", %{client: client} do
+      assert {:ok, "null"} = EdgeDB.query_single_json(client, "select <int64>{}")
     end
   end
 
   describe "EdgeDB.query_single_json!/4" do
-    test "returns decoded JSON on succesful query", %{conn: conn} do
-      assert "{\"number\" : 1}" = EdgeDB.query_single_json!(conn, "select { number := 1 }")
+    test "returns decoded JSON on succesful query", %{client: client} do
+      assert "{\"number\" : 1}" = EdgeDB.query_single_json!(client, "select { number := 1 }")
     end
   end
 
   describe "EdgeDB.query_required_single_json/4" do
-    test "returns decoded JSON on succesful query", %{conn: conn} do
-      assert {:ok, "1"} = EdgeDB.query_required_single_json(conn, "select 1")
+    test "returns decoded JSON on succesful query", %{client: client} do
+      assert {:ok, "1"} = EdgeDB.query_required_single_json(client, "select 1")
     end
   end
 
   describe "EdgeDB.query_required_single_json!/4" do
-    test "returns decoded JSON on succesful query", %{conn: conn} do
-      assert "1" = EdgeDB.query_required_single_json!(conn, "select 1")
+    test "returns decoded JSON on succesful query", %{client: client} do
+      assert "1" = EdgeDB.query_required_single_json!(client, "select 1")
     end
   end
 
   describe "EdgeDB.execute/4" do
-    test "executes query", %{conn: conn} do
+    test "executes query", %{client: client} do
       {:error, :rollback} =
-        EdgeDB.transaction(conn, fn conn ->
+        EdgeDB.transaction(client, fn conn ->
           :ok =
             EdgeDB.execute(conn, """
               insert User { image := '', name := 'username1' };
@@ -156,9 +157,9 @@ defmodule Tests.EdgeDB.APITest do
   end
 
   describe "EdgeDB.execute!/4" do
-    test "executes query", %{conn: conn} do
+    test "executes query", %{client: client} do
       {:error, :rollback} =
-        EdgeDB.transaction(conn, fn conn ->
+        EdgeDB.transaction(client, fn conn ->
           EdgeDB.execute!(conn, """
             insert User { image := '', name := 'username1' };
             insert User { image := '', name := 'username2' };
@@ -170,63 +171,63 @@ defmodule Tests.EdgeDB.APITest do
   end
 
   describe "EdgeDB.transaction/3" do
-    test "commit result if no error occured", %{conn: conn} do
+    test "commit result if no error occured", %{client: client} do
       {:ok, %EdgeDB.Object{id: user_id}} =
-        EdgeDB.transaction(conn, fn conn ->
+        EdgeDB.transaction(client, fn conn ->
           EdgeDB.query_single!(conn, "insert User { image := '', name := 'username' }")
         end)
 
       %EdgeDB.Object{id: ^user_id} =
-        EdgeDB.query_single!(conn, "delete User filter .id = <uuid>$0", [user_id])
+        EdgeDB.query_single!(client, "delete User filter .id = <uuid>$0", [user_id])
 
       assert EdgeDB.Set.empty?(
-               EdgeDB.query!(conn, "select User filter .id = <uuid>$0", [user_id])
+               EdgeDB.query!(client, "select User filter .id = <uuid>$0", [user_id])
              )
     end
 
-    test "automaticly rollbacks if error occured", %{conn: conn} do
+    test "automaticly rollbacks if error occured", %{client: client} do
       assert_raise RuntimeError, fn ->
-        EdgeDB.transaction(conn, fn conn ->
+        EdgeDB.transaction(client, fn conn ->
           EdgeDB.query!(conn, "insert User { image := '', name := 'username' }")
           raise RuntimeError
         end)
       end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select User"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select User"))
     end
 
-    test "automaticly rollbacks if error in EdgeDB occured", %{conn: conn} do
+    test "automaticly rollbacks if error in EdgeDB occured", %{client: client} do
       assert_raise EdgeDB.Error, ~r/violates exclusivity constraint/, fn ->
-        EdgeDB.transaction(conn, fn conn ->
+        EdgeDB.transaction(client, fn conn ->
           EdgeDB.query!(conn, "insert Ticket { number := 1 }")
           EdgeDB.query!(conn, "insert Ticket { number := 1 }")
         end)
       end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select Ticket"))
     end
 
-    test "nested transactions raises borrow error", %{conn: conn} do
+    test "nested transactions raises borrow error", %{client: client} do
       assert_raise EdgeDB.Error, ~r/borrowed for transaction/, fn ->
-        EdgeDB.transaction(conn, fn conn ->
-          EdgeDB.transaction(conn, fn conn ->
-            EdgeDB.query!(conn, "select 1")
+        EdgeDB.transaction(client, fn tx_conn1 ->
+          EdgeDB.transaction(tx_conn1, fn tx_conn2 ->
+            EdgeDB.query!(tx_conn2, "select 1")
           end)
         end)
       end
     end
 
-    test "forbids using original connection inside", %{conn: conn} do
+    test "forbids using original connection inside", %{client: client} do
       assert_raise EdgeDB.Error, ~r/borrowed for transaction/, fn ->
-        EdgeDB.transaction(conn, fn _tx_conn ->
-          EdgeDB.query!(conn, "select 1")
+        EdgeDB.transaction(client, fn _tx_conn ->
+          EdgeDB.query!(client, "select 1")
         end)
       end
 
-      assert "ok" = EdgeDB.query_required_single!(conn, ~s(select "ok"))
+      assert "ok" = EdgeDB.query_required_single!(client, ~s(select "ok"))
     end
 
-    test "won't retry on non EdgeDB errors", %{conn: conn} do
+    test "won't retry on non EdgeDB errors", %{client: client} do
       rule = [
         attempts: 1,
         backoff: fn _attempt ->
@@ -235,7 +236,7 @@ defmodule Tests.EdgeDB.APITest do
       ]
 
       assert_raise RuntimeError, ~r/expected/, fn ->
-        EdgeDB.transaction(conn, fn _tx_conn -> raise RuntimeError, message: "expected" end,
+        EdgeDB.transaction(client, fn _tx_conn -> raise RuntimeError, message: "expected" end,
           retry: [network_error: rule, transaction_conflict: rule]
         )
       end
@@ -243,16 +244,16 @@ defmodule Tests.EdgeDB.APITest do
   end
 
   describe "EdgeDB.subtransaction/2" do
-    test "allowed only on connections in transactions", %{conn: conn} do
+    test "allowed only on connections in transactions", %{client: client} do
       assert_raise EdgeDB.Error, ~r/(already in transaction)|(another subtransaction)/, fn ->
-        EdgeDB.subtransaction(conn, fn _subtx_conn ->
+        EdgeDB.subtransaction(client, fn _subtx_conn ->
           :ok
         end)
       end
     end
 
-    test "rollbacks nested transaction without breaking the outer", %{conn: conn} do
-      EdgeDB.transaction(conn, fn tx_conn ->
+    test "rollbacks nested transaction without breaking the outer", %{client: client} do
+      EdgeDB.transaction(client, fn tx_conn ->
         assert {:error, :subtx_rollback} =
                  EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
                    EdgeDB.query!(subtx_conn, "insert Ticket{ number := 1 }")
@@ -268,8 +269,8 @@ defmodule Tests.EdgeDB.APITest do
     end
 
     test "not rollbacked changes from inner subtransactions seen to outer and to main transaction",
-         %{conn: conn} do
-      EdgeDB.transaction(conn, fn tx_conn ->
+         %{client: client} do
+      EdgeDB.transaction(client, fn tx_conn ->
         assert {:ok, :ok} =
                  EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
                    {:ok, %EdgeDB.Set{}} =
@@ -302,12 +303,12 @@ defmodule Tests.EdgeDB.APITest do
         EdgeDB.rollback(tx_conn)
       end)
 
-      assert 0 == EdgeDB.query_required_single!(conn, "select count(Ticket)")
+      assert 0 == EdgeDB.query_required_single!(client, "select count(Ticket)")
     end
 
     test "not rollbacked changes applied after exiting from main transaction",
-         %{conn: conn} do
-      EdgeDB.transaction(conn, fn tx_conn ->
+         %{client: client} do
+      EdgeDB.transaction(client, fn tx_conn ->
         assert {:ok, :ok} =
                  EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
                    {:ok, %EdgeDB.Set{}} =
@@ -340,13 +341,13 @@ defmodule Tests.EdgeDB.APITest do
         :ok
       end)
 
-      assert 2 == EdgeDB.query_required_single!(conn, "select count(Ticket)")
+      assert 2 == EdgeDB.query_required_single!(client, "select count(Ticket)")
 
-      EdgeDB.query!(conn, "delete Ticket")
+      EdgeDB.query!(client, "delete Ticket")
     end
 
-    test "can be continued after rollback", %{conn: conn} do
-      EdgeDB.transaction(conn, fn tx_conn ->
+    test "can be continued after rollback", %{client: client} do
+      EdgeDB.transaction(client, fn tx_conn ->
         assert {:ok, "ok"} =
                  EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
                    EdgeDB.query!(subtx_conn, "insert Ticket{ number := 1 }")
@@ -363,9 +364,9 @@ defmodule Tests.EdgeDB.APITest do
       end)
     end
 
-    test "forbids applying borrowed connections", %{conn: conn} do
+    test "forbids applying borrowed connections", %{client: client} do
       assert_raise EdgeDB.Error, ~r/borrowed for subtransaction/, fn ->
-        EdgeDB.transaction(conn, fn tx_conn ->
+        EdgeDB.transaction(client, fn tx_conn ->
           EdgeDB.subtransaction(tx_conn, fn _subtx_conn ->
             EdgeDB.query!(tx_conn, "select 1")
           end)
@@ -373,7 +374,7 @@ defmodule Tests.EdgeDB.APITest do
       end
 
       assert_raise EdgeDB.Error, ~r/borrowed for subtransaction/, fn ->
-        EdgeDB.transaction(conn, fn tx_conn ->
+        EdgeDB.transaction(client, fn tx_conn ->
           EdgeDB.subtransaction(tx_conn, fn subtx_conn_1 ->
             EdgeDB.subtransaction(subtx_conn_1, fn _subtx_conn_2 ->
               EdgeDB.query!(subtx_conn_1, "select 1")
@@ -385,9 +386,9 @@ defmodule Tests.EdgeDB.APITest do
   end
 
   describe "EdgeDB.subtransaction!/2" do
-    test "unwraps succesful result", %{conn: conn} do
+    test "unwraps succesful result", %{client: client} do
       assert {:ok, 42} =
-               EdgeDB.transaction(conn, fn tx_conn ->
+               EdgeDB.transaction(client, fn tx_conn ->
                  EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
                    EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
                      EdgeDB.query_required_single!(subtx_conn2, "select 42")
@@ -396,9 +397,9 @@ defmodule Tests.EdgeDB.APITest do
                end)
     end
 
-    test "rollbacks to outer block if error occured", %{conn: conn} do
+    test "rollbacks to outer block if error occured", %{client: client} do
       assert_raise EdgeDB.Error, ~r/violates exclusivity constraint/, fn ->
-        EdgeDB.transaction(conn, fn tx_conn ->
+        EdgeDB.transaction(client, fn tx_conn ->
           EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
             EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
               EdgeDB.query_required_single!(subtx_conn2, "insert Ticket{ number := 1}")
@@ -408,12 +409,12 @@ defmodule Tests.EdgeDB.APITest do
         end)
       end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select Ticket"))
     end
 
-    test "rollbacks to outer block if EdgeDB.rollback/2 called", %{conn: conn} do
+    test "rollbacks to outer block if EdgeDB.rollback/2 called", %{client: client} do
       assert {:error, :rollback} =
-               EdgeDB.transaction(conn, fn tx_conn ->
+               EdgeDB.transaction(client, fn tx_conn ->
                  EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
                    EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
                      EdgeDB.query_required_single(subtx_conn2, "insert Ticket{ number := 1}")
@@ -422,69 +423,69 @@ defmodule Tests.EdgeDB.APITest do
                  end)
                end)
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select Ticket"))
     end
   end
 
   describe "EdgeDB.rollback/2" do
-    test "rollbacks transaction", %{conn: conn} do
+    test "rollbacks transaction", %{client: client} do
       {:error, :rollback} =
-        EdgeDB.transaction(conn, fn conn ->
-          EdgeDB.query!(conn, "insert User { image := '', name := 'username' }")
-          EdgeDB.rollback(conn, reason: :rollback)
+        EdgeDB.transaction(client, fn client ->
+          EdgeDB.query!(client, "insert User { image := '', name := 'username' }")
+          EdgeDB.rollback(client, reason: :rollback)
         end)
     end
   end
 
   describe "EdgeDB.as_readonly/2" do
-    setup %{conn: conn} do
-      %{conn: EdgeDB.as_readonly(conn)}
+    setup %{client: client} do
+      %{client: EdgeDB.as_readonly(client)}
     end
 
-    test "configures connection that will fail for non-readonly requests", %{conn: conn} do
+    test "configures connection that will fail for non-readonly requests", %{client: client} do
       exc =
         assert_raise EdgeDB.Error, fn ->
-          EdgeDB.query!(conn, "insert Ticket")
+          EdgeDB.query!(client, "insert Ticket")
         end
 
       assert exc.type == EdgeDB.DisabledCapabilityError
     end
 
     test "configures connection that will fail for non-readonly requests in transaction", %{
-      conn: conn
+      client: client
     } do
       exc =
         assert_raise EdgeDB.Error, fn ->
-          EdgeDB.transaction(conn, fn conn ->
-            EdgeDB.query!(conn, "insert Ticket")
+          EdgeDB.transaction(client, fn client ->
+            EdgeDB.query!(client, "insert Ticket")
           end)
         end
 
       assert exc.type == EdgeDB.DisabledCapabilityError
     end
 
-    test "configures connection that executes readonly requests", %{conn: conn} do
-      assert 1 == EdgeDB.query_single!(conn, "select 1")
+    test "configures connection that executes readonly requests", %{client: client} do
+      assert 1 == EdgeDB.query_single!(client, "select 1")
     end
 
     test "configures connection that executes readonly requests in transaction", %{
-      conn: conn
+      client: client
     } do
       assert {:ok, 1} ==
-               EdgeDB.transaction(conn, fn conn ->
-                 EdgeDB.query_single!(conn, "select 1")
+               EdgeDB.transaction(client, fn client ->
+                 EdgeDB.query_single!(client, "select 1")
                end)
     end
   end
 
   describe "EdgeDB.with_transaction_options/2" do
-    test "accepts options for changing transaction", %{conn: conn} do
+    test "accepts options for changing transaction", %{client: client} do
       exc =
         assert_raise EdgeDB.Error, ~r/read-only transaction/, fn ->
-          conn
+          client
           |> EdgeDB.with_transaction_options(readonly: true)
-          |> EdgeDB.transaction(fn conn ->
-            EdgeDB.query!(conn, "insert Ticket{ number := 1 }")
+          |> EdgeDB.transaction(fn client ->
+            EdgeDB.query!(client, "insert Ticket{ number := 1 }")
           end)
         end
 
@@ -494,13 +495,13 @@ defmodule Tests.EdgeDB.APITest do
 
   describe "EdgeDB.with_retry_options/2" do
     test "accepts options for changing retries in transactions for transactions conflicts", %{
-      conn: conn
+      client: client
     } do
       pid = self()
 
       exc =
         assert_raise EdgeDB.Error, ~r/test error/, fn ->
-          conn
+          client
           |> EdgeDB.with_retry_options(
             transaction_conflict: [
               attempts: 10,
@@ -510,13 +511,13 @@ defmodule Tests.EdgeDB.APITest do
               end
             ]
           )
-          |> EdgeDB.transaction(fn conn ->
-            EdgeDB.query!(conn, "insert Ticket{ number := 1 }")
+          |> EdgeDB.transaction(fn client ->
+            EdgeDB.query!(client, "insert Ticket{ number := 1 }")
             raise EdgeDB.TransactionConflictError.new("test error")
           end)
         end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select Ticket"))
 
       assert exc.type == EdgeDB.TransactionConflictError
 
@@ -526,13 +527,13 @@ defmodule Tests.EdgeDB.APITest do
     end
 
     test "accepts options for changing retries in transactions for network errors", %{
-      conn: conn
+      client: client
     } do
       pid = self()
 
       exc =
         assert_raise EdgeDB.Error, ~r/test error/, fn ->
-          conn
+          client
           |> EdgeDB.with_retry_options(
             network_error: [
               backoff: fn attempt ->
@@ -541,13 +542,13 @@ defmodule Tests.EdgeDB.APITest do
               end
             ]
           )
-          |> EdgeDB.transaction(fn conn ->
-            EdgeDB.query!(conn, "insert Ticket{ number := 1 }")
+          |> EdgeDB.transaction(fn client ->
+            EdgeDB.query!(client, "insert Ticket{ number := 1 }")
             raise EdgeDB.ClientConnectionFailedTemporarilyError.new("test error")
           end)
         end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(conn, "select Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select Ticket"))
 
       assert exc.type == EdgeDB.ClientConnectionFailedTemporarilyError
 
@@ -560,22 +561,22 @@ defmodule Tests.EdgeDB.APITest do
   describe "EdgeDB.with_default_module/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
-      %{conn: EdgeDB.with_default_module(conn, "schema")}
+    setup %{client: client} do
+      %{client: EdgeDB.with_default_module(client, "schema")}
     end
 
-    test "passes module to EdgeDB", %{conn: conn} do
+    test "passes module to EdgeDB", %{client: client} do
       assert %EdgeDB.Object{} =
-               EdgeDB.query_required_single!(conn, """
+               EdgeDB.query_required_single!(client, """
                   select ObjectType
                   filter .name = 'std::BaseObject'
                   limit 1
                """)
     end
 
-    test "without argument removes module from passing to EdgeDB", %{conn: conn} do
+    test "without argument removes module from passing to EdgeDB", %{client: client} do
       assert_raise EdgeDB.Error, ~r/'default::ObjectType' does not exist/, fn ->
-        conn
+        client
         |> EdgeDB.with_default_module()
         |> EdgeDB.query_required_single!("""
           select ObjectType
@@ -589,39 +590,42 @@ defmodule Tests.EdgeDB.APITest do
   describe "EdgeDB.with_module_aliases/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       %{
-        conn:
-          EdgeDB.with_module_aliases(conn, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
+        client:
+          EdgeDB.with_module_aliases(client, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
       }
     end
 
-    test "passes aliases to EdgeDB", %{conn: conn} do
+    test "passes aliases to EdgeDB", %{client: client} do
       assert %EdgeDB.Object{} =
-               EdgeDB.query_required_single!(conn, """
+               EdgeDB.query_required_single!(client, """
                   select schema_alias::ObjectType
                   filter .name = 'std::BaseObject'
                   limit 1
                """)
 
       assert %EdgeDB.ConfigMemory{} =
-               EdgeDB.query_required_single!(conn, "select <cfg_alias::memory>'1B'")
+               EdgeDB.query_required_single!(client, "select <cfg_alias::memory>'1B'")
     end
   end
 
   describe "EdgeDB.without_module_aliases/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       %{
-        conn:
-          EdgeDB.without_module_aliases(conn, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
+        client:
+          EdgeDB.without_module_aliases(client, %{
+            "schema_alias" => "schema",
+            "cfg_alias" => "cfg"
+          })
       }
     end
 
-    test "removes aliases from passed to EdgeDB", %{conn: conn} do
+    test "removes aliases from passed to EdgeDB", %{client: client} do
       assert_raise EdgeDB.Error, ~r/type 'cfg_alias::memory' does not exist/, fn ->
-        conn
+        client
         |> EdgeDB.without_module_aliases(["cfg_alias"])
         |> EdgeDB.query_required_single!("select <cfg_alias::memory>'1B'")
       end
@@ -631,16 +635,19 @@ defmodule Tests.EdgeDB.APITest do
   describe "EdgeDB.with_config/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       # 48:45:07:6
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
-      %{conn: EdgeDB.with_config(conn, %{query_execution_timeout: duration}), duration: duration}
+      %{
+        client: EdgeDB.with_config(client, %{query_execution_timeout: duration}),
+        duration: duration
+      }
     end
 
-    test "passes config to EdgeDB", %{conn: conn, duration: duration} do
+    test "passes config to EdgeDB", %{client: client, duration: duration} do
       config_object =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
           select cfg::Config {
             query_execution_timeout
           }
@@ -654,16 +661,16 @@ defmodule Tests.EdgeDB.APITest do
   describe "EdgeDB.without_config/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       # 48:45:07:6
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
-      %{conn: EdgeDB.with_config(conn, %{query_execution_timeout: duration})}
+      %{client: EdgeDB.with_config(client, %{query_execution_timeout: duration})}
     end
 
-    test "removes config keys from passed to EdgeDB", %{conn: conn} do
+    test "removes config keys from passed to EdgeDB", %{client: client} do
       config_object =
-        conn
+        client
         |> EdgeDB.without_config([:query_execution_timeout])
         |> EdgeDB.query_required_single!("select cfg::Config { query_execution_timeout } limit 1")
 
@@ -674,38 +681,38 @@ defmodule Tests.EdgeDB.APITest do
   describe "EdgeDB.with_globals/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       current_user = "some_username"
 
       %{
-        conn: EdgeDB.with_globals(conn, %{"current_user" => current_user}),
+        client: EdgeDB.with_globals(client, %{"current_user" => current_user}),
         current_user: current_user
       }
     end
 
-    test "passes globals to EdgeDB", %{conn: conn, current_user: current_user} do
-      assert current_user == EdgeDB.query_required_single!(conn, "select global current_user")
+    test "passes globals to EdgeDB", %{client: client, current_user: current_user} do
+      assert current_user == EdgeDB.query_required_single!(client, "select global current_user")
     end
   end
 
   describe "EdgeDB.without_globals/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       current_user = "some_username"
-      %{conn: EdgeDB.with_globals(conn, %{"current_user" => current_user})}
+      %{client: EdgeDB.with_globals(client, %{"current_user" => current_user})}
     end
 
-    test "removes globals from passed to EdgeDB", %{conn: conn} do
-      conn = EdgeDB.without_globals(conn, ["current_user"])
-      refute EdgeDB.query_single!(conn, "select global current_user")
+    test "removes globals from passed to EdgeDB", %{client: client} do
+      client = EdgeDB.without_globals(client, ["current_user"])
+      refute EdgeDB.query_single!(client, "select global current_user")
     end
   end
 
   describe "EdgeDB.with_state/2" do
     skip_before(version: 2, scope: :describe)
 
-    setup %{conn: conn} do
+    setup %{client: client} do
       current_user = "current_user"
 
       # 48:45:07:6
@@ -718,12 +725,16 @@ defmodule Tests.EdgeDB.APITest do
         |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
         |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
 
-      %{conn: EdgeDB.with_state(conn, state), current_user: current_user, duration: duration}
+      %{client: EdgeDB.with_state(client, state), current_user: current_user, duration: duration}
     end
 
-    test "passes state to EdgeDB", %{conn: conn, current_user: current_user, duration: duration} do
+    test "passes state to EdgeDB", %{
+      client: client,
+      current_user: current_user,
+      duration: duration
+    } do
       object =
-        EdgeDB.query_required_single!(conn, """
+        EdgeDB.query_required_single!(client, """
           with
             config := (select cfg_alias::Config limit 1),
             abs_value := math_alias::abs(-1),

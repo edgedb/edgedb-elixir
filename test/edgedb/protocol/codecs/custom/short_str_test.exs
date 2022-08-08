@@ -4,32 +4,36 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Custom.ShortStrTest do
   alias Tests.Support.Codecs
 
   setup do
-    {:ok, conn} =
+    {:ok, client} =
       start_supervised(
-        {EdgeDB, codecs: [Codecs.ShortStr], show_sensitive_data_on_connection_error: true}
+        {EdgeDB,
+         tls_security: :insecure,
+         max_concurrency: 1,
+         codecs: [Codecs.ShortStr],
+         show_sensitive_data_on_connection_error: true}
       )
 
-    %{conn: conn}
+    %{client: client}
   end
 
-  test "decoding default::short_str value", %{conn: conn} do
+  test "decoding default::short_str value", %{client: client} do
     value = "short"
 
-    assert ^value = EdgeDB.query_single!(conn, "select <short_str>\"short\"")
+    assert ^value = EdgeDB.query_single!(client, "select <short_str>\"short\"")
   end
 
-  test "encoding default::short_str value", %{conn: conn} do
+  test "encoding default::short_str value", %{client: client} do
     value = "short"
-    assert ^value = EdgeDB.query_single!(conn, "select <short_str>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <short_str>$0", [value])
   end
 
   test "error when passing value that can't be encoded by custom codec as default::short_str argument",
-       %{conn: conn} do
+       %{client: client} do
     value = "too long string"
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(conn, "select <short_str>$0", [value])
+        EdgeDB.query_single!(client, "select <short_str>$0", [value])
       end
 
     assert exc == EdgeDB.InvalidArgumentError.new("string is too long")

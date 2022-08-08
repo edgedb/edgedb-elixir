@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.4.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.4.0...HEAD)
 
+### Added
+
+- `EdgeDB.Client` module that is acceptable by all `EdgeDB` API.
+- `max_concurrency` option to start pool to control max connections count in `EdgeDB.Pool`.
+
+### Changed
+
+- default pool from `DBConnection.Pool` to `EdgeDB.Pool`.
+- first parameter accepted by callbacks in `EdgeDB.transaction/3`, `EdgeDB.subtransaction/2`
+    and `EdgeDB.subtransaction!/2` from `t:DBConnection.t/0` to `t:EdgeDB.Client.t/0`.
+- `EdgeDB.connection/0` to `t:EdgeDB.client/0`.
+- `EdgeDB.edgedb_transaction_option/0` to `t:EdgeDB.Client.transaction_option/0`.
+- `EdgeDB.retry_option/0` to `t:EdgeDB.Client.retry_option/0`.
+- `EdgeDB.retry_rule/0` to `t:EdgeDB.Client.retry_rule/0`.
+
+### Removed
+
+- `EdgeDB.WrappedConnection` module in favor of `EdgeDB.Client`.
+
 ## [0.4.0] - 2022-08-04
 
 [Compare with 0.3.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.3.0...v0.4.0)

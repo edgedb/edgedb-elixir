@@ -127,6 +127,7 @@ defmodule EdgeDB.MixProject do
         "pages/custom-codecs.md",
         "CHANGELOG.md"
       ],
+      skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
       groups_for_modules: [
         "EdgeDB types": [
           EdgeDB.Object,

@@ -6,7 +6,8 @@ defmodule EdgeDB.Application do
   @impl Application
   def start(_type, _args) do
     children = [
-      EdgeDB.Borrower
+      EdgeDB.Borrower,
+      {Registry, keys: :unique, name: EdgeDB.ClientsRegistry}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: EdgeDB.Supervisor)

@@ -7,22 +7,25 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Custom.TicketNoTest do
   }
 
   setup do
-    {:ok, conn} =
+    {:ok, client} =
       start_supervised(
-        {EdgeDB, codecs: [Codecs.TicketNo], show_sensitive_data_on_connection_error: true}
+        {EdgeDB,
+         max_concurrency: 1,
+         tls_security: :insecure,
+         codecs: [Codecs.TicketNo],
+         show_sensitive_data_on_connection_error: true}
       )
 
-    %{conn: conn}
+    %{client: client}
   end
 
-  test "decoding default::TicketNo value", %{conn: conn} do
+  test "decoding default::TicketNo value", %{client: client} do
     value = %TicketNo{number: 42}
-
-    assert ^value = EdgeDB.query_single!(conn, "select <TicketNo>42")
+    assert ^value = EdgeDB.query_single!(client, "select <TicketNo>42")
   end
 
-  test "encoding default::TicketNo value", %{conn: conn} do
+  test "encoding default::TicketNo value", %{client: client} do
     value = %TicketNo{number: 42}
-    assert ^value = EdgeDB.query_single!(conn, "select <TicketNo>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <TicketNo>$0", [value])
   end
 end

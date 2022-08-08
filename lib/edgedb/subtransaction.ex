@@ -33,6 +33,16 @@ defmodule EdgeDB.Subtransaction do
   end
 
   @impl DBConnection
+  def handle_status(_opts, state) do
+    {status(state), state}
+  end
+
+  @impl DBConnection
+  def ping(state) do
+    {:ok, state}
+  end
+
+  @impl DBConnection
   def connect(opts \\ []) do
     conn = opts[:conn]
 
@@ -45,43 +55,14 @@ defmodule EdgeDB.Subtransaction do
   end
 
   @impl DBConnection
-  def handle_begin(_opts, %State{conn_state: conn_state} = state)
-      when conn_state in [:in_transaction, :in_failed_transaction] do
-    {status(state), state}
-  end
+  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{} = state) do
+    case DBConnection.prepare(state.conn, query, opts) do
+      {:ok, query} ->
+        {:ok, query, state}
 
-  @impl DBConnection
-  def handle_begin(_opts, %State{} = state) do
-    declare_savepoint(state)
-  end
-
-  @impl DBConnection
-  def handle_close(_query, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_close/3 callback hasn't been implemented")
-    {:error, exc, state}
-  end
-
-  @impl DBConnection
-  def handle_commit(_opts, %State{conn_state: conn_state} = state)
-      when conn_state in [:not_in_transaction, :in_failed_transaction] do
-    {status(state), state}
-  end
-
-  @impl DBConnection
-  def handle_commit(_opts, state) do
-    release_savepoint(state)
-  end
-
-  @impl DBConnection
-  def handle_deallocate(_query, _cursor, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_deallocate/4 callback hasn't been implemented")
-    {:error, exc, state}
-  end
-
-  @impl DBConnection
-  def handle_declare(_query, _params, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_declare/4 callback hasn't been implemented")
-    {:error, exc, state}
+      {:error, exc} ->
+        {:error, exc, state}
+    end
   end
 
   @impl DBConnection
@@ -138,20 +119,49 @@ defmodule EdgeDB.Subtransaction do
   end
 
   @impl DBConnection
+  def handle_close(_query, _opts, state) do
+    exc = EdgeDB.InterfaceError.new("handle_close/3 callback hasn't been implemented")
+    {:error, exc, state}
+  end
+
+  @impl DBConnection
+  def handle_declare(_query, _params, _opts, state) do
+    exc = EdgeDB.InterfaceError.new("handle_declare/4 callback hasn't been implemented")
+    {:error, exc, state}
+  end
+
+  @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
     exc = EdgeDB.InterfaceError.new("handle_fetch/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
   @impl DBConnection
-  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{} = state) do
-    case DBConnection.prepare(state.conn, query, opts) do
-      {:ok, query} ->
-        {:ok, query, state}
+  def handle_deallocate(_query, _cursor, _opts, state) do
+    exc = EdgeDB.InterfaceError.new("handle_deallocate/4 callback hasn't been implemented")
+    {:error, exc, state}
+  end
 
-      {:error, exc} ->
-        {:error, exc, state}
-    end
+  @impl DBConnection
+  def handle_begin(_opts, %State{conn_state: conn_state} = state)
+      when conn_state in [:in_transaction, :in_failed_transaction] do
+    {status(state), state}
+  end
+
+  @impl DBConnection
+  def handle_begin(opts, %State{} = state) do
+    declare_savepoint(opts, state)
+  end
+
+  @impl DBConnection
+  def handle_commit(_opts, %State{conn_state: conn_state} = state)
+      when conn_state in [:not_in_transaction, :in_failed_transaction] do
+    {status(state), state}
+  end
+
+  @impl DBConnection
+  def handle_commit(opts, state) do
+    release_savepoint(opts, state)
   end
 
   @impl DBConnection
@@ -161,21 +171,11 @@ defmodule EdgeDB.Subtransaction do
   end
 
   @impl DBConnection
-  def handle_rollback(_opts, state) do
-    rollback_to_savepoint(state)
+  def handle_rollback(opts, state) do
+    rollback_to_savepoint(opts, state)
   end
 
-  @impl DBConnection
-  def handle_status(_opts, state) do
-    {status(state), state}
-  end
-
-  @impl DBConnection
-  def ping(state) do
-    {:ok, state}
-  end
-
-  defp declare_savepoint(%State{} = state) do
+  defp declare_savepoint(opts, %State{} = state) do
     next_savepoint_id =
       DBConnection.execute!(state.conn, %InternalRequest{request: :next_savepoint}, [], [])
 
@@ -189,12 +189,15 @@ defmodule EdgeDB.Subtransaction do
       capabilities: [:transaction]
     }
 
-    case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
-           statement: statement,
-           headers: %{},
-           query: query,
-           params: []
-         }) do
+    execution_result =
+      DBConnection.execute(
+        state.conn,
+        %InternalRequest{request: :execute_script_flow},
+        %{statement: statement, headers: %{}, query: query, params: []},
+        opts
+      )
+
+    case execution_result do
       {:ok, _query, result} ->
         {:ok, result,
          %State{
@@ -208,7 +211,7 @@ defmodule EdgeDB.Subtransaction do
     end
   end
 
-  defp release_savepoint(%State{} = state) do
+  defp release_savepoint(opts, %State{} = state) do
     statement = QueryBuilder.release_savepoint_statement(state.savepoint)
 
     query = %EdgeDB.Query{
@@ -217,12 +220,15 @@ defmodule EdgeDB.Subtransaction do
       capabilities: [:transaction]
     }
 
-    case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
-           statement: statement,
-           headers: %{},
-           query: query,
-           params: []
-         }) do
+    execution_result =
+      DBConnection.execute(
+        state.conn,
+        %InternalRequest{request: :execute_script_flow},
+        %{statement: statement, headers: %{}, query: query, params: []},
+        opts
+      )
+
+    case execution_result do
       {:ok, _query, result} ->
         {:ok, result,
          %State{
@@ -235,7 +241,7 @@ defmodule EdgeDB.Subtransaction do
     end
   end
 
-  defp rollback_to_savepoint(%State{} = state) do
+  defp rollback_to_savepoint(opts, %State{} = state) do
     statement = QueryBuilder.rollback_to_savepoint_statement(state.savepoint)
 
     query = %EdgeDB.Query{
@@ -244,12 +250,15 @@ defmodule EdgeDB.Subtransaction do
       capabilities: [:transaction]
     }
 
-    case DBConnection.execute(state.conn, %InternalRequest{request: :execute_script_flow}, %{
-           statement: statement,
-           headers: %{},
-           query: query,
-           params: []
-         }) do
+    execution_result =
+      DBConnection.execute(
+        state.conn,
+        %InternalRequest{request: :execute_script_flow},
+        %{statement: statement, headers: %{}, query: query, params: []},
+        opts
+      )
+
+    case execution_result do
       {:ok, _query, result} ->
         {:ok, result, state}
 

@@ -1,24 +1,6 @@
 defmodule EdgeDB.Pool do
   @moduledoc """
   A wrapper around `DBConnection.ConnectionPool` to support dynamic resizing of the connection pool.
-
-  > #### WARNING {: .warning}
-  >
-  > Consider this module as experimental. You can try to use it in your applications,
-  >   but some errors may occur.
-
-  How to use:
-
-  Edit your `config/config.exs` file by adding the following setting to the `:edgedb` configuration:
-
-  ```elixir
-  config :edgedb,
-    pool: EdgeDB.Pool
-  ```
-
-  After that `EdgeDB` driver will start a custom pool that will support dynamic resizing via
-    `suggested_pool_concurrency` from the
-    [`ParameterStatus`](https://www.edgedb.com/docs/reference/protocol/messages#parameterstatus) message from EdgeDB.
   """
 
   use GenServer
@@ -93,15 +75,36 @@ defmodule EdgeDB.Pool do
 
     codel = start_idle(now_in_native, start_poll(now_in_ms, now_in_ms, codel))
 
+    # if we're using sanbox  connection then we shouldn't use many connections
+    # since in EdgeDB there are only serializable transactions and concurrent requests
+    # will break sandbox logic
+    # similar if we're using subtransaction, then we should ensure it will have a single connection
+    max_size =
+      if conn_mod == EdgeDB.Sandbox or conn_mod == EdgeDB.Subtransaction do
+        1
+      else
+        opts[:max_concurrency]
+      end
+
     state = %State{
       type: :busy,
       queue: queue,
       codel: codel,
       ts: ts,
       current_size: 1,
+      max_size: max_size,
       conn_mod: conn_mod,
       conn_opts: conn_opts
     }
+
+    client = %EdgeDB.Client{
+      conn: self(),
+      transaction_options: opts[:transaction] || [],
+      retry_options: opts[:retry] || [],
+      state: opts[:state] || %EdgeDB.State{}
+    }
+
+    Registry.register(EdgeDB.ClientsRegistry, self(), client)
 
     {:ok, state}
   end

@@ -88,9 +88,6 @@ defmodule EdgeDB.Connection do
       :codec_storage,
       :timeout,
       :pool_pid,
-      capabilities: [],
-      transaction_options: [],
-      retry_options: [],
       server_key_data: nil,
       server_state: :not_in_transaction,
       server_settings: %{},
@@ -98,7 +95,6 @@ defmodule EdgeDB.Connection do
       last_active: nil,
       savepoint_id: 0,
       edgeql_state_typedesc_id: CodecStorage.null_codec_id(),
-      edgeql_state: %EdgeDB.State{},
       edgeql_state_cache: nil,
       protocol_version: 1
     ]
@@ -108,10 +104,7 @@ defmodule EdgeDB.Connection do
             user: String.t(),
             database: String.t(),
             timeout: timeout(),
-            capabilities: Enums.capabilities(),
             pool_pid: pid() | nil,
-            transaction_options: list(EdgeDB.edgedb_transaction_option()),
-            retry_options: list(EdgeDB.retry_option()),
             server_key_data: list(byte()) | nil,
             server_state: Enums.transaction_state(),
             queries_cache: QueriesCache.t(),
@@ -121,15 +114,9 @@ defmodule EdgeDB.Connection do
             last_active: integer() | nil,
             savepoint_id: integer(),
             edgeql_state_typedesc_id: Codec.id(),
-            edgeql_state: EdgeDB.State.t(),
             edgeql_state_cache: {EdgeDB.State.t(), binary()} | nil,
             protocol_version: non_neg_integer()
           }
-  end
-
-  @impl DBConnection
-  def checkout(state) do
-    {:ok, state}
   end
 
   @impl DBConnection
@@ -138,12 +125,9 @@ defmodule EdgeDB.Connection do
     user = opts[:user]
     password = opts[:password]
     database = opts[:database]
-    codec_modules = opts[:codecs] || []
-    transaction_opts = opts[:transaction] || []
-    retry_opts = opts[:retry] || []
-    edgeql_state = opts[:state] || %EdgeDB.State{}
+    codec_modules = Keyword.get(opts, :codecs, [])
 
-    tcp_opts = (opts[:tcp] || []) ++ @tcp_socket_opts
+    tcp_opts = Keyword.get(opts, :tcp, []) ++ @tcp_socket_opts
 
     ssl_opts =
       @ssl_socket_opts
@@ -153,21 +137,20 @@ defmodule EdgeDB.Connection do
     pool_pid = opts[:pool_pid]
     timeout = opts[:timeout]
 
+    qc = QueriesCache.new()
+    cs = CodecStorage.new()
+
     state = %State{
       user: user,
       database: database,
       timeout: timeout,
       pool_pid: pool_pid,
-      transaction_options: transaction_opts,
-      retry_options: retry_opts,
-      edgeql_state: edgeql_state
+      queries_cache: qc,
+      codec_storage: cs
     }
 
-    qc = QueriesCache.new()
-    cs = CodecStorage.new()
-
     with {:ok, socket} <- open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout),
-         state = %State{state | socket: socket, queries_cache: qc, codec_storage: cs},
+         state = %State{state | socket: socket},
          {:ok, state} <- handshake(password, state),
          {:ok, state} <- wait_for_post_connect_server_ready(state),
          {:ok, state} <- initialize_custom_codecs(codec_modules, state) do
@@ -205,51 +188,105 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_begin(_opts, %State{server_state: server_state} = state)
-      when server_state in [:in_transaction, :in_failed_transaction] do
+  def handle_status(_opts, state) do
     {status(state), state}
   end
 
+  # "Real" pings are performed according to the EdgeDB system configuration "session_idle_timeout" parameter,
+  # but by default this callback won't be called more than once per second.
+  # If "session_idle_timeout" parameter is disabled, pings will also be disabled.
   @impl DBConnection
-  def handle_begin(opts, state) do
-    start_transaction(opts, state)
+  def ping(state) do
+    maybe_ping(state)
   end
 
   @impl DBConnection
-  def handle_close(%EdgeDB.Query{} = query, _opts, state) do
-    close_prepared_query(query, state)
+  def checkout(state) do
+    {:ok, state}
   end
 
   @impl DBConnection
-  def handle_commit(_opts, %State{server_state: server_state} = state)
-      when server_state in [:not_in_transaction, :in_failed_transaction] do
-    {status(state), state}
+  def handle_prepare(%EdgeDB.Query{is_script: true} = query, _opts, %State{} = state) do
+    query = %EdgeDB.Query{
+      query
+      | input_codec: @null_codec_id,
+        output_codec: @null_codec_id,
+        codec_storage: state.codec_storage
+    }
+
+    {:ok, query, state}
   end
 
   @impl DBConnection
-  def handle_commit(_opts, state) do
-    commit_transaction(state)
+  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{protocol_version: 0} = state) do
+    cached_query =
+      QueriesCache.get(
+        state.queries_cache,
+        query.statement,
+        query.output_format,
+        query.implicit_limit,
+        query.inline_type_names,
+        query.inline_type_ids,
+        query.inline_object_ids,
+        query.cardinality,
+        query.required
+      )
+
+    case cached_query do
+      %EdgeDB.Query{} ->
+        {:ok, %EdgeDB.Query{cached_query | codec_storage: state.codec_storage}, state}
+
+      nil ->
+        legacy_prepare_query(query, opts, state)
+    end
   end
 
   @impl DBConnection
-  def handle_deallocate(_query, _cursor, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_deallocate/4 callback hasn't been implemented")
-    {:error, exc, state}
+  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{} = state) do
+    cached_query =
+      QueriesCache.get(
+        state.queries_cache,
+        query.statement,
+        query.output_format,
+        query.implicit_limit,
+        query.inline_type_names,
+        query.inline_type_ids,
+        query.inline_object_ids,
+        query.cardinality,
+        query.required
+      )
+
+    cond do
+      cached_query ->
+        {:ok, %EdgeDB.Query{cached_query | codec_storage: state.codec_storage}, state}
+
+      # try to avoid Parse by assuming that if user hasn't provided any data
+      # and result is not required than we can use NULL codecs for both input/output
+      # if we're wrong then EdgeDB will correct us
+      query.params == [] and not query.required ->
+        query = %EdgeDB.Query{
+          query
+          | input_codec: CodecStorage.null_codec_id(),
+            output_codec: CodecStorage.null_codec_id(),
+            codec_storage: state.codec_storage
+        }
+
+        {:ok, query, state}
+
+      true ->
+        parse_query(query, opts, state)
+    end
   end
 
-  @impl DBConnection
-  def handle_declare(_query, _params, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_declare/4 callback hasn't been implemented")
-    {:error, exc, state}
-  end
-
+  # check if params are empty in legacy protocol
   @impl DBConnection
   def handle_execute(
-        %EdgeDB.Query{is_script: true, params: []} = query,
+        %EdgeDB.Query{is_script: true, params: params} = query,
         _params,
         _opts,
         %State{protocol_version: 0} = state
-      ) do
+      )
+      when (is_list(params) and params == []) or (is_map(params) and map_size(params) == 0) do
     execution_result =
       legacy_execute_script_query(
         query.statement,
@@ -352,93 +389,6 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def handle_execute(
-        %InternalRequest{request: :capabilities} = request,
-        _params,
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, state.capabilities, state}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :set_capabilities} = request,
-        %{capabilities: capabilities},
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, :ok, %State{state | capabilities: capabilities}}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :transaction_options} = request,
-        _params,
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, state.transaction_options, state}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :set_transaction_options} = request,
-        %{options: opts},
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, :ok, %State{state | transaction_options: opts}}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :retry_options} = request,
-        _params,
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, state.retry_options, state}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :set_retry_options} = request,
-        %{options: retry_opts},
-        opts,
-        %State{} = state
-      ) do
-    retry_opts =
-      if opts[:replace] do
-        retry_opts
-      else
-        Keyword.merge(state.retry_options, retry_opts)
-      end
-
-    {:ok, request, :ok, %State{state | retry_options: retry_opts}}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :edgeql_state} = request,
-        _params,
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, state.edgeql_state, state}
-  end
-
-  @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :set_edgeql_state} = request,
-        %{state: edgeql_state},
-        _opts,
-        %State{} = state
-      ) do
-    {:ok, request, :ok, %State{state | edgeql_state: edgeql_state}}
-  end
-
-  @impl DBConnection
-  def handle_execute(
         %InternalRequest{request: :execute_granular_flow},
         %{query: %EdgeDB.Query{} = query, params: params},
         opts,
@@ -513,82 +463,48 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
+  def handle_close(%EdgeDB.Query{} = query, _opts, state) do
+    close_prepared_query(query, state)
+  end
+
+  @impl DBConnection
+  def handle_declare(_query, _params, _opts, state) do
+    exc = EdgeDB.InterfaceError.new("handle_declare/4 callback hasn't been implemented")
+    {:error, exc, state}
+  end
+
+  @impl DBConnection
   def handle_fetch(_query, _cursor, _opts, state) do
     exc = EdgeDB.InterfaceError.new("handle_fetch/4 callback hasn't been implemented")
     {:error, exc, state}
   end
 
   @impl DBConnection
-  def handle_prepare(%EdgeDB.Query{is_script: true} = query, _opts, %State{} = state) do
-    query = %EdgeDB.Query{
-      query
-      | input_codec: @null_codec_id,
-        output_codec: @null_codec_id,
-        codec_storage: state.codec_storage
-    }
-
-    {:ok, query, state}
+  def handle_deallocate(_query, _cursor, _opts, state) do
+    exc = EdgeDB.InterfaceError.new("handle_deallocate/4 callback hasn't been implemented")
+    {:error, exc, state}
   end
 
   @impl DBConnection
-  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{protocol_version: 0} = state) do
-    cached_query =
-      QueriesCache.get(
-        state.queries_cache,
-        query.statement,
-        query.output_format,
-        query.implicit_limit,
-        query.inline_type_names,
-        query.inline_type_ids,
-        query.inline_object_ids,
-        query.cardinality,
-        query.required
-      )
-
-    case cached_query do
-      %EdgeDB.Query{} ->
-        {:ok, %EdgeDB.Query{cached_query | codec_storage: state.codec_storage}, state}
-
-      nil ->
-        legacy_prepare_query(query, opts, state)
-    end
+  def handle_begin(_opts, %State{server_state: server_state} = state)
+      when server_state in [:in_transaction, :in_failed_transaction] do
+    {status(state), state}
   end
 
   @impl DBConnection
-  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{} = state) do
-    cached_query =
-      QueriesCache.get(
-        state.queries_cache,
-        query.statement,
-        query.output_format,
-        query.implicit_limit,
-        query.inline_type_names,
-        query.inline_type_ids,
-        query.inline_object_ids,
-        query.cardinality,
-        query.required
-      )
+  def handle_begin(opts, state) do
+    start_transaction(opts, state)
+  end
 
-    cond do
-      cached_query ->
-        {:ok, %EdgeDB.Query{cached_query | codec_storage: state.codec_storage}, state}
+  @impl DBConnection
+  def handle_commit(_opts, %State{server_state: server_state} = state)
+      when server_state in [:not_in_transaction, :in_failed_transaction] do
+    {status(state), state}
+  end
 
-      # try to avoid Parse by assuming that if user hasn't provided any data
-      # and result is not required than we can use NULL codecs for both input/output
-      # if we're wrong then EdgeDB will correct us
-      query.params == [] and not query.required ->
-        query = %EdgeDB.Query{
-          query
-          | input_codec: CodecStorage.null_codec_id(),
-            output_codec: CodecStorage.null_codec_id(),
-            codec_storage: state.codec_storage
-        }
-
-        {:ok, query, state}
-
-      true ->
-        parse_query(query, opts, state)
-    end
+  @impl DBConnection
+  def handle_commit(opts, state) do
+    commit_transaction(opts, state)
   end
 
   @impl DBConnection
@@ -598,21 +514,8 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_rollback(_opts, state) do
-    rollback_transaction(state)
-  end
-
-  @impl DBConnection
-  def handle_status(_opts, state) do
-    {status(state), state}
-  end
-
-  # "Real" pings are performed according to the EdgeDB system configuration "session_idle_timeout" parameter,
-  # but by default this callback won't be called more than once per second.
-  # If "session_idle_timeout" parameter is disabled, pings will also be disabled.
-  @impl DBConnection
-  def ping(state) do
-    maybe_ping(state)
+  def handle_rollback(opts, state) do
+    rollback_transaction(opts, state)
   end
 
   defp open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout) do
@@ -911,10 +814,10 @@ defmodule EdgeDB.Connection do
   end
 
   defp parse_query(%EdgeDB.Query{} = query, opts, %State{} = state) do
-    capabilities = prepare_capabilities(query, opts, state)
+    capabilities = prepare_capabilities(query, opts[:capabilities], state)
     compilation_flags = prepare_compilation_flags(query)
 
-    {state_data, state} = encode_edgeql_state(state.edgeql_state, state)
+    {state_data, state} = encode_edgeql_state(opts[:edgeql_state], state)
 
     message = %Parse{
       annotations: %{},
@@ -988,7 +891,7 @@ defmodule EdgeDB.Connection do
 
   defp legacy_prepare_query(%EdgeDB.Query{} = query, opts, state) do
     message = %Client.V0.Prepare{
-      headers: prepare_legacy_headers(opts, state),
+      headers: prepare_legacy_headers(query, opts, state),
       io_format: query.output_format,
       expected_cardinality: query.cardinality,
       command: query.statement
@@ -1067,11 +970,11 @@ defmodule EdgeDB.Connection do
 
     with {:ok, state} <- send_messages([message, %Sync{}], state),
          {:ok, {message, state}} <- receive_message(state) do
-      handle_describe_query_flow(query, message, state)
+      handle_legacy_describe_query_flow(query, message, state)
     end
   end
 
-  defp handle_describe_query_flow(
+  defp handle_legacy_describe_query_flow(
          %EdgeDB.Query{cardinality: :one} = query,
          %CommandDataDescription{result_cardinality: :no_result},
          state
@@ -1087,7 +990,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_describe_query_flow(
+  defp handle_legacy_describe_query_flow(
          query,
          %CommandDataDescription{} = message,
          %State{} = state
@@ -1107,7 +1010,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp handle_describe_query_flow(query, %ErrorResponse{} = message, state) do
+  defp handle_legacy_describe_query_flow(query, %ErrorResponse{} = message, state) do
     with {:error, exc, state} <- handle_error_response(message, state, query: query),
          {:ok, state} <- wait_for_server_ready(state) do
       {:error, exc, state}
@@ -1116,7 +1019,7 @@ defmodule EdgeDB.Connection do
 
   defp legacy_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
     message = %Client.V0.Execute{
-      headers: prepare_legacy_headers(opts, state),
+      headers: prepare_legacy_headers(query, opts, state),
       arguments: params
     }
 
@@ -1133,10 +1036,10 @@ defmodule EdgeDB.Connection do
   end
 
   defp execute_query(%EdgeDB.Query{} = query, params, opts, %State{} = state) do
-    capabilities = prepare_capabilities(query, opts, state)
+    capabilities = prepare_capabilities(query, opts[:capabilities], state)
     compilation_flags = prepare_compilation_flags(query)
 
-    {state_data, state} = encode_edgeql_state(state.edgeql_state, state)
+    {state_data, state} = encode_edgeql_state(opts[:edgeql_state], state)
 
     message = %Execute{
       annotations: %{},
@@ -1301,7 +1204,7 @@ defmodule EdgeDB.Connection do
 
   defp legacy_optimistic_execute_query(%EdgeDB.Query{} = query, params, opts, state) do
     message = %Client.V0.OptimisticExecute{
-      headers: prepare_legacy_headers(opts, state),
+      headers: prepare_legacy_headers(query, opts, state),
       io_format: query.output_format,
       expected_cardinality: query.cardinality,
       command_text: query.statement,
@@ -1412,50 +1315,50 @@ defmodule EdgeDB.Connection do
   end
 
   defp start_transaction(opts, %State{protocol_version: 0} = state) do
-    state.transaction_options
-    |> Keyword.merge(opts)
+    opts
+    |> Keyword.get(:transaction_options, [])
     |> QueryBuilder.start_transaction_statement()
     |> legacy_execute_script_query(%{allow_capabilities: [:transaction]}, state)
   end
 
   defp start_transaction(opts, %State{} = state) do
     statement =
-      state.transaction_options
-      |> Keyword.merge(opts)
+      opts
+      |> Keyword.get(:transaction_options, [])
       |> QueryBuilder.start_transaction_statement()
 
-    with {:ok, _query, result, state} <- execute_transaction_query(statement, state) do
+    with {:ok, _query, result, state} <- execute_transaction_query(statement, opts, state) do
       {:ok, result, state}
     end
   end
 
-  defp commit_transaction(%State{protocol_version: 0} = state) do
+  defp commit_transaction(_opts, %State{protocol_version: 0} = state) do
     statement = QueryBuilder.commit_transaction_statement()
     legacy_execute_script_query(statement, %{allow_capabilities: [:transaction]}, state)
   end
 
-  defp commit_transaction(state) do
+  defp commit_transaction(opts, state) do
     statement = QueryBuilder.commit_transaction_statement()
 
-    with {:ok, _query, result, state} <- execute_transaction_query(statement, state) do
+    with {:ok, _query, result, state} <- execute_transaction_query(statement, opts, state) do
       {:ok, result, state}
     end
   end
 
-  defp rollback_transaction(%State{protocol_version: 0} = state) do
+  defp rollback_transaction(_opts, %State{protocol_version: 0} = state) do
     statement = QueryBuilder.rollback_transaction_statement()
     legacy_execute_script_query(statement, %{allow_capabilities: [:transaction]}, state)
   end
 
-  defp rollback_transaction(state) do
+  defp rollback_transaction(opts, state) do
     statement = QueryBuilder.rollback_transaction_statement()
 
-    with {:ok, _query, result, state} <- execute_transaction_query(statement, state) do
+    with {:ok, _query, result, state} <- execute_transaction_query(statement, opts, state) do
       {:ok, result, state}
     end
   end
 
-  defp execute_transaction_query(statement, %State{} = state) do
+  defp execute_transaction_query(statement, opts, %State{} = state) do
     query =
       DBConnection.Query.parse(
         %EdgeDB.Query{
@@ -1468,12 +1371,18 @@ defmodule EdgeDB.Connection do
         []
       )
 
+    capabilities = [:transaction | Keyword.get(opts, :capabilities, [])]
+    opts = Keyword.put(opts, :capabilities, capabilities)
+
     params = DBConnection.Query.encode(query, [], [])
-    execute_query(query, params, [allow_capabilities: [:transaction]], state)
+    execute_query(query, params, opts, state)
   end
 
-  defp legacy_execute_script_query(statement, headers, state) do
-    message = %Client.V0.ExecuteScript{headers: headers, script: statement}
+  defp legacy_execute_script_query(statement, %{} = headers, state) do
+    message = %Client.V0.ExecuteScript{
+      headers: headers,
+      script: statement
+    }
 
     with {:ok, state} <- send_message(message, state),
          {:ok, {message, state}} <- receive_message(state) do
@@ -1582,6 +1491,13 @@ defmodule EdgeDB.Connection do
     {state_data, state}
   end
 
+  # missing state is ok for codecs or substransaction initialization
+  defp encode_edgeql_state(nil, state) do
+    codec = CodecStorage.get(state.codec_storage, @null_codec_id)
+    state_data = Codec.encode(codec, nil, state.codec_storage)
+    {state_data, state}
+  end
+
   defp encode_edgeql_state(edgeql_state, %State{} = state) do
     case state.edgeql_state_cache do
       {^edgeql_state, state_data} ->
@@ -1640,9 +1556,11 @@ defmodule EdgeDB.Connection do
           {&parse_query/3, &execute_query/4}
       end
 
-    with {:ok, query, state} <- parse_fn.(query, [], state),
+    # use default state here, since it's connection initialization and we don't have any real state here
+    with {:ok, query, state} <- parse_fn.(query, [edgeql_state: %EdgeDB.State{}], state),
          encoded_params = DBConnection.Query.encode(query, query.params, []),
-         {:ok, query, result, state} <- execute_fn.(query, encoded_params, [], state),
+         {:ok, query, result, state} <-
+           execute_fn.(query, encoded_params, [edgeql_state: %EdgeDB.State{}], state),
          result = DBConnection.Query.decode(query, result, []),
          {:ok, types} <- EdgeDB.Result.extract(result) do
       {:ok, types, state}
@@ -1777,28 +1695,38 @@ defmodule EdgeDB.Connection do
     send(pool_pid, {:resize_pool, suggested_size})
   end
 
-  defp prepare_capabilities(query, opts, state) when is_list(opts) do
-    prepare_capabilities(query, %{capabilities: opts[:allow_capabilities]}, state)
+  # explicit capabilities
+  defp prepare_capabilities(_query, [_cap | _other] = capabilities, _state) do
+    capabilities
   end
 
-  defp prepare_capabilities(_query, %{capabilities: [_cap | _other] = opts_capabilities}, _state) do
-    opts_capabilities
-  end
-
-  defp prepare_capabilities(_query, _opts, %State{capabilities: [_cap | _other]} = state) do
-    state.capabilities
-  end
-
+  # capabilities from parsed query
   defp prepare_capabilities(%EdgeDB.Query{capabilities: [_cap | _other]} = query, _opts, _state) do
     query.capabilities
   end
 
+  # default capabilities to execute any common query (select/insert/etc) in legacy protocol
   defp prepare_capabilities(_query, _opts, %State{protocol_version: 0}) do
     [:legacy_execute]
   end
 
+  # default capabilities to execute any common query (select/insert/etc) in protocol
   defp prepare_capabilities(_query, _opts, _state) do
     [:execute]
+  end
+
+  defp prepare_legacy_headers(query, %{capabilities: capabilities} = headers, state) do
+    Map.merge(headers, %{allow_capabilities: prepare_capabilities(query, capabilities, state)})
+  end
+
+  defp prepare_legacy_headers(query, opts, state) when is_list(opts) do
+    headers = Enum.into(opts, %{})
+    prepare_legacy_headers(query, headers, state)
+  end
+
+  # just use default capabilities
+  defp prepare_legacy_headers(query, headers, state) do
+    Map.merge(headers, %{allow_capabilities: prepare_capabilities(query, [], state)})
   end
 
   defp prepare_compilation_flags(%EdgeDB.Query{} = query) do
@@ -1810,20 +1738,6 @@ defmodule EdgeDB.Connection do
       ],
       &is_boolean/1
     )
-  end
-
-  defp prepare_legacy_headers(headers, %State{} = state) do
-    state_headers = %{}
-
-    state_headers =
-      if state.capabilities != [] do
-        Map.put(state_headers, :allow_capabilities, state.capabilities)
-      else
-        state_headers
-      end
-
-    headers = Enum.into(headers, %{})
-    Map.merge(state_headers, headers)
   end
 
   defp status(%State{server_state: :not_in_transaction}) do
