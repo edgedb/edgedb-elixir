@@ -1,4 +1,4 @@
-# Elixir driver for EdgeDB
+# Elixir client for EdgeDB
 
 Documentation: https://hexdocs.pm/edgedb
 

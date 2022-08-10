@@ -48,7 +48,7 @@ defmodule EdgeDB.Client do
 
   Supported options:
     * `:isolation` - If `:serializable` is used, the built statement will use the `isolation serializable` mode.
-      Currently only `:serializable` is supported by this driver and EdgeDB.
+      Currently only `:serializable` is supported by this client and EdgeDB.
     * `:readonly` - if set to `true` then the built statement will use `read only` mode,
       otherwise `read write` will be used. The default is `false`.
     * `:deferrable` - if set to `true` then the built statement will use `deferrable` mode,

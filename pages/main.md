@@ -1,6 +1,6 @@
-# EdgeDB driver for Elixir
+# EdgeDB client for Elixir
 
-`edgedb-elixir` is the [EdgeDB](https://edgedb.com) driver for Elixir.
+`edgedb-elixir` is the [EdgeDB](https://edgedb.com) client for Elixir.
 
 ## Installation
 

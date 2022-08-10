@@ -11,7 +11,7 @@ if File.exists?(testcases_file) do
     @cases read_testcases(testcases_file)
     @moduletag :connection
 
-    @case_to_driver_errors %{
+    @case_to_client_errors %{
       "credentials_file_not_found" => {RuntimeError, message: ~r/could not read/},
       "project_not_initialised" =>
         {EdgeDB.Error,
@@ -57,7 +57,7 @@ if File.exists?(testcases_file) do
           ~r"(one of `insecure`, `no_host_verification`, `strict` or `default`)|(tls_security must be set to strict)"
       }
     }
-    @known_case_errors Map.keys(@case_to_driver_errors)
+    @known_case_errors Map.keys(@case_to_client_errors)
 
     for {testcase, index} <- Enum.with_index(@cases, 1) do
       @tag String.to_atom("shared_connection_testcase_#{index}")
@@ -150,7 +150,7 @@ if File.exists?(testcases_file) do
     end
 
     defp setup_error(%{testcase: %{"error" => %{"type" => error_type}}}) do
-      {error, opts} = @case_to_driver_errors[error_type]
+      {error, opts} = @case_to_client_errors[error_type]
 
       Logger.debug(
         "configure expected error (#{inspect(error_type)}): #{inspect(error)}, opts: #{inspect(opts, pretty: true)}"

@@ -1,6 +1,6 @@
 
 # Datatypes
-EdgeDB driver for Elixir automatically converts EdgeDB types to the corresponding Elixir types and vice versa.
+EdgeDB client for Elixir automatically converts EdgeDB types to the corresponding Elixir types and vice versa.
 
 The table below shows the correspondence between EdgeDB and Elixir types.
 
