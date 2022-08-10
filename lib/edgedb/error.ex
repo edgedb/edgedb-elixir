@@ -1,6 +1,6 @@
 defmodule EdgeDB.Error do
   @moduledoc """
-  Exception returned by the driver if an error occurred.
+  Exception returned by the client if an error occurred.
 
   Most of the functions in the `EdgeDB.Error` module are a shorthands for simplifying `EdgeDB.Error` exception
     constructing. These functions are generated at compile time from a copy of the
@@ -25,7 +25,7 @@ defmodule EdgeDB.Error do
   ]
 
   @typedoc """
-  Exception returned by the driver if an error occurred.
+  Exception returned by the client if an error occurred.
 
   Fields:
 

@@ -2,7 +2,7 @@ defmodule EdgeDB.Result do
   @moduledoc """
   A structure that contains information related to the query result.
 
-  It's mostly used in driver internally, but user can retrive it along with `EdgeDB.Query` struct
+  It's mostly used in client internally, but user can retrive it along with `EdgeDB.Query` struct
     from succeed query execution using `:raw` option for `EdgeDB.query*/4` functions. See `t:EdgeDB.query_option/0`.
   """
 

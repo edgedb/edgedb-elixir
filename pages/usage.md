@@ -69,7 +69,7 @@ iex(2)> EdgeDB.query!(pid, "
 ...(2)>     ),
 ...(2)>     p3 := (
 ...(2)>         insert Post {
-...(2)>             body := 'FYI here is a link to the Elixir driver: https://hex.pm/packages/edgedb',
+...(2)>             body := 'FYI here is a link to the Elixir client: https://hex.pm/packages/edgedb',
 ...(2)>             author := (
 ...(2)>                 insert User {
 ...(2)>                     name := 'commentator3'
@@ -78,7 +78,7 @@ iex(2)> EdgeDB.query!(pid, "
 ...(2)>         }
 ...(2)>     )
 ...(2)> insert Post {
-...(2)>     body := 'EdgeDB is awesome! Try the Elixir driver for it',
+...(2)>     body := 'EdgeDB is awesome! Try the Elixir client for it',
 ...(2)>     author := (
 ...(2)>         insert User {
 ...(2)>             name := 'author1'
@@ -108,9 +108,9 @@ Let's query all existing posts with their bodies:
 iex(1)> {:ok, pid} = EdgeDB.start_link()
 iex(2)> {:ok, posts} = EdgeDB.query(pid, "select Post { body }")
 {:ok,
- #EdgeDB.Set<{#EdgeDB.Object<body := "EdgeDB is awesome! Try the Elixir driver for it">,
+ #EdgeDB.Set<{#EdgeDB.Object<body := "EdgeDB is awesome! Try the Elixir client for it">,
   #EdgeDB.Object<body := "Yes!">, #EdgeDB.Object<body := "Absolutely amazing">,
-  #EdgeDB.Object<body := "FYI here is a link to the Elixir driver: https://hex.pm/packages/edgedb">}>}
+  #EdgeDB.Object<body := "FYI here is a link to the Elixir client: https://hex.pm/packages/edgedb">}>}
 ```
 
 We can iterate over `EdgeDB.Set` and inspect each object separately:
@@ -119,10 +119,10 @@ We can iterate over `EdgeDB.Set` and inspect each object separately:
 iex(3)> Enum.each(posts, fn %EdgeDB.Object{} = post ->
 ...(3)>   IO.inspect(post[:body], label: "post (#{inspect(post.id)})")
 ...(3)> end)
-post ("3c5c8cf2-860f-11ec-a22a-2b0ab4e21d4b"): "EdgeDB is awesome! Try the Elixir driver for it"
+post ("3c5c8cf2-860f-11ec-a22a-2b0ab4e21d4b"): "EdgeDB is awesome! Try the Elixir client for it"
 post ("3c5c904e-860f-11ec-a22a-f7cdb9bcb510"): "Yes!"
 post ("3c5c9256-860f-11ec-a22a-0343fa0961f3"): "Absolutely amazing"
-post ("3c5c9378-860f-11ec-a22a-0713dfca8baa"): "FYI here is a link to the Elixir driver: https://hex.pm/packages/edgedb"
+post ("3c5c9378-860f-11ec-a22a-0713dfca8baa"): "FYI here is a link to the Elixir client: https://hex.pm/packages/edgedb"
 :ok
 ```
 
@@ -132,7 +132,7 @@ If you know that the query will return only one element or none, you can use `Ed
   `EdgeDB.query_single!/4` functions. This function will automatically unpack the underlying `EdgeDB.Set`
   and return the requested item (or `nil` if the set is empty).
 
-Let's query a post with a link to the Elixir driver for EdgeDB:
+Let's query a post with a link to the Elixir client for EdgeDB:
 
 ```elixir
 iex(1)> {:ok, pid} = EdgeDB.start_link()
@@ -244,6 +244,6 @@ iex(2)> {:ok, %EdgeDB.Set{}} =
 
 ## Example
 
-You can also check out an example application using this driver to see how to work with it:
+You can also check out an example application using this client to see how to work with it:
 
 https://github.com/nsidnev/edgedb-phoenix-example

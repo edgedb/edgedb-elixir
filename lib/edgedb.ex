@@ -1,6 +1,6 @@
 defmodule EdgeDB do
   @moduledoc """
-  EdgeDB driver for Elixir.
+  EdgeDB client for Elixir.
 
   `EdgeDB` module provides an API to run a connection pool, query EdgeDB, perform transactions
     and subtransactions and their rollback.
@@ -51,7 +51,7 @@ defmodule EdgeDB do
   @type tls_security() :: :insecure | :no_host_verification | :strict | :default
 
   # NOTE: :command_timeout and :server_settings
-  # options added only for compatability with other drivers and aren't used right now
+  # options added only for compatability with other clients and aren't used right now
   @typedoc """
   Parameters for connecting to an EdgeDB instance and configuring the connection itself.
 
@@ -72,8 +72,8 @@ defmodule EdgeDB do
     * `:tls_ca_path` - the path to the TLS certificate to be used when connecting to the instance.
     * `:tls_security` - security mode for the TLS connection. See `t:tls_security/0`.
     * `:timeout` - timeout for TCP operations with the database, such as connecting to it, sending or receiving data.
-    * `:command_timeout` - *not in use right now and added for compatibility with the official drivers*.
-    * `:server_settings` - *not in use right now and added for compatibility with the official drivers*.
+    * `:command_timeout` - *not in use right now and added for compatibility with the official clients*.
+    * `:server_settings` - *not in use right now and added for compatibility with the official clients*.
     * `:tcp` - options for the TCP connection.
     * `:ssl` - options for TLS connection.
     * `:transaction` - options for EdgeDB transactions, which correspond to
@@ -146,7 +146,7 @@ defmodule EdgeDB do
     * `:cardinality` - expected number of items in set.
     * `:output_format` - preferred format of query result.
     * `:retry` - options for read-only queries retries.
-    * `:raw` - flag to return internal driver structures for inspecting.
+    * `:raw` - flag to return internal client structures for inspecting.
     * other - check `t:DBConnection.start_option/0`.
   """
   @type query_option() ::
@@ -184,7 +184,7 @@ defmodule EdgeDB do
   @typedoc """
   A tuple of the executed `EdgeDB.Query` and the received `EdgeDB.Result`.
 
-  This tuple can be useful if you want to get the internal structures of the driver and inspect them,
+  This tuple can be useful if you want to get the internal structures of the client and inspect them,
     but in most cases you will not use it.
   """
   @type raw_result() :: {EdgeDB.Query.t(), EdgeDB.Result.t()}
@@ -314,9 +314,9 @@ defmodule EdgeDB do
 
   ### Automatic retries of read-only queries
 
-  If the driver is able to recognize the query as a read-only query
+  If the client is able to recognize the query as a read-only query
     (i.e. the query does not change the data in the database using `delete`, `insert` or other statements),
-    then the driver will try to repeat the query automatically (as long as the query is not executed in a transaction,
+    then the client will try to repeat the query automatically (as long as the query is not executed in a transaction,
     because then [retrying transactions](`EdgeDB.transaction/3`) are used).
 
   See `t:query_option/0` for supported options.

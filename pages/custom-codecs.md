@@ -7,7 +7,7 @@ Custom codecs can be useful when your EdgeDB scalars need their own processing.
 
 > #### NOTE {: .warning}
 >
-> Although most of the driver API is complete, some internal parts may be changed in the future.
+> Although most of the client API is complete, some internal parts may be changed in the future.
 >   The implementation of the binary protocol (including the definition of custom codecs) is on the list of possible changes.
 
 In most cases you can use already defined codecs to work with the EdgeDB binary protocol. Otherwise,
