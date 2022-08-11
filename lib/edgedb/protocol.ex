@@ -80,6 +80,16 @@ defmodule EdgeDB.Protocol do
     do_message_decoding(type, payload, protocol)
   end
 
+  @spec decode_completed_message(bitstring(), protocol_version()) :: server_message()
+  def decode_completed_message(
+        <<type::uint8, payload_length::int32, rest::binary>>,
+        protocol_version
+      ) do
+    payload_length = payload_length - 4
+    <<message_payload::binary(payload_length)>> = rest
+    decode_message(type, message_payload, protocol_version)
+  end
+
   @spec parse_type_description(bitstring(), CodecStorage.t()) :: Codec.id()
   def parse_type_description(type_description, codec_storage) do
     do_type_description_parsing(type_description, codec_storage, %{})

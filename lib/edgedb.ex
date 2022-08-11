@@ -215,22 +215,14 @@ defmodule EdgeDB do
 
   @spec start_link(String.t()) :: GenServer.on_start()
   def start_link(dsn) when is_binary(dsn) do
-    opts =
-      [dsn: dsn]
-      |> Config.connect_opts()
-      |> Keyword.put_new(:pool, EdgeDB.Pool)
-
+    opts = prepare_opts(dsn: dsn)
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.start_link(connection, opts)
   end
 
   @spec start_link(list(start_option())) :: GenServer.on_start()
   def start_link(opts) do
-    opts =
-      opts
-      |> Config.connect_opts()
-      |> Keyword.put_new(:pool, EdgeDB.Pool)
-
+    opts = prepare_opts(opts)
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.start_link(connection, opts)
   end
@@ -249,10 +241,9 @@ defmodule EdgeDB do
   @spec start_link(String.t(), list(start_option())) :: GenServer.on_start()
   def start_link(dsn, opts) do
     opts =
-      opts
-      |> Keyword.put(:dsn, dsn)
-      |> Config.connect_opts()
-      |> Keyword.put_new(:pool, EdgeDB.Pool)
+      [dsn: dsn]
+      |> Keyword.merge(opts)
+      |> prepare_opts()
 
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.start_link(connection, opts)
@@ -265,11 +256,7 @@ defmodule EdgeDB do
   """
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts \\ []) do
-    opts =
-      opts
-      |> Config.connect_opts()
-      |> Keyword.put_new(:pool, EdgeDB.Pool)
-
+    opts = prepare_opts(opts)
     connection = Keyword.get(opts, :connection, EdgeDB.Connection)
     DBConnection.child_spec(connection, opts)
   end
@@ -576,12 +563,18 @@ defmodule EdgeDB do
   def transaction(client, callback, opts \\ [])
 
   def transaction(%EdgeDB.Client{} = client, callback, opts) do
-    EdgeDB.Borrower.borrow!(client, :transaction, fn ->
-      transaction_options = EdgeDB.Client.to_options(client)
-      retry_options = Keyword.merge(transaction_options[:retry_options], opts[:retry] || [])
-      transaction_options = Keyword.put(transaction_options, :retry_options, retry_options)
-      retrying_transaction(client, callback, Keyword.merge(opts, transaction_options))
-    end)
+    callback = fn conn ->
+      client = %EdgeDB.Client{client | conn: conn}
+
+      EdgeDB.Borrower.borrow!(client.conn, :transaction, fn ->
+        transaction_options = EdgeDB.Client.to_options(client)
+        retry_options = Keyword.merge(transaction_options[:retry_options], opts[:retry] || [])
+        transaction_options = Keyword.put(transaction_options, :retry_options, retry_options)
+        retrying_transaction(client, callback, Keyword.merge(opts, transaction_options))
+      end)
+    end
+
+    DBConnection.run(client.conn, callback, opts)
   end
 
   def transaction(client, callback, opts) do
@@ -625,12 +618,12 @@ defmodule EdgeDB do
           {:ok, result()} | {:error, term()}
 
   def subtransaction(
-        %EdgeDB.Client{conn: %DBConnection{conn_mode: :transaction} = conn} = client,
+        %EdgeDB.Client{conn: %DBConnection{conn_mode: :transaction}} = client,
         callback
       ) do
-    EdgeDB.Borrower.borrow!(client, :subtransaction, fn ->
+    EdgeDB.Borrower.borrow!(client.conn, :subtransaction, fn ->
       {:ok, subtransaction_pid} =
-        DBConnection.start_link(EdgeDB.Subtransaction, conn: conn, backoff_type: :stop)
+        DBConnection.start_link(EdgeDB.Subtransaction, conn: client.conn, backoff_type: :stop)
 
       callback = fn conn ->
         callback.(%EdgeDB.Client{client | conn: conn})
@@ -880,7 +873,7 @@ defmodule EdgeDB do
 
   defp parse_execute_query(client, query, params, opts) do
     client = to_client(client)
-    EdgeDB.Borrower.ensure_unborrowed!(client)
+    EdgeDB.Borrower.ensure_unborrowed!(client.conn)
     parse_execute_query(1, client, query, params, opts)
   end
 
@@ -1049,7 +1042,14 @@ defmodule EdgeDB do
         client
 
       _other ->
-        raise EdgeDB.InterfaceError.new("client for pid(#{client_pid}) not found")
+        raise EdgeDB.InterfaceError.new("client for pid(#{inspect(client_pid)}) not found")
     end
+  end
+
+  defp prepare_opts(opts) do
+    opts
+    |> Config.connect_opts()
+    |> Keyword.put_new(:pool, EdgeDB.Pool)
+    |> Keyword.put(:backoff_type, :stop)
   end
 end

@@ -17,12 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - default pool from `DBConnection.Pool` to `EdgeDB.Pool`.
+- `EdgeDB.Pool` to be "real" lazy and dynamic: all idle connections that EdgeDB wants to drop
+    will be disconnected from the pool, new connections will be created only on user queries
+    depending on EdgeDB concurrency suggest as soft limit and `:max_concurrency` option as hard limit
+    of connections count.
 - first parameter accepted by callbacks in `EdgeDB.transaction/3`, `EdgeDB.subtransaction/2`
     and `EdgeDB.subtransaction!/2` from `t:DBConnection.t/0` to `t:EdgeDB.Client.t/0`.
 - `EdgeDB.connection/0` to `t:EdgeDB.client/0`.
 - `EdgeDB.edgedb_transaction_option/0` to `t:EdgeDB.Client.transaction_option/0`.
 - `EdgeDB.retry_option/0` to `t:EdgeDB.Client.retry_option/0`.
 - `EdgeDB.retry_rule/0` to `t:EdgeDB.Client.retry_rule/0`.
+
+### Fixed
+
+- concurrent transactions when client was unintentionally marked as borrowed for transaction instead of connection.
 
 ### Removed
 

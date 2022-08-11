@@ -2,10 +2,12 @@ defmodule Tests.Support.Connections.PoolConnection do
   use DBConnection
 
   alias EdgeDB.Connection.InternalRequest
+  alias EdgeDB.Protocol.CodecStorage
 
   defmodule State do
     defstruct [
-      :pool_pid
+      :pool_pid,
+      transaction_state: :not_in_transaction
     ]
   end
 
@@ -31,7 +33,7 @@ defmodule Tests.Support.Connections.PoolConnection do
 
   @impl DBConnection
   def handle_status(_opts, state) do
-    {:idle, state}
+    {status(state), state}
   end
 
   @impl DBConnection
@@ -45,9 +47,14 @@ defmodule Tests.Support.Connections.PoolConnection do
   end
 
   @impl DBConnection
-  def handle_prepare(_query, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_prepare/3 callback hasn't been implemented")
-    {:error, exc, state}
+  def handle_prepare(query, _opts, state) do
+    {:ok,
+     %EdgeDB.Query{
+       query
+       | input_codec: CodecStorage.null_codec_id(),
+         output_codec: CodecStorage.null_codec_id(),
+         codec_storage: CodecStorage.new()
+     }, state}
   end
 
   @impl DBConnection
@@ -57,20 +64,18 @@ defmodule Tests.Support.Connections.PoolConnection do
         _opts,
         state
       ) do
-    send(state.pool_pid, {:resize_pool, concurrency})
+    send(state.pool_pid, {:concurrency_suggest, concurrency})
     {:ok, query, :ok, state}
   end
 
   @impl DBConnection
-  def handle_execute(_query, _params, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_execute/4 callback hasn't been implemented")
-    {:error, exc, state}
+  def handle_execute(query, _params, _opts, state) do
+    {:ok, query, %EdgeDB.Result{cardinality: :no_result, set: %EdgeDB.Set{}}, state}
   end
 
   @impl DBConnection
   def handle_close(_query, _opts, state) do
-    exc = EdgeDB.InterfaceError.new("handle_close/3 callback hasn't been implemented")
-    {:error, exc, state}
+    {:ok, :ok, state}
   end
 
   @impl DBConnection
@@ -93,16 +98,32 @@ defmodule Tests.Support.Connections.PoolConnection do
 
   @impl DBConnection
   def handle_begin(_opts, state) do
-    {:error, state}
+    {:ok, result(), %State{state | transaction_state: :in_transaction}}
   end
 
   @impl DBConnection
   def handle_commit(_opts, state) do
-    {:error, state}
+    {:ok, result(), %State{state | transaction_state: :not_in_transaction}}
   end
 
   @impl DBConnection
   def handle_rollback(_opts, state) do
-    {:error, state}
+    {:ok, result(), %State{state | transaction_state: :not_in_transaction}}
+  end
+
+  defp status(%State{transaction_state: :not_in_transaction}) do
+    :idle
+  end
+
+  defp status(%State{transaction_state: :in_transaction}) do
+    :transaction
+  end
+
+  defp status(%State{transaction_state: :in_failed_transaction}) do
+    :error
+  end
+
+  defp result do
+    %EdgeDB.Result{cardinality: :no_result, set: %EdgeDB.Set{}}
   end
 end

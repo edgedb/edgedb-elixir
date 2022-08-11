@@ -3,100 +3,166 @@ defmodule Tests.EdgeDB.PoolTest do
 
   alias Tests.Support.Connections.PoolConnection
 
-  describe "EdgeDB.Pool" do
+  describe "EdgeDB.Pool at the beginning" do
     setup do
-      {:ok, pool} =
+      {:ok, client} =
         start_supervised(
           {EdgeDB,
            connection: PoolConnection,
-           backoff_type: :stop,
-           max_restarts: 0,
-           idle_interval: 1,
+           idle_interval: 50,
            show_sensitive_data_on_connection_error: true}
         )
 
-      %{pool: pool}
+      %{client: client}
     end
 
-    test "opens only single connection after start", %{pool: pool} do
-      assert EdgeDB.Pool.concurrency(pool) == 1
+    test "doesn't open any connections after start", %{client: client} do
+      assert EdgeDB.Pool.concurrency(client) == 0
     end
 
-    test "opens new connections after suggest from EdgeDB", %{pool: pool} do
-      PoolConnection.suggest_pool_concurrency(pool, 100)
+    test "opens new connection after first request", %{client: client} do
+      :executed = EdgeDB.query_required_single!(client, "select 1")
+      assert EdgeDB.Pool.concurrency(client) == 1
+    end
+  end
+
+  describe "EdgeDB.Pool on suggest" do
+    setup do
+      {:ok, client} =
+        start_supervised(
+          {EdgeDB,
+           connection: PoolConnection,
+           idle_interval: 50,
+           show_sensitive_data_on_connection_error: true}
+        )
+
+      :executed = EdgeDB.query_required_single!(client, "select 1")
+
+      %{client: client}
+    end
+
+    test "doesn't open new connections right after suggest from EdgeDB", %{client: client} do
+      PoolConnection.suggest_pool_concurrency(client, 100)
+      Process.sleep(50)
+
+      assert EdgeDB.Pool.concurrency(client) == 1
+    end
+
+    test "opens new connections if required and suggest is greater then current concurrency", %{
+      client: client
+    } do
+      PoolConnection.suggest_pool_concurrency(client, 100)
+      Process.sleep(50)
+
+      run_concurrent_queries(client, 3)
+
+      assert EdgeDB.Pool.concurrency(client) == 3
+    end
+
+    test "doesn't open new connections if there are idle available", %{
+      client: client
+    } do
+      PoolConnection.suggest_pool_concurrency(client, 100)
       Process.sleep(100)
 
-      assert EdgeDB.Pool.concurrency(pool) == 100
+      run_concurrent_queries(client, 3)
+
+      for _ <- 1..5 do
+        EdgeDB.query_required_single!(client, "select 1")
+      end
+
+      assert EdgeDB.Pool.concurrency(client) == 3
     end
 
     test "terminates connections if current pool concurrency greater than suggested", %{
-      pool: pool
+      client: client
     } do
-      PoolConnection.suggest_pool_concurrency(pool, 100)
+      PoolConnection.suggest_pool_concurrency(client, 100)
       Process.sleep(100)
 
-      PoolConnection.suggest_pool_concurrency(pool, 25)
-      Process.sleep(1000)
+      run_concurrent_queries(client, 2)
 
-      assert EdgeDB.Pool.concurrency(pool) == 25
+      PoolConnection.suggest_pool_concurrency(client, 1)
+      Process.sleep(200)
+
+      assert EdgeDB.Pool.concurrency(client) == 1
     end
 
     test "terminates connections if current pool concurrency greater than max", %{
-      pool: pool
+      client: client
     } do
-      PoolConnection.suggest_pool_concurrency(pool, 100)
+      PoolConnection.suggest_pool_concurrency(client, 100)
+
+      run_concurrent_queries(client, 3)
+
+      assert EdgeDB.Pool.concurrency(client) == 3
+
+      EdgeDB.Pool.set_max_concurrency(client, 2)
       Process.sleep(100)
 
-      EdgeDB.Pool.set_max_concurrency(pool, 25)
-      Process.sleep(1000)
-
-      assert EdgeDB.Pool.concurrency(pool) == 25
+      assert EdgeDB.Pool.concurrency(client) == 2
     end
   end
 
   describe "EdgeDB.Pool with :max_concurrency option" do
     setup do
-      {:ok, pool} =
+      {:ok, client} =
         start_supervised(
           {EdgeDB,
            connection: PoolConnection,
-           max_concurrency: 50,
-           backoff_type: :stop,
-           max_restarts: 0,
-           idle_interval: 1,
+           max_concurrency: 4,
+           idle_interval: 50,
            show_sensitive_data_on_connection_error: true}
         )
 
-      %{pool: pool}
+      %{client: client}
     end
 
     test "opens no more connections then specified with :max_concurrency option", %{
-      pool: pool
+      client: client
     } do
-      PoolConnection.suggest_pool_concurrency(pool, 100)
-      Process.sleep(1000)
-
-      assert EdgeDB.Pool.concurrency(pool) == 50
+      PoolConnection.suggest_pool_concurrency(client, 100)
+      run_concurrent_queries(client, 5)
+      assert EdgeDB.Pool.concurrency(client) == 4
     end
 
     test "terminates connections if suggested pool concurrency less than previous suggested and max",
          %{
-           pool: pool
+           client: client
          } do
-      PoolConnection.suggest_pool_concurrency(pool, 100)
+      run_concurrent_queries(client, 5)
+      assert EdgeDB.Pool.concurrency(client) == 4
 
-      Process.sleep(1000)
-      assert EdgeDB.Pool.concurrency(pool) == 50
+      PoolConnection.suggest_pool_concurrency(client, 3)
+      Process.sleep(100)
+      assert EdgeDB.Pool.concurrency(client) == 3
 
-      PoolConnection.suggest_pool_concurrency(pool, 50)
+      PoolConnection.suggest_pool_concurrency(client, 2)
+      Process.sleep(100)
+      assert EdgeDB.Pool.concurrency(client) == 2
 
-      Process.sleep(1000)
-      assert EdgeDB.Pool.concurrency(pool) == 50
+      PoolConnection.suggest_pool_concurrency(client, 1)
+      Process.sleep(100)
+      assert EdgeDB.Pool.concurrency(client) == 1
+    end
+  end
 
-      PoolConnection.suggest_pool_concurrency(pool, 25)
+  defp run_concurrent_queries(client, count, max_time \\ 200, sleep_step \\ 50) do
+    test_pid = self()
 
-      Process.sleep(1000)
-      assert EdgeDB.Pool.concurrency(pool) == 25
+    for i <- 1..count do
+      spawn(fn ->
+        EdgeDB.transaction(client, fn client ->
+          Process.sleep(max_time - sleep_step * (i - 1))
+          EdgeDB.query_required_single!(client, "select 1")
+        end)
+
+        send(test_pid, {:done, i})
+      end)
+    end
+
+    for i <- 1..count do
+      assert_receive {:done, ^i}, max_time + sleep_step
     end
   end
 end

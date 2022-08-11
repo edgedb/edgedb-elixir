@@ -30,8 +30,6 @@ defmodule Tests.EdgeDB.Connection.StateTest do
           {EdgeDB,
            tls_security: :insecure,
            max_concurrency: 1,
-           backoff_type: :stop,
-           max_restarts: 0,
            show_sensitive_data_on_connection_error: true,
            state: state}
         )
@@ -86,8 +84,6 @@ defmodule Tests.EdgeDB.Connection.StateTest do
           {EdgeDB,
            tls_security: :insecure,
            max_concurrency: 1,
-           backoff_type: :stop,
-           max_restarts: 0,
            show_sensitive_data_on_connection_error: true}
         )
 

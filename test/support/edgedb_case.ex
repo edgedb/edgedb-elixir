@@ -54,8 +54,6 @@ defmodule Tests.Support.EdgeDBCase do
         {EdgeDB,
          tls_security: :insecure,
          max_concurrency: 1,
-         backoff_type: :stop,
-         max_restarts: 0,
          show_sensitive_data_on_connection_error: true}
       )
 
@@ -75,6 +73,7 @@ defmodule Tests.Support.EdgeDBCase do
     spec = %{spec | id: "reconnectable_edgedb_client"}
 
     {:ok, client} = start_supervised(spec)
+    {:ok, _result} = EdgeDB.query(client, "select 1")
 
     assert_receive {:connected, conn_pid}, 1000
 
@@ -94,7 +93,6 @@ defmodule Tests.Support.EdgeDBCase do
     assert {:error, :expected} =
              EdgeDB.transaction(client, fn client ->
                callback.(client)
-
                EdgeDB.rollback(client, reason: :expected)
              end)
 
