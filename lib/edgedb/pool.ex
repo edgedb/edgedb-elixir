@@ -1,6 +1,24 @@
 defmodule EdgeDB.Pool do
   @moduledoc """
-  A wrapper around `DBConnection.ConnectionPool` to support dynamic resizing of the connection pool.
+  A lazy and dynamically resizable pool for `EdgeDB`.
+
+  Please note:
+
+    1. The pool won't create any connections to EdgeDB right after start.
+      To create a new connection, you need to make a call via the `EdgeDB` API.
+      This may cause a little delay between your call of the `EdgeDB` API
+      and the actual processing of query in the connection and EdgeDB.
+    2. EdgeDB has a
+      [`session_idle_timeout` configuration](https://www.edgedb.com/docs/reference/configuration#client-connections)
+      which defines how long connections can stay idle and do nothing. Once the timeout is up
+      EdgeDB will close connection and this connection will be removed from the pool.
+    3. EdgeDB provides clients a hint about how many connections the client should have in its pool.
+      Elixir client is aware of this hint and acts on it, so the count of connections in the pool
+      won't be more than EdgeDB suggests.
+    4. `:max_concurrency` can affect how many connections will be available in the pool,
+      since it has a higher priority in the sence of limiting the amount of connections.
+      Therefore, EdgeDB suggest is a "soft" limit, while `:max_concurrency` is a "hard" limit.
+      By default `:max_concurrency` is not set, so it won't have any effect on the pool.
   """
 
   use GenServer
@@ -13,6 +31,7 @@ defmodule EdgeDB.Pool do
     State
   }
 
+  @typedoc false
   @type t() :: GenServer.server()
 
   @queue_target 50
@@ -75,7 +94,7 @@ defmodule EdgeDB.Pool do
 
     codel = start_idle(now_in_native, start_poll(now_in_ms, now_in_ms, codel))
 
-    # if we're using sanbox  connection then we shouldn't use many connections
+    # if we're using sanbox connection then we shouldn't use many connections
     # since in EdgeDB there are only serializable transactions and concurrent requests
     # will break sandbox logic
     # similar if we're using subtransaction, then we should ensure it will have a single connection
@@ -91,7 +110,7 @@ defmodule EdgeDB.Pool do
       queue: queue,
       codel: codel,
       ts: ts,
-      current_concurrency: 1,
+      current_concurrency: 0,
       max_concurrency: max_concurrency,
       conn_mod: conn_mod,
       conn_opts: conn_opts
@@ -116,8 +135,7 @@ defmodule EdgeDB.Pool do
 
   @impl GenServer
   def handle_call({:set_max_concurrency, max_concurrency}, _from, %State{} = state) do
-    state = maybe_resize_pool(%State{state | max_concurrency: max_concurrency}, nil)
-    {:reply, :ok, state}
+    {:reply, :ok, %State{state | max_concurrency: max_concurrency}}
   end
 
   @impl GenServer
@@ -136,8 +154,30 @@ defmodule EdgeDB.Pool do
   end
 
   @impl GenServer
-  def handle_info({:resize_pool, suggested_pool_concurrency}, state) do
-    state = maybe_resize_pool(state, suggested_pool_concurrency)
+  def handle_info({:concurrency_suggest, suggested_pool_concurrency}, state) do
+    {:noreply, %State{state | suggested_concurrency: suggested_pool_concurrency}}
+  end
+
+  @impl GenServer
+  def handle_info(
+        {:disconnected, _conn_pid, %DBConnection.ConnectionError{reason: :exceed_limit}},
+        %State{} = state
+      ) do
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_info({:disconnected, _conn_pid, exc}, %State{} = state) do
+    state =
+      with %EdgeDB.Error{tags: tags} <- exc,
+           true <- :should_reconnect in tags do
+        ConnectionSupervisor.start_connection(state.conn_sup, state.conn_opts)
+        state
+      else
+        _other ->
+          %State{state | current_concurrency: state.current_concurrency - 1}
+      end
+
     {:noreply, state}
   end
 
@@ -155,6 +195,20 @@ defmodule EdgeDB.Pool do
       :undefined ->
         {:noreply, state}
     end
+  end
+
+  @impl GenServer
+  def handle_info(
+        {:db_connection, _from, {:checkout, _caller, _now, _queue?}} = request,
+        %State{} = state
+      ) do
+    state = maybe_create_new_connection(state)
+    formatted_state = State.to_connection_pool_format(state)
+
+    {:noreply, conn_pool_state} =
+      DBConnection.ConnectionPool.handle_info(request, formatted_state)
+
+    {:noreply, State.from_connection_pool_format(state, conn_pool_state)}
   end
 
   @impl GenServer
@@ -183,51 +237,16 @@ defmodule EdgeDB.Pool do
     %Codel{codel | idle: idle}
   end
 
-  defp maybe_resize_pool(
-         %State{
-           current_concurrency: current_concurrency,
-           max_concurrency: max_concurrency
-         } = state,
-         suggested_concurrency
-       )
-       when current_concurrency < suggested_concurrency and
-              suggested_concurrency <= max_concurrency do
-    connections_to_add = suggested_concurrency - current_concurrency
+  defp maybe_create_new_connection(%State{} = state) do
+    max_allowed_connections = min(state.max_concurrency, state.suggested_concurrency) || 1
 
-    for _id <- 1..connections_to_add do
+    if (state.type == :busy or :ets.info(state.queue, :size) == 0) and
+         state.current_concurrency < max_allowed_connections do
       ConnectionSupervisor.start_connection(state.conn_sup, state.conn_opts)
-    end
-
-    %State{
+      %State{state | current_concurrency: state.current_concurrency + 1}
+    else
       state
-      | current_concurrency: suggested_concurrency,
-        suggested_concurrency: suggested_concurrency
-    }
-  end
-
-  defp maybe_resize_pool(
-         %State{
-           current_concurrency: current_concurrency,
-           max_concurrency: max_concurrency
-         } = state,
-         suggested_concurrency
-       )
-       when current_concurrency < max_concurrency and is_integer(max_concurrency) do
-    connections_to_add = max_concurrency - current_concurrency
-
-    for _id <- 1..connections_to_add do
-      ConnectionSupervisor.start_connection(state.conn_sup, state.conn_opts)
     end
-
-    %State{
-      state
-      | current_concurrency: max_concurrency,
-        suggested_concurrency: suggested_concurrency
-    }
-  end
-
-  defp maybe_resize_pool(%State{} = state, suggested_concurrency) do
-    %State{state | suggested_concurrency: suggested_concurrency}
   end
 
   defp maybe_disconnect(
@@ -237,7 +256,14 @@ defmodule EdgeDB.Pool do
     if disconnect?(state) do
       conn_pid = connection_pid(holder)
       message = "disconnect connection via dynamic resizing"
-      err = DBConnection.ConnectionError.exception(message: message, severity: :debug)
+
+      err =
+        DBConnection.ConnectionError.exception(
+          message: message,
+          severity: :debug,
+          reason: :exceed_limit
+        )
+
       Holder.handle_disconnect(holder, err)
       ConnectionSupervisor.disconnect_connection(state.conn_sup, conn_pid)
       {:noreply, %State{state | current_concurrency: state.current_concurrency - 1}}

@@ -1,16 +1,14 @@
 defmodule Tests.EdgeDB.Connection.LifecycleTest do
   use Tests.Support.EdgeDBCase
 
-  setup do
-    Process.flag(:trap_exit, true)
+  import ExUnit.CaptureLog
 
+  setup do
     %{
       connection_params: [
         user: "edgedb_trust",
         tls_security: :insecure,
         max_concurrency: 1,
-        backoff_type: :stop,
-        max_restarts: 0,
         show_sensitive_data_on_connection_error: true
       ]
     }
@@ -23,7 +21,10 @@ defmodule Tests.EdgeDB.Connection.LifecycleTest do
         |> Keyword.put(:port, 4242)
         |> EdgeDB.start_link()
 
-      assert_receive {:EXIT, ^client, :killed}, 500
+      assert capture_log(fn ->
+               assert {:error, %DBConnection.ConnectionError{}} = EdgeDB.query(client, "select 1")
+               assert EdgeDB.Pool.concurrency(client) == 0
+             end) =~ "ClientConnectionError: unable to establish connection: :econnrefused"
     end
 
     test "when unable to connect to database", context do
@@ -32,7 +33,10 @@ defmodule Tests.EdgeDB.Connection.LifecycleTest do
         |> Keyword.put(:database, "wrong_db")
         |> EdgeDB.start_link()
 
-      assert_receive {:EXIT, ^client, :killed}, 500
+      assert capture_log(fn ->
+               assert {:error, %DBConnection.ConnectionError{}} = EdgeDB.query(client, "select 1")
+               assert EdgeDB.Pool.concurrency(client) == 0
+             end) =~ "UnknownDatabaseError: database 'wrong_db' does not exist"
     end
   end
 end

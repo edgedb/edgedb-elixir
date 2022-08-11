@@ -95,10 +95,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   test "decoding single object", %{client: client} do
     rollback(client, fn client ->
       EdgeDB.query!(client, """
-      insert User {
-        name := "username",
-        image := "http://example.com/some/url"
-      }
+        insert User {
+          name := "username",
+          image := "http://example.com/some/url"
+        }
       """)
 
       user = EdgeDB.query_required_single!(client, "select User { name, image } limit 1")

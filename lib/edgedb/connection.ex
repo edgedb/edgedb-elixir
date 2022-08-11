@@ -160,6 +160,7 @@ defmodule EdgeDB.Connection do
         exc =
           EdgeDB.ClientConnectionError.new("unable to establish connection: #{inspect(reason)}")
 
+        send(pool_pid, {:disconnected, self(), exc})
         {:error, exc}
 
       {:error, exc, state} ->
@@ -173,36 +174,66 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def disconnect(
-        %EdgeDB.Error{type: EdgeDB.ClientConnectionClosedError},
-        %State{} = state
-      ) do
+  def disconnect(%DBConnection.ConnectionError{reason: %EdgeDB.Error{} = exc}, %State{} = state) do
+    disconnect(exc, state)
+  end
+
+  @impl DBConnection
+  def disconnect(%EdgeDB.Error{type: EdgeDB.ClientConnectionClosedError} = exc, %State{} = state) do
+    send(state.pool_pid, {:disconnected, self(), exc})
     :ssl.close(state.socket)
   end
 
   @impl DBConnection
-  def disconnect(_exc, %State{} = state) do
+  def disconnect(exc, %State{} = state) do
+    send(state.pool_pid, {:disconnected, self(), exc})
+
     with {:ok, _state} <- send_message(%Terminate{}, state) do
       :ssl.close(state.socket)
     end
   end
 
   @impl DBConnection
-  def handle_status(_opts, state) do
-    {status(state), state}
-  end
+  def ping(%State{socket: socket} = state) do
+    Logger.info("ping")
+    :ssl.setopts(state.socket, active: :once)
 
-  # "Real" pings are performed according to the EdgeDB system configuration "session_idle_timeout" parameter,
-  # but by default this callback won't be called more than once per second.
-  # If "session_idle_timeout" parameter is disabled, pings will also be disabled.
-  @impl DBConnection
-  def ping(state) do
-    maybe_ping(state)
+    receive do
+      {:ssl_closed, ^socket} ->
+        message = "connection has been closed"
+        edgedb_exc = EdgeDB.ClientConnectionClosedError.new(message)
+
+        exc =
+          DBConnection.ConnectionError.exception(
+            message: message,
+            severity: :debug,
+            reason: edgedb_exc
+          )
+
+        {:disconnect, exc, state}
+
+      {:ssl, ^socket, message_data} ->
+        message = Protocol.decode_completed_message(message_data, state.protocol_version)
+        handle_ping_message(message, state)
+
+      other ->
+        message = "unexpected message from socket received during ping: #{inspect(other)}"
+        {:disconect, EdgeDB.InternalClientError.new(message), state}
+    after
+      0 ->
+        :ssl.setopts(state.socket, active: false)
+        {:ok, state}
+    end
   end
 
   @impl DBConnection
   def checkout(state) do
     {:ok, state}
+  end
+
+  @impl DBConnection
+  def handle_status(_opts, state) do
+    {status(state), state}
   end
 
   @impl DBConnection
@@ -1432,53 +1463,30 @@ defmodule EdgeDB.Connection do
     state
   end
 
-  defp maybe_ping(%State{ping_interval: :disabled} = state) do
-    {:ok, state}
-  end
+  defp handle_ping_message(%ErrorResponse{} = error_response, state) do
+    case handle_error_response(error_response, state) do
+      {:error, %EdgeDB.Error{type: EdgeDB.IdleSessionTimeoutError} = error, state} ->
+        exc =
+          DBConnection.ConnectionError.exception(
+            message: error.message,
+            severity: :debug,
+            reason: error
+          )
 
-  defp maybe_ping(
-         %State{
-           ping_interval: nil,
-           server_settings: %{
-             system_config: config
-           }
-         } = state
-       ) do
-    case config[:session_idle_timeout] do
-      nil ->
-        {:ok, state}
+        {:disconnect, exc, state}
 
-      0 ->
-        {:ok, %State{state | ping_interval: :disabled}}
-
-      session_idle_timeout ->
-        ping_interval = ping_from_idle_timeout(session_idle_timeout)
-        maybe_ping(%State{state | ping_interval: ping_interval})
+      {:error, exc, state} ->
+        {:disconnect, exc, state}
     end
   end
 
-  defp maybe_ping(%State{} = state) do
-    if System.monotonic_time(:second) - state.last_active >= state.ping_interval do
-      do_ping(state)
-    else
-      {:ok, state}
-    end
-  end
+  defp handle_ping_message(message, state) do
+    exc =
+      EdgeDB.InternalClientError.new(
+        "unexpected EdgeDB message received during ping: #{inspect(message)}"
+      )
 
-  defp do_ping(state) do
-    with {:ok, state} <- send_message(%Sync{}, state) do
-      wait_for_server_ready(state)
-    end
-  end
-
-  defp ping_from_idle_timeout(timeout) when is_integer(timeout) do
-    System.convert_time_unit(timeout, :microsecond, :second)
-  end
-
-  if Code.ensure_loaded?(Timex) do
-    defp ping_from_idle_timeout(%Timex.Duration{} = timeout) do
-      Timex.Duration.to_seconds(timeout, truncate: true)
-    end
+    {:disconect, exc, state}
   end
 
   # if we haven't received state ID from EdgeDB then pretend state is default
@@ -1692,7 +1700,7 @@ defmodule EdgeDB.Connection do
   end
 
   defp inform_pool_about_suggested_concurrency(pool_pid, suggested_concurrency) do
-    send(pool_pid, {:resize_pool, suggested_concurrency})
+    send(pool_pid, {:concurrency_suggest, suggested_concurrency})
   end
 
   # explicit capabilities

@@ -17,8 +17,6 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
       EdgeDB.child_spec(
         connection: EdgeDB.Sandbox,
         tls_security: :insecure,
-        backoff_type: :stop,
-        max_restarts: 0,
         show_sensitive_data_on_connection_error: true
       )
 

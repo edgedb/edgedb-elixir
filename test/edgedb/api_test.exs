@@ -171,18 +171,18 @@ defmodule Tests.EdgeDB.APITest do
   end
 
   describe "EdgeDB.transaction/3" do
-    test "commit result if no error occured", %{client: client} do
-      {:ok, %EdgeDB.Object{id: user_id}} =
-        EdgeDB.transaction(client, fn conn ->
-          EdgeDB.query_single!(conn, "insert User { image := '', name := 'username' }")
-        end)
+    test "commits result if no error occured", %{client: client} do
+      assert {:ok, %EdgeDB.Object{id: user_id}} =
+               EdgeDB.transaction(client, fn conn ->
+                 EdgeDB.query_single!(conn, """
+                   insert User { image := '', name := 'username' }
+                 """)
+               end)
 
       %EdgeDB.Object{id: ^user_id} =
-        EdgeDB.query_single!(client, "delete User filter .id = <uuid>$0", [user_id])
+        EdgeDB.query_required_single!(client, "select User filter .id = <uuid>$0", [user_id])
 
-      assert EdgeDB.Set.empty?(
-               EdgeDB.query!(client, "select User filter .id = <uuid>$0", [user_id])
-             )
+      EdgeDB.execute!(client, "delete User")
     end
 
     test "automaticly rollbacks if error occured", %{client: client} do
@@ -207,7 +207,7 @@ defmodule Tests.EdgeDB.APITest do
       assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select Ticket"))
     end
 
-    test "nested transactions raises borrow error", %{client: client} do
+    test "raises borrow error in case of nested transactions", %{client: client} do
       assert_raise EdgeDB.Error, ~r/borrowed for transaction/, fn ->
         EdgeDB.transaction(client, fn tx_conn1 ->
           EdgeDB.transaction(tx_conn1, fn tx_conn2 ->
@@ -215,16 +215,6 @@ defmodule Tests.EdgeDB.APITest do
           end)
         end)
       end
-    end
-
-    test "forbids using original connection inside", %{client: client} do
-      assert_raise EdgeDB.Error, ~r/borrowed for transaction/, fn ->
-        EdgeDB.transaction(client, fn _tx_conn ->
-          EdgeDB.query!(client, "select 1")
-        end)
-      end
-
-      assert "ok" = EdgeDB.query_required_single!(client, ~s(select "ok"))
     end
 
     test "won't retry on non EdgeDB errors", %{client: client} do
@@ -529,7 +519,7 @@ defmodule Tests.EdgeDB.APITest do
     test "accepts options for changing retries in transactions for network errors", %{
       client: client
     } do
-      pid = self()
+      test_pid = self()
 
       exc =
         assert_raise EdgeDB.Error, ~r/test error/, fn ->
@@ -537,7 +527,7 @@ defmodule Tests.EdgeDB.APITest do
           |> EdgeDB.with_retry_options(
             network_error: [
               backoff: fn attempt ->
-                send(pid, {:attempt, attempt})
+                send(test_pid, {:attempt, attempt})
                 10
               end
             ]
