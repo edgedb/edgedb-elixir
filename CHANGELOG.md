@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-[Compare with 0.4.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.4.0...HEAD)
+[Compare with 0.5.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.5.0...HEAD)
+
+## [0.5.0] - 2022-08-20
+
+[Compare with 0.4.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.4.0...v0.5.0)
 
 ### Added
 
