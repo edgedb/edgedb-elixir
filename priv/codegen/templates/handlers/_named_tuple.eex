@@ -1,0 +1,12 @@
+%{
+<%= for element <- @named_tuple.elements do %>
+    <%= element.name %>:
+    <%= if EdgeDB.EdgeQL.Generator.Handler.handle?(element.type) do %>
+        with element <- <%= @opts[:variable] %>["<%= element.name %>"] do
+            <%= EdgeDB.EdgeQL.Generator.Handler.handle(element.type, Keyword.merge(@opts, variable: "element")) %>
+        end,
+    <% else %>
+        <%= @opts[:variable] %>["<%= element.name %>"],
+    <% end %>
+<% end %>
+}

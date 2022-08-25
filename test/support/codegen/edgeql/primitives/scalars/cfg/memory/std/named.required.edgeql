@@ -1,0 +1,1 @@
+select <cfg::memory>$arg

@@ -120,8 +120,7 @@ defmodule EdgeDB.Connection.Config.DSN do
 
   defp parse(%URI{} = dsn, _opts) do
     raise RuntimeError,
-      message:
-        ~s(invalid DSN or instance name: scheme is expected to be "edgedb", got #{inspect(dsn.scheme)})
+      message: ~s(invalid DSN or instance name: scheme is expected to be "edgedb", got #{inspect(dsn.scheme)})
   end
 
   # URI module doesn't handle this, so should do that manually

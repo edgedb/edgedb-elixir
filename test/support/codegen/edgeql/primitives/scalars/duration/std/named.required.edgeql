@@ -1,0 +1,1 @@
+select <duration>$arg

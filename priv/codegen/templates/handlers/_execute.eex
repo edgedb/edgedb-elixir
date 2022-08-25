@@ -1,0 +1,4 @@
+defp do_query(client, args, opts) do
+    opts = Keyword.merge(opts, __file__: @query_file)
+    EdgeDB.execute(client, @query, args, opts)
+end

@@ -35,9 +35,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.DateDuration do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.InvalidArgumentError.new(
-            "value can not be encoded as cal::date_duration: #{inspect(value)}"
-          )
+    raise EdgeDB.InvalidArgumentError.new("value can not be encoded as cal::date_duration: #{inspect(value)}")
   end
 
   @impl EdgeDB.Protocol.Codec

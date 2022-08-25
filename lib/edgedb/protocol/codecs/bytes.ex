@@ -35,9 +35,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Bytes do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.InvalidArgumentError.new(
-            "value can not be encoded as std::bytes: #{inspect(value)}"
-          )
+    raise EdgeDB.InvalidArgumentError.new("value can not be encoded as std::bytes: #{inspect(value)}")
   end
 
   @impl EdgeDB.Protocol.Codec

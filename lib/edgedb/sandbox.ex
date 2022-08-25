@@ -240,8 +240,7 @@ defmodule EdgeDB.Sandbox do
         {:error, exc, %State{conn_state: :not_in_transaction, internal_state: internal_state}}
 
       {:disconnect, exc, internal_state} ->
-        {:disconnect, exc,
-         %State{conn_state: :not_in_transaction, internal_state: internal_state}}
+        {:disconnect, exc, %State{conn_state: :not_in_transaction, internal_state: internal_state}}
     end
   end
 
@@ -263,12 +262,9 @@ defmodule EdgeDB.Sandbox do
 
       {:disconnect, exc, internal_state} ->
         exc =
-          EdgeDB.ClientError.new(
-            "unable to rollback transaction for sandbox connection: #{exc.message}"
-          )
+          EdgeDB.ClientError.new("unable to rollback transaction for sandbox connection: #{exc.message}")
 
-        {:disconnect, exc,
-         %State{conn_state: :in_failed_transaction, internal_state: internal_state}}
+        {:disconnect, exc, %State{conn_state: :in_failed_transaction, internal_state: internal_state}}
     end
   end
 

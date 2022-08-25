@@ -24,8 +24,6 @@ defmodule Tests.EdgeDB.Protocol.Codecs.StrTest do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as std::str: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as std::str: #{inspect(value)}")
   end
 end

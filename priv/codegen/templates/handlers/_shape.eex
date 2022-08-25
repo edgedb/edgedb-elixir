@@ -1,0 +1,15 @@
+<%= cond do %>
+    <% @shape.is_multi -> %>
+<% variable = EdgeDB.EdgeQL.Generator.Handler.Utils.variable(@shape.type, "element") %>
+for <%= variable %> <- <%= @opts[:variable] %> do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@shape.type, Keyword.merge(@opts, variable: variable)) %>
+end
+
+    <% @shape.is_optional -> %>
+with element when not is_nil(element) <- <%= @opts[:variable] %> do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@shape.type, Keyword.merge(@opts, variable: "element")) %>
+end
+
+    <% true -> %>
+<%= EdgeDB.EdgeQL.Generator.Handler.handle(@shape.type, @opts) %>
+<% end %>

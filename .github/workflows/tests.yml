@@ -64,15 +64,16 @@ jobs:
         run: |
           EDGEDB_VERSION=${EDGEDB_VERSION%%.*}
 
-          rm -r "priv/edgedb/schema/migrations/"
+          rm -r "test/support/schema/migrations/"
 
-          for module_file in `ls priv/edgedb/schema/`
+          for module_file in `ls test/support/schema/`
           do
               module_version=${module_file%.esdl}
               module_version=${module_version#v}
+              module_version=${module_version%_*}
               if test ${EDGEDB_VERSION} -lt ${module_version}
               then
-                  module_path="priv/edgedb/schema/${module_file}"
+                  module_path="test/support/schema/${module_file}"
                   echo "removing ${module_path}"
                   rm ${module_path}
               fi

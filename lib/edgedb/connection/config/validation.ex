@@ -191,8 +191,7 @@ defmodule EdgeDB.Connection.Config.Validation do
 
   def validate_security(option) do
     raise RuntimeError,
-      message:
-        "invalid security: #{option}, security can only be one of `insecure_dev_mode`, `strict` or `default`"
+      message: "invalid security: #{option}, security can only be one of `insecure_dev_mode`, `strict` or `default`"
   end
 
   @spec validate_tls_verify_hostname_with_tls_security(atom(), atom()) :: :ok | no_return()
@@ -201,8 +200,7 @@ defmodule EdgeDB.Connection.Config.Validation do
     if (tls_security == :strict and tls_verify_hostname == false) or
          (tls_security in ~w(no_host_verification insecure)a and tls_verify_hostname == true) do
       raise RuntimeError,
-        message:
-          "tls_verify_hostname=#{tls_verify_hostname} and tls_security=#{tls_security} are incompatible"
+        message: "tls_verify_hostname=#{tls_verify_hostname} and tls_security=#{tls_security} are incompatible"
     else
       :ok
     end
@@ -246,8 +244,7 @@ defmodule EdgeDB.Connection.Config.Validation do
 
   def validate_server_settings(_option) do
     raise RuntimeError,
-      message:
-        "invalid server_settings: server_settings is expected to be a map of strings/atoms to strings"
+      message: "invalid server_settings: server_settings is expected to be a map of strings/atoms to strings"
   end
 
   @spec validate_dsn_authority(term()) :: {String.t() | nil, :inet.port_number() | nil} | nil

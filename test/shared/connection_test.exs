@@ -49,9 +49,7 @@ if File.exists?(testcases_file) do
       },
       "exclusive_options" => {
         EdgeDB.Error,
-        type: EdgeDB.ClientConnectionError,
-        name: "ClientConnectionError",
-        message: ~r/are mutually exclusive/
+        type: EdgeDB.ClientConnectionError, name: "ClientConnectionError", message: ~r/are mutually exclusive/
       },
       "env_not_found" => {RuntimeError, message: ~r/environment variable ".*" doesn't exist/},
       "file_not_found" => {File.Error, message: ~r/could not read/},
@@ -62,9 +60,7 @@ if File.exists?(testcases_file) do
       },
       "invalid_secret_key" =>
         {EdgeDB.Error,
-         type: EdgeDB.ClientConnectionError,
-         name: "ClientConnectionError",
-         message: ~r/invalid secret key/},
+         type: EdgeDB.ClientConnectionError, name: "ClientConnectionError", message: ~r/invalid secret key/},
       "secret_key_not_found" =>
         {EdgeDB.Error,
          type: EdgeDB.ClientConnectionError,
