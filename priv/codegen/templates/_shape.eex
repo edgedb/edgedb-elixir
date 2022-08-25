@@ -1,0 +1,34 @@
+<%= if @shape[:is_list] do %>
+[
+<% end %>
+
+<%= case @shape do %>
+  <% %{type: :builtin} = builtin -> %>
+    <%= @render_builtin.(builtin: builtin) %>
+
+  <% %{type: :object} = object -> %>
+    <%= @render_object.(
+        object: object,
+        render_shape: @render_shape,
+        render_builtin: @render_builtin,
+        render_object: @render_object,
+        render_set: @render_set
+    ) %>
+
+  <% %{type: :set} = set -> %>
+    <%= @render_set.(
+        set: set,
+        render_shape: @render_shape,
+        render_builtin: @render_builtin,
+        render_object: @render_object,
+        render_set: @render_set
+    ) %>
+<% end %>
+
+<%= if @shape[:is_list] do %>
+]
+<% end %>
+
+<%= if @shape[:is_optional] do %>
+| nil
+<% end %>

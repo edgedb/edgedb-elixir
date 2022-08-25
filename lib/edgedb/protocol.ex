@@ -480,6 +480,35 @@ defmodule EdgeDB.Protocol do
   end
 
   defp do_type_description_parsing(
+         <<0xFF::uint8(), id::uuid(), data::binary>>,
+         codec_storage,
+         codecs
+       ) do
+    rest =
+      case CodecStorage.get(codec_storage, id) do
+        %codec_name{} = codec when codec_name in [Codecs.Scalar, Codecs.Enum] ->
+          {type_name, rest} = do_type_name_parsing(data)
+          codec = %{codec | name: type_name}
+          CodecStorage.add(codec_storage, id, codec)
+          rest
+
+        %codec_name{id: id} ->
+          raise EdgeDB.InternalClientError.new(
+                  "unable to parse descriptor with type name for #{codec_name} codec: " <>
+                    UUID.binary_to_string!(id)
+                )
+
+        nil ->
+          raise EdgeDB.InternalClientError.new(
+                  "unable to parse descriptor with type name for yet unkown codec: " <>
+                    UUID.binary_to_string!(id)
+                )
+      end
+
+    do_type_description_parsing(rest, codec_storage, Map.put(codecs, map_size(codecs), id))
+  end
+
+  defp do_type_description_parsing(
          <<type::uint8(), id::uuid(), data::binary>>,
          codec_storage,
          codecs
@@ -626,12 +655,12 @@ defmodule EdgeDB.Protocol do
 
   defp do_codec_parsing(
          0xFF,
-         <<type_name_size::uint32(), _type_name::binary(type_name_size), rest::binary>>,
+         <<type_name_size::uint32(), type_name::binary(type_name_size), rest::binary>>,
          _id,
          _codecs,
          false
        ) do
-    {nil, rest}
+    {type_name, rest}
   end
 
   defp do_codec_parsing(
@@ -643,6 +672,10 @@ defmodule EdgeDB.Protocol do
        )
        when type in 0x80..0xFE do
     {nil, rest}
+  end
+
+  defp do_type_name_parsing(data) do
+    do_codec_parsing(0xFF, data, nil, [], false)
   end
 
   defp decode_parameter_status_value("system_config", data) do

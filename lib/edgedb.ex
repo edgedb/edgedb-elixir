@@ -789,7 +789,7 @@ defmodule EdgeDB do
         end
 
       true ->
-        EdgeDB.Result.extract(result)
+        EdgeDB.Result.extract(result, Keyword.get(opts, :__transform_result__))
     end
   end
 

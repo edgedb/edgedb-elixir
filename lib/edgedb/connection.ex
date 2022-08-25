@@ -934,7 +934,13 @@ defmodule EdgeDB.Connection do
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, state}
+      query = %EdgeDB.Query{
+        query
+        | codec_storage: state.codec_storage,
+          result_cardinality: message.result_cardinality
+      }
+
+      {:ok, query, state}
     end
   end
 
@@ -983,17 +989,19 @@ defmodule EdgeDB.Connection do
          %Server.V0.PrepareComplete{
            input_typedesc_id: in_id,
            output_typedesc_id: out_id,
-           headers: %{capabilities: capabilities}
+           headers: %{capabilities: capabilities},
+           cardinality: result_cardinality
          },
          state
        ) do
     with {:ok, state} <- wait_for_server_ready(state) do
-      maybe_legacy_describe_codecs(
-        %EdgeDB.Query{query | capabilities: capabilities},
-        in_id,
-        out_id,
-        state
-      )
+      query = %EdgeDB.Query{
+        query
+        | capabilities: capabilities,
+          result_cardinality: result_cardinality
+      }
+
+      maybe_legacy_describe_codecs(query, in_id, out_id, state)
     end
   end
 
@@ -1062,7 +1070,13 @@ defmodule EdgeDB.Connection do
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, state}
+      query = %EdgeDB.Query{
+        query
+        | codec_storage: state.codec_storage,
+          result_cardinality: message.result_cardinality
+      }
+
+      {:ok, query, state}
     end
   end
 
@@ -1158,7 +1172,11 @@ defmodule EdgeDB.Connection do
     query =
       save_query_with_codecs_in_cache(
         state.queries_cache,
-        %EdgeDB.Query{query | capabilities: capabilities},
+        %EdgeDB.Query{
+          query
+          | capabilities: capabilities,
+            result_cardinality: message.result_cardinality
+        },
         message.input_typedesc_id,
         message.output_typedesc_id
       )
@@ -1311,7 +1329,11 @@ defmodule EdgeDB.Connection do
     query =
       save_query_with_codecs_in_cache(
         state.queries_cache,
-        query,
+        %EdgeDB.Query{
+          query
+          | capabilities: message.capabilities,
+            result_cardinality: message.result_cardinality
+        },
         message.input_typedesc_id,
         message.output_typedesc_id
       )

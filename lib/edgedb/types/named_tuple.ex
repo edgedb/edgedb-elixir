@@ -55,12 +55,16 @@ defmodule EdgeDB.NamedTuple do
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.to_map(nt)
-  %{"a" => 1, "b" => "a", "c" => [3]}
+  %{"a" => 1, 0 => 1, "b" => "a", 1 => "a", "c" => [3], 2 => [3]}
   ```
   """
-  @spec to_map(t()) :: %{String.t() => term()}
-  def to_map(%__MODULE__{__items__: items}) do
-    items
+  @spec to_map(t()) :: %{(String.t() | integer()) => term()}
+  def to_map(%__MODULE__{__items__: items, __fields_ordering__: fields_order}) do
+    fields_order
+    |> Enum.into(%{}, fn {index, name} ->
+      {index, items[name]}
+    end)
+    |> Map.merge(items)
   end
 
   @doc """
