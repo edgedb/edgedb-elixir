@@ -195,7 +195,6 @@ defmodule EdgeDB.Connection do
 
   @impl DBConnection
   def ping(%State{socket: socket} = state) do
-    Logger.info("ping")
     :ssl.setopts(state.socket, active: :once)
 
     receive do
