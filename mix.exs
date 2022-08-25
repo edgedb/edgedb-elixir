@@ -33,7 +33,8 @@ defmodule EdgeDB.MixProject do
       extra_applications: [
         :crypto,
         :logger,
-        :ssl
+        :ssl,
+        :eex
       ]
     ]
   end
@@ -47,7 +48,8 @@ defmodule EdgeDB.MixProject do
       {:jose, "~> 1.11"},
       {:crc, "~> 0.10.4"},
       {:castore, "~> 0.1.0 or ~> 1.0"},
-      {:jason, "~> 1.2", optional: true},
+      {:nimble_options, "~> 1.0"},
+      {:jason, "~> 1.2"},
       {:timex, "~> 3.7", optional: true},
       # test
       {:excoveralls, "~> 0.14", only: [:test, :ci]},
@@ -62,7 +64,7 @@ defmodule EdgeDB.MixProject do
   end
 
   defp elixirc_paths(:test) do
-    ["lib", "test/support"]
+    ["lib", "test/support", "test/codegen"]
   end
 
   defp elixirc_paths(_env) do
@@ -97,7 +99,8 @@ defmodule EdgeDB.MixProject do
       "edgedb.docs": :ci,
       coveralls: :test,
       "coveralls.detail": :test,
-      "coveralls.html": :test
+      "coveralls.html": :test,
+      "edgedb.generate": :dev
     ]
   end
 
@@ -106,7 +109,8 @@ defmodule EdgeDB.MixProject do
       plt_add_apps: [
         :ex_unit,
         :jason,
-        :timex
+        :timex,
+        :mix
       ],
       plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
     ]
@@ -132,6 +136,7 @@ defmodule EdgeDB.MixProject do
       extras: [
         "pages/md/main.md",
         "pages/md/usage.md",
+        "pages/md/codegen.md",
         "pages/md/datatypes.md",
         "pages/md/custom-codecs.md",
         "CHANGELOG.md"
@@ -161,14 +166,14 @@ defmodule EdgeDB.MixProject do
   defp aliases do
     [
       "edgedb.roles.setup": [
-        "cmd priv/scripts/setup-roles.sh"
+        "cmd priv/test/support/scripts/setup-roles.sh"
       ],
       "edgedb.roles.reset": [
-        "cmd priv/scripts/drop-roles.sh",
-        "cmd priv/scripts/setup-roles.sh"
+        "cmd priv/test/support/scripts/drop-roles.sh",
+        "cmd priv/test/support/scripts/setup-roles.sh"
       ],
       "edgedb.docs": [
-        "run priv/scripts/edgedb_docs.exs"
+        "run priv/test/suppport/scripts/edgedb_docs.exs"
       ]
     ]
   end

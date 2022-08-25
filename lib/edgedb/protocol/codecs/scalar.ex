@@ -5,7 +5,8 @@ defmodule EdgeDB.Protocol.Codecs.Scalar do
 
   defstruct [
     :id,
-    :codec
+    :codec,
+    :name
   ]
 
   @spec new(Codec.id(), Codec.id()) :: Codec.t()

@@ -1,0 +1,11 @@
+[
+  <%= for type <- @schema do %>
+    <%= case type do %>
+      <% {name, schema} -> %>
+  <%= name %>: <%= @render_schema.(schema: schema, render_schema: @render_schema) %>,
+
+      <% name -> %>
+  :<%= name %>,
+    <% end %>
+  <% end %>
+]

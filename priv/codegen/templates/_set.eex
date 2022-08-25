@@ -1,0 +1,7 @@
+<%= @render_shape.(
+    shape: @set.shape,
+    render_shape: @render_shape,
+    render_builtin: @render_builtin,
+    render_object: @render_object,
+    render_set: @render_set
+) %>

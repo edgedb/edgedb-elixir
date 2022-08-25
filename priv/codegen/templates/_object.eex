@@ -1,0 +1,19 @@
+%{
+    <%= for {name, field} <- @object.fields do %>
+
+        <%= if field[:is_link_property] do %>
+            "@<%= name %>":
+        <% else %>
+            <%= name %>:
+        <% end %>
+
+            <%= @render_shape.(
+                shape: field,
+                render_shape: @render_shape,
+                render_builtin: @render_builtin,
+                render_object: @render_object,
+                render_set: @render_set
+            ) %>,
+
+    <% end %>
+}
