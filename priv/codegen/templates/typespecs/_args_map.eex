@@ -1,0 +1,5 @@
+%{
+<%= for arg <- @args.args do %>
+    <%= arg.name %>: <%= EdgeDB.EdgeQL.Generator.Render.render(arg, :typespec, @opts) %>,
+<% end %>
+}

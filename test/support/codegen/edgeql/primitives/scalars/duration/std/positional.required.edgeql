@@ -1,0 +1,1 @@
+select <str>$0

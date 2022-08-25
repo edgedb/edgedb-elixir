@@ -9,10 +9,7 @@ defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
     setup do
       {:ok, client} =
         start_supervised(
-          {EdgeDB,
-           connection: PoolConnection,
-           idle_interval: 50,
-           show_sensitive_data_on_connection_error: true}
+          {EdgeDB, connection: PoolConnection, idle_interval: 50, show_sensitive_data_on_connection_error: true}
         )
 
       %{client: client}
@@ -32,10 +29,7 @@ defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
     setup do
       {:ok, client} =
         start_supervised(
-          {EdgeDB,
-           connection: PoolConnection,
-           idle_interval: 50,
-           show_sensitive_data_on_connection_error: true}
+          {EdgeDB, connection: PoolConnection, idle_interval: 50, show_sensitive_data_on_connection_error: true}
         )
 
       :executed = EdgeDB.query_required_single!(client, "select 1")

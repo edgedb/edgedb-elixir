@@ -1,0 +1,5 @@
+<%= if not is_nil(@scalar.module) and not @opts[:root] do %>
+<%= @scalar.module %>.<%= @scalar.typespec %>
+<% else %>
+<%= @scalar.typespec %>
+<% end %>

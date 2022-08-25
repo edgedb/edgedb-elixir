@@ -1,0 +1,4 @@
+<% variable = EdgeDB.EdgeQL.Generator.Handler.Utils.variable(@set.type, "element") %>
+for <%= variable %> <- <%= @opts[:variable] %> do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@set.type, Keyword.merge(@opts, variable: variable)) %>
+end

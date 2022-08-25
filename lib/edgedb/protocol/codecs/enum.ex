@@ -3,7 +3,11 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
 
   alias EdgeDB.Protocol.Codec
 
-  defstruct [:id, :name, :members]
+  defstruct [
+    :id,
+    :name,
+    :members
+  ]
 
   @spec new(Codec.t(), String.t() | nil, list(String.t())) :: Codec.t()
   def new(id, name, members) do
@@ -21,12 +25,15 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Enum do
 
   @impl Codec
   def encode(%{members: members}, value, codec_storage) do
-    if value in members do
-      Codec.encode(@str_codec, value, codec_storage)
-    else
-      raise EdgeDB.InvalidArgumentError.new(
-              "value can not be encoded as enum: not enum member: #{inspect(value)}"
-            )
+    cond do
+      is_binary(value) and value in members ->
+        Codec.encode(@str_codec, value, codec_storage)
+
+      is_atom(value) and to_string(value) in members ->
+        Codec.encode(@str_codec, to_string(value), codec_storage)
+
+      true ->
+        raise EdgeDB.InvalidArgumentError.new("value can not be encoded as enum: not enum member: #{inspect(value)}")
     end
   end
 

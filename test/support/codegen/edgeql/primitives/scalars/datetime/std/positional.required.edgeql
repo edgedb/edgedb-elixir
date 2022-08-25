@@ -1,0 +1,1 @@
+select <datetime>$0

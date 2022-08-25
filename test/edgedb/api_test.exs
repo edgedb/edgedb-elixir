@@ -398,8 +398,7 @@ defmodule Tests.EdgeDB.APITest do
 
     setup %{client: client} do
       %{
-        client:
-          EdgeDB.with_module_aliases(client, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
+        client: EdgeDB.with_module_aliases(client, %{"schema_alias" => "schema", "cfg_alias" => "cfg"})
       }
     end
 

@@ -1,0 +1,1 @@
+select <json>"hello world"

@@ -28,4 +28,4 @@ edgedb-*.tar
 # dialyzer
 priv/plts/
 
-examples/
+test/codegen/queries/

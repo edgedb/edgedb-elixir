@@ -50,9 +50,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.LocalDateTime do
 
   @impl Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.InvalidArgumentError.new(
-            "value can not be encoded as cal::local_datetime: #{inspect(value)}"
-          )
+    raise EdgeDB.InvalidArgumentError.new("value can not be encoded as cal::local_datetime: #{inspect(value)}")
   end
 
   @impl Codec

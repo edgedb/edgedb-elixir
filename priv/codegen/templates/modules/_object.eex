@@ -1,0 +1,35 @@
+defmodule <%= @opts[:module] %> do
+  @moduledoc false
+
+  <%= for link <- @object.links do %>
+  <%= EdgeDB.EdgeQL.Generator.Render.render(link, :module, @opts) %>
+  <% end %>
+
+  defstruct [
+    <%= for property <- @object.properties do %>
+        <%= if property.is_link_property do %>
+        :"@<%= property.name %>",
+        <% else %>
+        :<%= property.name %>,
+        <% end %>
+    <% end %>
+
+    <%= for link <- @object.links do %>
+        :<%= link.name %>,
+    <% end %>
+  ]
+
+  @type t() :: %__MODULE__{
+    <%= for property <- @object.properties do %>
+        <%= if property.is_link_property do %>
+        "@<%= property.name %>": <%= EdgeDB.EdgeQL.Generator.Render.render(property, :typespec, @opts) %>,
+        <% else %>
+        <%= property.name %>: <%= EdgeDB.EdgeQL.Generator.Render.render(property, :typespec, @opts) %>,
+        <% end %>
+    <% end %>
+
+    <%= for link <- @object.links do %>
+        <%= link.name %>: <%= EdgeDB.EdgeQL.Generator.Render.render(link, :typespec, @opts) %>,
+    <% end %>
+  }
+end

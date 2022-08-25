@@ -1,0 +1,10 @@
+<%= if @link.is_optional do %>
+with link when not is_nil(link) <- <%= @opts[:variable] %>["<%= @link.name %>"] do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@link.type, Keyword.merge(@opts, variable: "link")) %>
+end
+<% else %>
+    <% variable = EdgeDB.EdgeQL.Generator.Handler.Utils.variable(@link.type, "link") %>
+with <%= variable %> <- <%= @opts[:variable] %>["<%= @link.name %>"] do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@link.type, Keyword.merge(@opts, variable: variable)) %>
+end
+<% end %>

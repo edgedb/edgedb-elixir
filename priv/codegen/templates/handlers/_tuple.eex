@@ -1,0 +1,17 @@
+with {
+    <%= for {_element, idx} <- Enum.with_index(@tuple.elements) do %>
+    element_<%= idx %>,
+    <% end %>
+} <- <%= @opts[:variable] %> do
+    {
+    <%= for {element, idx} <- Enum.with_index(@tuple.elements) do %>
+        <%= if EdgeDB.EdgeQL.Generator.Handler.handle?(element) do %>
+        with element <- element_<%= idx %> do
+            <%= EdgeDB.EdgeQL.Generator.Handler.handle(element, Keyword.merge(@opts, variable: "element")) %>
+        end,
+        <% else %>
+        element_<%= idx %>,
+        <% end %>
+    <% end %>
+    }
+end
