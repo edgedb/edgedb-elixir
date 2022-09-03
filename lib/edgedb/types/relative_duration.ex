@@ -19,7 +19,7 @@ defmodule EdgeDB.RelativeDuration do
   Fields:
 
     * `:months` - number of months.
-    * `:days` - number of months.
+    * `:days` - number of days.
     * `:microseconds` - number of microseconds.
   """
   @type t() :: %__MODULE__{

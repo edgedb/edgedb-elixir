@@ -20,6 +20,7 @@ The table below shows the correspondence between EdgeDB and Elixir types.
 | `cal::local_date`         | `t:Date.t/0`                             | `~D[2018-05-07]`                                     |
 | `cal::local_time`         | `t:Time.t/0`                             | `~T[15:01:22]`                                       |
 | `cal::relative_duration`  | `t:EdgeDB.RelativeDuration.t/0`          | `#EdgeDB.RelativeDuration<"PT45.6S">`                |
+| `cal::date_duration`      | `t:EdgeDB.DateDuration.t/0`              | `#EdgeDB.DateDuration<"P4Y12D">`                     |
 | `bytes`                   | `t:binary/0`                             | `<<1, 2, 3>>`, `"some bytes"`                        |
 | `array<anytype>`          | `t:list/0`                               | `[1, 2, 3]`                                          |
 | `anytuple`                | `t:tuple/0` or `t:EdgeDB.NamedTuple.t/0` | `{1, 2, 3}`, `#EdgeDB.NamedTuple<a: 1, b: 2, c: 3>}` |

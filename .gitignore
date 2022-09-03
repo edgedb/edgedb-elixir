@@ -27,3 +27,5 @@ edgedb-*.tar
 
 # dialyzer
 priv/plts/
+
+examples/
