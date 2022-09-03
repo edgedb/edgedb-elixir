@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.5.1](https://github.com/nsidnev/edgedb-elixir/compare/v0.5.1...HEAD)
 
+### Added
+
+- support for `cal::date_duration` EdgeDB type via `EdgeDB.DateDuration` structure.
+
 ## [0.5.1] - 2022-08-25
 
 [Compare with 0.5.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.5.0...v0.5.1)

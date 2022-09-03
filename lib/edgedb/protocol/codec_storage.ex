@@ -36,6 +36,7 @@ defmodule EdgeDB.Protocol.CodecStorage do
     Codecs.BigInt,
     Codecs.RelativeDuration,
     Codecs.ConfigMemory,
+    Codecs.DateDuration,
 
     # special case
     Codecs.Null
