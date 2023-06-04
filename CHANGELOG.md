@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `EdgeDB.Pool` crash after updating `db_connection` to `2.5`.
+- support for `DBConnection.ConnectionPool`.
 
 ## [0.5.1] - 2022-08-25
 

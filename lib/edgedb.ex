@@ -216,15 +216,21 @@ defmodule EdgeDB do
   @spec start_link(String.t()) :: GenServer.on_start()
   def start_link(dsn) when is_binary(dsn) do
     opts = prepare_opts(dsn: dsn)
-    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
-    DBConnection.start_link(connection, opts)
+
+    opts
+    |> Keyword.get(:connection, EdgeDB.Connection)
+    |> DBConnection.start_link(opts)
+    |> register_client(opts)
   end
 
   @spec start_link(list(start_option())) :: GenServer.on_start()
   def start_link(opts) do
     opts = prepare_opts(opts)
-    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
-    DBConnection.start_link(connection, opts)
+
+    opts
+    |> Keyword.get(:connection, EdgeDB.Connection)
+    |> DBConnection.start_link(opts)
+    |> register_client(opts)
   end
 
   @doc """
@@ -245,8 +251,10 @@ defmodule EdgeDB do
       |> Keyword.merge(opts)
       |> prepare_opts()
 
-    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
-    DBConnection.start_link(connection, opts)
+    opts
+    |> Keyword.get(:connection, EdgeDB.Connection)
+    |> DBConnection.start_link(opts)
+    |> register_client(opts)
   end
 
   @doc """
@@ -257,8 +265,11 @@ defmodule EdgeDB do
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts \\ []) do
     opts = prepare_opts(opts)
-    connection = Keyword.get(opts, :connection, EdgeDB.Connection)
-    DBConnection.child_spec(connection, opts)
+
+    %{
+      id: EdgeDB,
+      start: {EdgeDB, :start_link, [opts]}
+    }
   end
 
   @doc """
@@ -1051,5 +1062,22 @@ defmodule EdgeDB do
     |> Config.connect_opts()
     |> Keyword.put_new(:pool, EdgeDB.Pool)
     |> Keyword.put(:backoff_type, :stop)
+  end
+
+  defp register_client({:ok, pid} = result, opts) do
+    client = %EdgeDB.Client{
+      conn: pid,
+      transaction_options: opts[:transaction] || [],
+      retry_options: opts[:retry] || [],
+      state: opts[:state] || %EdgeDB.State{}
+    }
+
+    Registry.register(EdgeDB.ClientsRegistry, pid, client)
+
+    result
+  end
+
+  defp register_client(result, _opts) do
+    result
   end
 end
