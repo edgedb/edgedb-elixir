@@ -81,19 +81,6 @@ defmodule EdgeDB.Pool do
     conn_opts = [owner: self(), queue: queue, conn: [mod: conn_mod, opts: opts]]
     {:ok, _pid} = ConnectionSupervisor.start_supervised(conn_opts)
 
-    codel = %Codel{
-      target: Keyword.get(opts, :queue_target, @queue_target),
-      interval: Keyword.get(opts, :queue_interval, @queue_interval),
-      delay: 0,
-      slow: false,
-      next: now_in_ms,
-      poll: nil,
-      idle_interval: Keyword.get(opts, :idle_interval, @idle_interval),
-      idle: nil
-    }
-
-    codel = start_idle(now_in_native, start_poll(now_in_ms, now_in_ms, codel))
-
     # if we're using sanbox connection then we shouldn't use many connections
     # since in EdgeDB there are only serializable transactions and concurrent requests
     # will break sandbox logic
@@ -105,6 +92,22 @@ defmodule EdgeDB.Pool do
         opts[:max_concurrency]
       end
 
+    idle_limit = opts[:idle_limit]
+
+    codel = %Codel{
+      target: Keyword.get(opts, :queue_target, @queue_target),
+      interval: Keyword.get(opts, :queue_interval, @queue_interval),
+      delay: 0,
+      slow: false,
+      next: now_in_ms,
+      poll: nil,
+      idle_interval: Keyword.get(opts, :idle_interval, @idle_interval),
+      idle_limit: idle_limit || (max_concurrency || 0),
+      idle: nil
+    }
+
+    codel = start_idle(now_in_native, start_poll(now_in_ms, now_in_ms, codel))
+
     state = %State{
       type: :busy,
       queue: queue,
@@ -113,7 +116,8 @@ defmodule EdgeDB.Pool do
       current_concurrency: 0,
       max_concurrency: max_concurrency,
       conn_mod: conn_mod,
-      conn_opts: conn_opts
+      conn_opts: conn_opts,
+      pool_idle_limit: idle_limit
     }
 
     client = %EdgeDB.Client{
@@ -243,7 +247,14 @@ defmodule EdgeDB.Pool do
     if (state.type == :busy or :ets.info(state.queue, :size) == 0) and
          state.current_concurrency < max_allowed_connections do
       ConnectionSupervisor.start_connection(state.conn_sup, state.conn_opts)
-      %State{state | current_concurrency: state.current_concurrency + 1}
+
+      concurrency = state.current_concurrency + 1
+
+      %State{
+        state
+        | current_concurrency: concurrency,
+          codel: maybe_set_codel_idle_limit(state, concurrency)
+      }
     else
       state
     end
@@ -266,7 +277,15 @@ defmodule EdgeDB.Pool do
 
       Holder.handle_disconnect(holder, err)
       ConnectionSupervisor.disconnect_connection(state.conn_sup, conn_pid)
-      {:noreply, %State{state | current_concurrency: state.current_concurrency - 1}}
+
+      concurrency = state.current_concurrency - 1
+
+      {:noreply,
+       %State{
+         state
+         | current_concurrency: concurrency,
+           codel: maybe_set_codel_idle_limit(state, concurrency)
+       }}
     else
       formatted_state = State.to_connection_pool_format(state)
 
@@ -301,5 +320,13 @@ defmodule EdgeDB.Pool do
   defp connection_pid(holder) do
     [conn] = :ets.lookup(holder, :conn)
     elem(conn, 1)
+  end
+
+  defp maybe_set_codel_idle_limit(%State{pool_idle_limit: nil, codel: codel}, concurrency) do
+    %Codel{codel | idle_limit: concurrency}
+  end
+
+  defp maybe_set_codel_idle_limit(%State{codel: codel}, _concurrency) do
+    codel
   end
 end

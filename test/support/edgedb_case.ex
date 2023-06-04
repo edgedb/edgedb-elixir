@@ -77,13 +77,14 @@ defmodule Tests.Support.EdgeDBCase do
 
     assert_receive {:connected, conn_pid}, 1000
 
-    %{
-      mod_state: %{
-        state: %EdgeDB.Connection.State{
-          socket: socket
-        }
-      }
-    } = :sys.get_state(conn_pid)
+    socket =
+      case :sys.get_state(conn_pid) do
+        %{mod_state: %{state: %EdgeDB.Connection.State{socket: socket}}} ->
+          socket
+
+        {:no_state, %{state: %EdgeDB.Connection.State{socket: socket}}} ->
+          socket
+      end
 
     %{client: client, pid: conn_pid, socket: socket}
   end

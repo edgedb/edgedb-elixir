@@ -13,7 +13,8 @@ defmodule EdgeDB.Pool.State do
     :max_concurrency,
     :conn_sup,
     :conn_mod,
-    :conn_opts
+    :conn_opts,
+    :pool_idle_limit
   ]
 
   @type dbconnection_pool_type() :: :busy | :ready
@@ -30,7 +31,8 @@ defmodule EdgeDB.Pool.State do
           max_concurrency: integer() | nil,
           conn_sup: Supervisor.supervisor(),
           conn_mod: module(),
-          conn_opts: Keyword.t()
+          conn_opts: Keyword.t(),
+          pool_idle_limit: integer() | nil
         }
 
   @spec to_connection_pool_format(t()) :: dbconnection_pool_state()
