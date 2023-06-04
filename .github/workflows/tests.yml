@@ -21,7 +21,7 @@ jobs:
           - "25.3.2"
 
         elixir-version:
-          - "1.12.2"
+          - "1.14.5"
 
         edgedb-version:
           - "1.0"
