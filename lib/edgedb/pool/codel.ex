@@ -9,6 +9,7 @@ defmodule EdgeDB.Pool.Codel do
     :next,
     :poll,
     :idle_interval,
+    :idle_limit,
     :idle
   ]
 
@@ -20,6 +21,7 @@ defmodule EdgeDB.Pool.Codel do
           next: integer(),
           poll: nil | reference(),
           idle_interval: integer(),
+          idle_limit: integer(),
           idle: nil | reference()
         }
 
@@ -31,6 +33,7 @@ defmodule EdgeDB.Pool.Codel do
           next: integer(),
           poll: nil | reference(),
           idle_interval: integer(),
+          idle_limit: integer(),
           idle: nil | reference()
         }
 end
