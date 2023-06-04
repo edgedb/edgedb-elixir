@@ -13,7 +13,7 @@ jobs:
   tests:
     name: Run tests (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }} / EdgeDB ${{ matrix.edgedb-version }})
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
