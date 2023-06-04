@@ -120,15 +120,6 @@ defmodule EdgeDB.Pool do
       pool_idle_limit: idle_limit
     }
 
-    client = %EdgeDB.Client{
-      conn: self(),
-      transaction_options: opts[:transaction] || [],
-      retry_options: opts[:retry] || [],
-      state: opts[:state] || %EdgeDB.State{}
-    }
-
-    Registry.register(EdgeDB.ClientsRegistry, self(), client)
-
     {:ok, state}
   end
 

@@ -1,4 +1,4 @@
-defmodule Tests.EdgeDB.PoolTest do
+defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
   use Tests.Support.EdgeDBCase
 
   alias Tests.Support.Connections.PoolConnection
