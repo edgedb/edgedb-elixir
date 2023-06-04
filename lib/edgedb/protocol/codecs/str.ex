@@ -30,7 +30,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Str do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, string, _codec_storage) when is_binary(string) do
-    [<<byte_size(string)::uint32>>, string]
+    [<<byte_size(string)::uint32()>>, string]
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -41,7 +41,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Str do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<string_size::uint32, string::binary(string_size)>>, _codec_storage) do
+  def decode(_codec, <<string_size::uint32(), string::binary(string_size)>>, _codec_storage) do
     :binary.copy(string)
   end
 end

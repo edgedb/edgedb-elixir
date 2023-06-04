@@ -29,7 +29,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
 
   @impl Codec
   def encode(_codec, [], _codec_storage) do
-    <<12::uint32, 0::int32, 0::int32, 0::int32>>
+    <<12::uint32(), 0::int32(), 0::int32(), 0::int32()>>
   end
 
   @impl Codec
@@ -45,8 +45,8 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
     dimensions = encode_dimension_list(ndims, list)
     elements = encode_element_list(list, codec, codec_storage)
 
-    data = [[<<ndims::int32, 0::int32, 0::int32>> | dimensions] | elements]
-    [<<IO.iodata_length(data)::uint32>> | data]
+    data = [[<<ndims::int32(), 0::int32(), 0::int32()>> | dimensions] | elements]
+    [<<IO.iodata_length(data)::uint32()>> | data]
   end
 
   @impl Codec
@@ -57,7 +57,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   @impl Codec
   def decode(
         _codec,
-        <<12::uint32, 0::int32, _reserved0::int32, _reserved1::int32>>,
+        <<12::uint32(), 0::int32(), _reserved0::int32(), _reserved1::int32()>>,
         _codec_storage
       ) do
     []
@@ -66,10 +66,10 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   @impl Codec
   def decode(
         %{codec: codec},
-        <<length::uint32, data::binary(length)>>,
+        <<length::uint32(), data::binary(length)>>,
         codec_storage
       ) do
-    <<ndims::int32, _reserved0::int32, _reserved1::int32, rest::binary>> = data
+    <<ndims::int32(), _reserved0::int32(), _reserved1::int32(), rest::binary>> = data
     codec = CodecStorage.get(codec_storage, codec)
     {dimensions, rest} = decode_dimension_list(rest, ndims, [])
     element_count = Enum.reduce(dimensions, 0, &(&2 + &1.upper - &1.lower + 1))
@@ -79,7 +79,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   end
 
   defp encode_dimension_list(1, list) do
-    encode_dimension_list(0, [], [<<length(list)::int32, 1::int32>>])
+    encode_dimension_list(0, [], [<<length(list)::int32(), 1::int32()>>])
   end
 
   defp encode_dimension_list(ndims, list) do
@@ -91,7 +91,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   end
 
   defp encode_dimension_list(ndims, [list | rest], dimensions) do
-    encode_dimension_list(ndims - 1, rest, [<<length(list)::int32, 1::int32>> | dimensions])
+    encode_dimension_list(ndims - 1, rest, [<<length(list)::int32(), 1::int32()>> | dimensions])
   end
 
   defp encode_element_list(list, codec, codec_storage) do
@@ -116,7 +116,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   end
 
   defp decode_dimension_list(<<data::binary>>, count, acc) do
-    <<upper::int32, lower::int32, rest::binary>> = data
+    <<upper::int32(), lower::int32(), rest::binary>> = data
     decode_dimension_list(rest, count - 1, [%Types.Dimension{upper: upper, lower: lower} | acc])
   end
 
@@ -125,13 +125,13 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Array do
   end
 
   defp decode_element_list(
-         <<length::int32, data::binary(length), rest::binary>>,
+         <<length::int32(), data::binary(length), rest::binary>>,
          codec,
          codec_storage,
          count,
          acc
        ) do
-    element = Codec.decode(codec, <<length::int32, data::binary>>, codec_storage)
+    element = Codec.decode(codec, <<length::int32(), data::binary>>, codec_storage)
     decode_element_list(rest, codec, codec_storage, count - 1, [element | acc])
   end
 end

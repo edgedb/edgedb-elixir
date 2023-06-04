@@ -38,7 +38,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
       Codec.encode(codec, range.upper, codec_storage)
     ]
 
-    [<<IO.iodata_length(data)::uint32, flags::uint8>> | data]
+    [<<IO.iodata_length(data)::uint32(), flags::uint8()>> | data]
   end
 
   @impl Codec
@@ -49,12 +49,12 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
   @impl Codec
   def decode(
         %{codec: codec},
-        <<range_length::uint32, range_data::binary(range_length)>>,
+        <<range_length::uint32(), range_data::binary(range_length)>>,
         codec_storage
       ) do
     codec = CodecStorage.get(codec_storage, codec)
 
-    <<flags::uint8, boundaries_data::binary>> = range_data
+    <<flags::uint8(), boundaries_data::binary>> = range_data
 
     empty? = Bitwise.band(flags, @empty) != 0
     inc_lower? = Bitwise.band(flags, @lb_inc) != 0
@@ -65,12 +65,12 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
     {lower, upper_data} =
       if contains_lower? do
         case boundaries_data do
-          <<-1::int32, upper_data::binary>> ->
+          <<-1::int32(), upper_data::binary>> ->
             {nil, upper_data}
 
-          <<lower_length::int32, lower_data::binary(lower_length), upper_data::binary>> ->
+          <<lower_length::int32(), lower_data::binary(lower_length), upper_data::binary>> ->
             lower =
-              Codec.decode(codec, <<lower_length::uint32, lower_data::binary>>, codec_storage)
+              Codec.decode(codec, <<lower_length::uint32(), lower_data::binary>>, codec_storage)
 
             {lower, upper_data}
         end
@@ -81,11 +81,11 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
     upper =
       if contains_upper? do
         case upper_data do
-          <<-1::int32>> ->
+          <<-1::int32()>> ->
             nil
 
-          <<upper_length::uint32, upper_data::binary(upper_length)>> ->
-            Codec.decode(codec, <<upper_length::uint32, upper_data::binary>>, codec_storage)
+          <<upper_length::uint32(), upper_data::binary(upper_length)>> ->
+            Codec.decode(codec, <<upper_length::uint32(), upper_data::binary>>, codec_storage)
         end
       else
         <<>> = boundaries_data

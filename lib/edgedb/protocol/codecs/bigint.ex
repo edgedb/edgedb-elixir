@@ -52,11 +52,14 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.BigInt do
   @impl Codec
   def encode(_codec, value, codec_storage) do
     [
-      <<length::uint32>>,
-      <<ndigits::uint16, weight::int16, sign::uint16, _dscale::uint16>> | digits
+      <<length::uint32()>>,
+      <<ndigits::uint16(), weight::int16(), sign::uint16(), _dscale::uint16()>> | digits
     ] = Codec.encode(@decimal_codec, value, codec_storage)
 
-    [<<length::uint32, ndigits::uint16, weight::int16, sign::uint16, 0::uint16>> | digits]
+    [
+      <<length::uint32(), ndigits::uint16(), weight::int16(), sign::uint16(), 0::uint16()>>
+      | digits
+    ]
   rescue
     e in EdgeDB.Error ->
       "value can not be encoded as std::decimal: " <> reason = e.message

@@ -31,7 +31,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Int64 do
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, number, _codec_storage)
       when is_integer(number) and number in -0x8000000000000000..0x7FFFFFFFFFFFFFFF do
-    <<8::uint32, number::int64>>
+    <<8::uint32(), number::int64()>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -42,7 +42,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Int64 do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, number::int64>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), number::int64()>>, _codec_storage) do
     number
   end
 end

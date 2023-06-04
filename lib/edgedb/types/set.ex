@@ -56,19 +56,43 @@ defimpl Enumerable, for: EdgeDB.Set do
   end
 
   @impl Enumerable
-  def member?(%EdgeDB.Set{__items__: items}, element) do
-    {:ok, Enum.member?(items, element)}
+  def member?(%EdgeDB.Set{__items__: []}, _element) do
+    {:ok, false}
   end
 
   @impl Enumerable
-  def reduce(%EdgeDB.Set{__items__: items}, acc, fun) do
-    Enumerable.List.reduce(items, acc, fun)
+  def member?(%EdgeDB.Set{}, _element) do
+    {:error, __MODULE__}
   end
 
   @impl Enumerable
-  def slice(%EdgeDB.Set{__items__: items}) do
-    set_length = length(items)
-    {:ok, set_length, &Enumerable.List.slice(items, &1, &2, set_length)}
+  def slice(%EdgeDB.Set{__items__: []}) do
+    {:ok, 0, fn _start, _amount, _step -> [] end}
+  end
+
+  @impl Enumerable
+  def slice(%EdgeDB.Set{}) do
+    {:error, __MODULE__}
+  end
+
+  @impl Enumerable
+  def reduce(%EdgeDB.Set{}, {:halt, acc}, _fun) do
+    {:halted, acc}
+  end
+
+  @impl Enumerable
+  def reduce(%EdgeDB.Set{} = set, {:suspend, acc}, fun) do
+    {:suspended, acc, &reduce(set, &1, fun)}
+  end
+
+  @impl Enumerable
+  def reduce(%EdgeDB.Set{__items__: []}, {:cont, acc}, _fun) do
+    {:done, acc}
+  end
+
+  @impl Enumerable
+  def reduce(%EdgeDB.Set{__items__: [item | items]}, {:cont, acc}, fun) do
+    reduce(%EdgeDB.Set{__items__: items}, fun.(item, acc), fun)
   end
 end
 
