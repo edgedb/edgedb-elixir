@@ -35,7 +35,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.DateTime do
     edb_datetime =
       System.convert_time_unit(unix_ts - @seconds_before_2000_1_1_utc, :second, :microsecond)
 
-    <<8::uint32, edb_datetime::int64>>
+    <<8::uint32(), edb_datetime::int64()>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -52,7 +52,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.DateTime do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, edb_datetime::int64>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), edb_datetime::int64()>>, _codec_storage) do
     unix_ts =
       System.convert_time_unit(edb_datetime, :microsecond, :second) + @seconds_before_2000_1_1_utc
 

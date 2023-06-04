@@ -94,7 +94,7 @@ defmodule EdgeDB.Protocol.CodecStorage do
   @doc false
   @spec add(t(), bitstring() | binary(), Codec.t()) :: :ok
 
-  def add(storage, <<id::uuid>>, codec) do
+  def add(storage, <<id::uuid()>>, codec) do
     add_codec(storage, id, codec)
   end
 

@@ -88,11 +88,11 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Decimal do
 
     data =
       for digit <- digits do
-        <<digit::uint16>>
+        <<digit::uint16()>>
       end
 
-    data = [<<ndigits::uint16, weight::int16, sign::uint16, dscale::uint16>> | data]
-    [<<IO.iodata_length(data)::uint32>> | data]
+    data = [<<ndigits::uint16(), weight::int16(), sign::uint16(), dscale::uint16()>> | data]
+    [<<IO.iodata_length(data)::uint32()>> | data]
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -105,10 +105,10 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Decimal do
   @impl EdgeDB.Protocol.Codec
   def decode(
         _codec,
-        <<length::uint32, data::binary(length)>>,
+        <<length::uint32(), data::binary(length)>>,
         _codec_storage
       ) do
-    <<ndigits::uint16, weight::int16, sign::uint16, dscale::uint16, rest::binary>> = data
+    <<ndigits::uint16(), weight::int16(), sign::uint16(), dscale::uint16(), rest::binary>> = data
     digits = decode_digit_list(rest, ndigits, [])
     number = Integer.undigits(digits, @base)
 
@@ -132,7 +132,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Decimal do
     Enum.reverse(acc)
   end
 
-  defp decode_digit_list(<<digit::uint16, rest::binary>>, count, acc) do
+  defp decode_digit_list(<<digit::uint16(), rest::binary>>, count, acc) do
     decode_digit_list(rest, count - 1, [digit | acc])
   end
 

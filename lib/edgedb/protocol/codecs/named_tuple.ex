@@ -36,10 +36,10 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
   @impl Codec
   def decode(
         %{elements: elements, codecs: codecs},
-        <<length::uint32, data::binary(length)>>,
+        <<length::uint32(), data::binary(length)>>,
         codec_storage
       ) do
-    <<nelems::int32, rest::binary>> = data
+    <<nelems::int32(), rest::binary>> = data
     codecs = Enum.map(codecs, &CodecStorage.get(codec_storage, &1))
     values = decode_element_list(rest, codecs, codec_storage, nelems, [])
     elements = Enum.map(elements, & &1.name)
@@ -64,7 +64,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
   end
 
   defp decode_element_list(
-         <<_reserved::int32, -1::int32, rest::binary>>,
+         <<_reserved::int32(), -1::int32(), rest::binary>>,
          [_codec | codecs],
          codec_storage,
          count,
@@ -74,13 +74,13 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
   end
 
   defp decode_element_list(
-         <<_reserved::int32, length::int32, data::binary(length), rest::binary>>,
+         <<_reserved::int32(), length::int32(), data::binary(length), rest::binary>>,
          [codec | codecs],
          codec_storage,
          count,
          acc
        ) do
-    element = Codec.decode(codec, <<length::uint32, data::binary>>, codec_storage)
+    element = Codec.decode(codec, <<length::uint32(), data::binary>>, codec_storage)
     decode_element_list(rest, codecs, codec_storage, count - 1, [element | acc])
   end
 end

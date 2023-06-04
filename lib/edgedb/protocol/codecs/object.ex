@@ -86,10 +86,10 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   @impl Codec
   def decode(
         %{shape_elements: elements, codecs: codecs},
-        <<length::uint32, data::binary(length)>>,
+        <<length::uint32(), data::binary(length)>>,
         codec_storage
       ) do
-    <<nelems::int32, rest::binary>> = data
+    <<nelems::int32(), rest::binary>> = data
     codecs = Enum.map(codecs, &CodecStorage.get(codec_storage, &1))
     {fields, order} = decode_element_list(rest, codecs, elements, codec_storage, nelems, %{}, [])
 
@@ -201,15 +201,15 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
           acc
 
         {{nil, _codec}, index}, acc ->
-          [[<<index::int32, -1::int32>>] | acc]
+          [[<<index::int32(), -1::int32()>>] | acc]
 
         {{value, codec}, index}, acc ->
-          [[<<index::int32>> | Codec.encode(codec, value, codec_storage)] | acc]
+          [[<<index::int32()>> | Codec.encode(codec, value, codec_storage)] | acc]
       end)
       |> Enum.reverse()
 
-    data = [<<length(values)::int32>> | values]
-    [<<IO.iodata_length(data)::uint32>> | data]
+    data = [<<length(values)::int32()>> | values]
+    [<<IO.iodata_length(data)::uint32()>> | data]
   end
 
   defp do_sparse_object_encoding(
@@ -280,7 +280,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   end
 
   defp decode_element_list(
-         <<_reserved::int32, -1::int32, rest::binary>>,
+         <<_reserved::int32(), -1::int32(), rest::binary>>,
          [_codec | codecs],
          [element | elements],
          codec_storage,
@@ -315,7 +315,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
   end
 
   defp decode_element_list(
-         <<_reserved::int32, length::int32, data::binary(length), rest::binary>>,
+         <<_reserved::int32(), length::int32(), data::binary(length), rest::binary>>,
          [codec | codecs],
          [element | elements],
          codec_storage,
@@ -323,7 +323,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
          fields,
          order
        ) do
-    value = Codec.decode(codec, <<length::uint32, data::binary>>, codec_storage)
+    value = Codec.decode(codec, <<length::uint32(), data::binary>>, codec_storage)
 
     name =
       if link_property?(element) do

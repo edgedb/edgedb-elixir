@@ -30,7 +30,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.UUID do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, uuid, _codec_storage) when is_binary(uuid) do
-    <<16::uint32, UUID.string_to_binary!(uuid)::uuid>>
+    <<16::uint32(), UUID.string_to_binary!(uuid)::uuid()>>
   rescue
     e in ArgumentError ->
       reraise EdgeDB.InvalidArgumentError.new(
@@ -47,7 +47,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.UUID do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<16::uint32, value::uuid>>, _codec_storage) do
+  def decode(_codec, <<16::uint32(), value::uuid()>>, _codec_storage) do
     UUID.binary_to_string!(value)
   end
 end

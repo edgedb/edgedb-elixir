@@ -30,23 +30,23 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Float64 do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, number, _codec_storage) when is_number(number) do
-    <<8::uint32, number::float64>>
+    <<8::uint32(), number::float64()>>
   end
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, nan, _codec_storage) when nan in [:nan, :NaN] do
-    <<8::uint32, 0::1, 2047::11, 1::1, 0::51>>
+    <<8::uint32(), 0::1, 2047::11, 1::1, 0::51>>
   end
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, infinity, _codec_storage) when infinity in [:infinity, :inf] do
-    <<8::uint32, 0::1, 2047::11, 0::52>>
+    <<8::uint32(), 0::1, 2047::11, 0::52>>
   end
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, negative_infinity, _codec_storage)
       when negative_infinity in [:negative_infinity, :"-inf"] do
-    <<8::uint32, 1::1, 2047::11, 0::52>>
+    <<8::uint32(), 1::1, 2047::11, 0::52>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -57,22 +57,22 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Float64 do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, 0::1, 2047::11, 1::1, 0::51>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), 0::1, 2047::11, 1::1, 0::51>>, _codec_storage) do
     :nan
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, 0::1, 2047::11, 0::52>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), 0::1, 2047::11, 0::52>>, _codec_storage) do
     :infinity
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, 1::1, 2047::11, 0::52>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), 1::1, 2047::11, 0::52>>, _codec_storage) do
     :negative_infinity
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, number::float64>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), number::float64()>>, _codec_storage) do
     number
   end
 end

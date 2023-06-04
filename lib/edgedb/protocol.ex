@@ -60,7 +60,7 @@ defmodule EdgeDB.Protocol do
   end
 
   @spec parse_message_header(bitstring()) :: {message_code(), non_neg_integer()}
-  def parse_message_header(<<type::uint8, payload_length::int32>>) do
+  def parse_message_header(<<type::uint8(), payload_length::int32()>>) do
     {type, payload_length - 4}
   end
 
@@ -70,7 +70,7 @@ defmodule EdgeDB.Protocol do
 
     [
       type,
-      <<IO.iodata_length(payload) + 4::int32>>,
+      <<IO.iodata_length(payload) + 4::int32()>>,
       payload
     ]
   end
@@ -82,7 +82,7 @@ defmodule EdgeDB.Protocol do
 
   @spec decode_completed_message(bitstring(), protocol_version()) :: server_message()
   def decode_completed_message(
-        <<type::uint8, payload_length::int32, rest::binary>>,
+        <<type::uint8(), payload_length::int32(), rest::binary>>,
         protocol_version
       ) do
     payload_length = payload_length - 4
@@ -107,8 +107,8 @@ defmodule EdgeDB.Protocol do
        encode_key_value_list(headers),
        encode_enum(:output_format, message.io_format),
        encode_enum(:cardinality, message.expected_cardinality),
-       <<0::uint32>>,
-       <<byte_size(message.command)::uint32>>,
+       <<0::uint32()>>,
+       <<byte_size(message.command)::uint32()>>,
        message.command
      ]}
   end
@@ -120,7 +120,7 @@ defmodule EdgeDB.Protocol do
      [
        encode_key_value_list(headers),
        encode_enum(:describe_aspect, message.aspect),
-       <<0::uint32>>
+       <<0::uint32()>>
      ]}
   end
 
@@ -130,7 +130,7 @@ defmodule EdgeDB.Protocol do
     {0x45,
      [
        encode_key_value_list(headers),
-       <<0::uint32>>,
+       <<0::uint32()>>,
        message.arguments
      ]}
   end
@@ -143,7 +143,7 @@ defmodule EdgeDB.Protocol do
        encode_key_value_list(headers),
        encode_enum(:output_format, message.io_format),
        encode_enum(:cardinality, message.expected_cardinality),
-       <<byte_size(message.command_text)::uint32>>,
+       <<byte_size(message.command_text)::uint32()>>,
        message.command_text,
        message.input_typedesc_id,
        message.output_typedesc_id,
@@ -157,7 +157,7 @@ defmodule EdgeDB.Protocol do
     {0x51,
      [
        encode_key_value_list(headers),
-       <<byte_size(message.script)::uint32>>,
+       <<byte_size(message.script)::uint32()>>,
        message.script
      ]}
   end
@@ -165,9 +165,9 @@ defmodule EdgeDB.Protocol do
   defp do_message_encoding(%Client.AuthenticationSASLInitialResponse{} = message, _protocol) do
     {0x70,
      [
-       <<byte_size(message.method)::uint32>>,
+       <<byte_size(message.method)::uint32()>>,
        message.method,
-       <<byte_size(message.sasl_data)::uint32>>,
+       <<byte_size(message.sasl_data)::uint32()>>,
        message.sasl_data
      ]}
   end
@@ -175,7 +175,7 @@ defmodule EdgeDB.Protocol do
   defp do_message_encoding(%Client.AuthenticationSASLResponse{} = message, _protocol) do
     {0x72,
      [
-       <<byte_size(message.sasl_data)::uint32>>,
+       <<byte_size(message.sasl_data)::uint32()>>,
        message.sasl_data
      ]}
   end
@@ -184,16 +184,16 @@ defmodule EdgeDB.Protocol do
   defp do_message_encoding(%Client.ClientHandshake{} = message, 0) do
     {0x56,
      [
-       <<message.major_ver::uint16, message.minor_ver::uint16>>,
+       <<message.major_ver::uint16(), message.minor_ver::uint16()>>,
        encode_connection_param_list(message.params),
-       <<0::uint16>>
+       <<0::uint16()>>
      ]}
   end
 
   defp do_message_encoding(%Client.ClientHandshake{} = message, _protocol) do
     {0x56,
      [
-       <<message.major_ver::uint16, message.minor_ver::uint16>>,
+       <<message.major_ver::uint16(), message.minor_ver::uint16()>>,
        encode_connection_param_list(message.params),
        encode_extension_list(message.extensions)
      ]}
@@ -205,12 +205,12 @@ defmodule EdgeDB.Protocol do
     {0x50,
      [
        encode_annotation_list(annotations),
-       <<process_capabilities(message.allowed_capabilities)::uint64>>,
-       <<process_compilation_flags(message.compilation_flags)::uint64>>,
-       <<message.implicit_limit::uint64>>,
+       <<process_capabilities(message.allowed_capabilities)::uint64()>>,
+       <<process_compilation_flags(message.compilation_flags)::uint64()>>,
+       <<message.implicit_limit::uint64()>>,
        encode_enum(:output_format, message.output_format),
        encode_enum(:cardinality, message.expected_cardinality),
-       <<byte_size(message.command_text)::uint32>>,
+       <<byte_size(message.command_text)::uint32()>>,
        message.command_text,
        message.state_typedesc_id,
        message.state_data
@@ -223,12 +223,12 @@ defmodule EdgeDB.Protocol do
     {0x4F,
      [
        encode_annotation_list(annotations),
-       <<process_capabilities(message.allowed_capabilities)::uint64>>,
-       <<process_compilation_flags(message.compilation_flags)::uint64>>,
-       <<message.implicit_limit::uint64>>,
+       <<process_capabilities(message.allowed_capabilities)::uint64()>>,
+       <<process_compilation_flags(message.compilation_flags)::uint64()>>,
+       <<message.implicit_limit::uint64()>>,
        encode_enum(:output_format, message.output_format),
        encode_enum(:cardinality, message.expected_cardinality),
-       <<byte_size(message.command_text)::uint32>>,
+       <<byte_size(message.command_text)::uint32()>>,
        message.command_text,
        message.state_typedesc_id,
        message.state_data,
@@ -249,9 +249,9 @@ defmodule EdgeDB.Protocol do
   defp do_message_decoding(0x31, <<data::binary>>, 0) do
     {headers,
      <<
-       cardinality::uint8,
-       input_typedesc_id::uuid,
-       output_typedesc_id::uuid
+       cardinality::uint8(),
+       input_typedesc_id::uuid(),
+       output_typedesc_id::uuid()
      >>} = decode_key_value_list(data)
 
     %Server.V0.PrepareComplete{
@@ -262,18 +262,22 @@ defmodule EdgeDB.Protocol do
     }
   end
 
-  defp do_message_decoding(0x52, <<auth_status::uint32>>, _protocol) do
+  defp do_message_decoding(0x52, <<auth_status::uint32()>>, _protocol) do
     %Server.AuthenticationOK{auth_status: auth_status}
   end
 
-  defp do_message_decoding(0x52, <<0xA::uint32, num_methods::uint32, rest::binary>>, _protocol) do
+  defp do_message_decoding(
+         0x52,
+         <<0xA::uint32(), num_methods::uint32(), rest::binary>>,
+         _protocol
+       ) do
     {methods, <<>>} = decode_string_list(rest, num_methods, [])
     %Server.AuthenticationSASL{auth_status: 0xA, methods: methods}
   end
 
   defp do_message_decoding(
          0x52,
-         <<0xB::uint32, sasl_data_size::uint32, sasl_data::binary(sasl_data_size)>>,
+         <<0xB::uint32(), sasl_data_size::uint32(), sasl_data::binary(sasl_data_size)>>,
          _protocol
        ) do
     %Server.AuthenticationSASLContinue{auth_status: 0xB, sasl_data: sasl_data}
@@ -281,14 +285,15 @@ defmodule EdgeDB.Protocol do
 
   defp do_message_decoding(
          0x52,
-         <<0xC::uint32, sasl_data_size::uint32, sasl_data::binary(sasl_data_size)>>,
+         <<0xC::uint32(), sasl_data_size::uint32(), sasl_data::binary(sasl_data_size)>>,
          _protocol
        ) do
     %Server.AuthenticationSASLFinal{auth_status: 0xB, sasl_data: sasl_data}
   end
 
   defp do_message_decoding(0x43, <<data::binary>>, 0) do
-    {headers, <<status_size::uint32, status::binary(status_size)>>} = decode_key_value_list(data)
+    {headers, <<status_size::uint32(), status::binary(status_size)>>} =
+      decode_key_value_list(data)
 
     %Server.CommandComplete{
       status: status,
@@ -300,11 +305,11 @@ defmodule EdgeDB.Protocol do
     {annotations, <<rest::binary>>} = decode_annotation_list(data)
 
     <<
-      capabilities::uint64,
-      status_size::uint32,
+      capabilities::uint64(),
+      status_size::uint32(),
       status::binary(status_size),
-      state_typedesc_id::uuid,
-      state_data_size::uint32,
+      state_typedesc_id::uuid(),
+      state_data_size::uint32(),
       state_data::binary(state_data_size)
     >> = rest
 
@@ -320,12 +325,12 @@ defmodule EdgeDB.Protocol do
   defp do_message_decoding(0x54, <<data::binary>>, 0) do
     {headers,
      <<
-       result_cardinality::uint8,
-       input_typedesc_id::uuid,
-       input_typedesc_size::uint32,
+       result_cardinality::uint8(),
+       input_typedesc_id::uuid(),
+       input_typedesc_size::uint32(),
        input_typedesc::binary(input_typedesc_size),
-       output_typedesc_id::uuid,
-       output_typedesc_size::uint32,
+       output_typedesc_id::uuid(),
+       output_typedesc_size::uint32(),
        output_typedesc::binary(output_typedesc_size)
      >>} = decode_key_value_list(data)
 
@@ -342,13 +347,13 @@ defmodule EdgeDB.Protocol do
   defp do_message_decoding(0x54, <<data::binary>>, _protocol) do
     {annotations,
      <<
-       capabilities::uint64,
-       result_cardinality::uint8,
-       input_typedesc_id::uuid,
-       input_typedesc_size::uint32,
+       capabilities::uint64(),
+       result_cardinality::uint8(),
+       input_typedesc_id::uuid(),
+       input_typedesc_size::uint32(),
        input_typedesc::binary(input_typedesc_size),
-       output_typedesc_id::uuid,
-       output_typedesc_size::uint32,
+       output_typedesc_id::uuid(),
+       output_typedesc_size::uint32(),
        output_typedesc::binary(output_typedesc_size)
      >>} = decode_annotation_list(data)
 
@@ -365,7 +370,7 @@ defmodule EdgeDB.Protocol do
 
   defp do_message_decoding(
          0x73,
-         <<typedesc_id::uuid, typedesc_size::uint32, typedesc::binary(typedesc_size)>>,
+         <<typedesc_id::uuid(), typedesc_size::uint32(), typedesc::binary(typedesc_size)>>,
          _protocol
        ) do
     %Server.StateDataDescription{typedesc_id: typedesc_id, typedesc: typedesc}
@@ -376,8 +381,12 @@ defmodule EdgeDB.Protocol do
     %Server.Data{data: data}
   end
 
-  defp do_message_decoding(0x45, <<severity::uint8, error_code::uint32, rest::binary>>, _protocol) do
-    <<message_size::uint32, message::binary(message_size), rest::binary>> = rest
+  defp do_message_decoding(
+         0x45,
+         <<severity::uint8(), error_code::uint32(), rest::binary>>,
+         _protocol
+       ) do
+    <<message_size::uint32(), message::binary(message_size), rest::binary>> = rest
     {attributes, <<>>} = decode_key_value_list(rest)
 
     %Server.ErrorResponse{
@@ -388,8 +397,8 @@ defmodule EdgeDB.Protocol do
     }
   end
 
-  defp do_message_decoding(0x4C, <<severity::uint8, code::uint32, rest::binary>>, 0) do
-    <<text_size::uint32, text::binary(text_size), rest::binary>> = rest
+  defp do_message_decoding(0x4C, <<severity::uint8(), code::uint32(), rest::binary>>, 0) do
+    <<text_size::uint32(), text::binary(text_size), rest::binary>> = rest
     {annotations, <<>>} = decode_key_value_list(rest)
 
     %Server.LogMessage{
@@ -400,8 +409,8 @@ defmodule EdgeDB.Protocol do
     }
   end
 
-  defp do_message_decoding(0x4C, <<severity::uint8, code::uint32, rest::binary>>, _protocol) do
-    <<text_size::uint32, text::binary(text_size), rest::binary>> = rest
+  defp do_message_decoding(0x4C, <<severity::uint8(), code::uint32(), rest::binary>>, _protocol) do
+    <<text_size::uint32(), text::binary(text_size), rest::binary>> = rest
     {annotations, <<>>} = decode_annotation_list(rest)
 
     %Server.LogMessage{
@@ -415,9 +424,9 @@ defmodule EdgeDB.Protocol do
   defp do_message_decoding(
          0x53,
          <<
-           name_size::uint32,
+           name_size::uint32(),
            name::binary(name_size),
-           value_size::uint32,
+           value_size::uint32(),
            value::binary(value_size)
          >>,
          _protocol
@@ -426,7 +435,7 @@ defmodule EdgeDB.Protocol do
   end
 
   defp do_message_decoding(0x5A, <<data::binary>>, 0) do
-    {headers, <<transaction_state::uint8>>} = decode_key_value_list(data)
+    {headers, <<transaction_state::uint8()>>} = decode_key_value_list(data)
 
     %Server.ReadyForCommand{
       transaction_state: decode_enum(:transaction_state, transaction_state),
@@ -435,7 +444,7 @@ defmodule EdgeDB.Protocol do
   end
 
   defp do_message_decoding(0x5A, <<data::binary>>, _protocol) do
-    {annotations, <<transaction_state::uint8>>} = decode_annotation_list(data)
+    {annotations, <<transaction_state::uint8()>>} = decode_annotation_list(data)
 
     %Server.ReadyForCommand{
       annotations: annotations,
@@ -444,7 +453,7 @@ defmodule EdgeDB.Protocol do
   end
 
   # EdgeDB 1.0 doesn't define any extensions, so it's safe to decode them as empty list
-  defp do_message_decoding(0x76, <<major_ver::uint16, minor_ver::uint16, 0::uint16>>, 0) do
+  defp do_message_decoding(0x76, <<major_ver::uint16(), minor_ver::uint16(), 0::uint16()>>, 0) do
     %Server.ServerHandshake{
       major_ver: major_ver,
       minor_ver: minor_ver,
@@ -454,7 +463,7 @@ defmodule EdgeDB.Protocol do
 
   defp do_message_decoding(
          0x76,
-         <<major_ver::uint16, minor_ver::uint16, rest::binary>>,
+         <<major_ver::uint16(), minor_ver::uint16(), rest::binary>>,
          _protocol
        ) do
     {extensions, <<>>} = decode_extension_list(rest)
@@ -470,7 +479,11 @@ defmodule EdgeDB.Protocol do
     %Server.ServerKeyData{data: data}
   end
 
-  defp do_type_description_parsing(<<type::uint8, id::uuid, data::binary>>, codec_storage, codecs) do
+  defp do_type_description_parsing(
+         <<type::uint8(), id::uuid(), data::binary>>,
+         codec_storage,
+         codecs
+       ) do
     rest =
       case CodecStorage.get(codec_storage, id) do
         nil ->
@@ -490,7 +503,7 @@ defmodule EdgeDB.Protocol do
     codecs[map_size(codecs) - 1]
   end
 
-  defp do_codec_parsing(0, <<type_pos::uint16, rest::binary>>, id, codecs, create?) do
+  defp do_codec_parsing(0, <<type_pos::uint16(), rest::binary>>, id, codecs, create?) do
     codec =
       if create? do
         Codecs.Set.new(id, codecs[type_pos])
@@ -519,7 +532,7 @@ defmodule EdgeDB.Protocol do
     {nil, rest}
   end
 
-  defp do_codec_parsing(3, <<base_type_pos::uint16, rest::binary>>, id, codecs, create?) do
+  defp do_codec_parsing(3, <<base_type_pos::uint16(), rest::binary>>, id, codecs, create?) do
     codec =
       if create? do
         Codecs.Scalar.new(id, codecs[base_type_pos])
@@ -558,7 +571,7 @@ defmodule EdgeDB.Protocol do
     {codec, rest}
   end
 
-  defp do_codec_parsing(6, <<type_pos::uint16, rest::binary>>, id, codecs, create?) do
+  defp do_codec_parsing(6, <<type_pos::uint16(), rest::binary>>, id, codecs, create?) do
     {dimensions, rest} = decode_int32_list(rest)
 
     codec =
@@ -598,7 +611,7 @@ defmodule EdgeDB.Protocol do
     {codec, rest}
   end
 
-  defp do_codec_parsing(9, <<type_pos::uint16, rest::binary>>, id, codecs, create?) do
+  defp do_codec_parsing(9, <<type_pos::uint16(), rest::binary>>, id, codecs, create?) do
     sub_codec = codecs[type_pos]
 
     codec =
@@ -613,7 +626,7 @@ defmodule EdgeDB.Protocol do
 
   defp do_codec_parsing(
          0xFF,
-         <<type_name_size::uint32, _type_name::binary(type_name_size), rest::binary>>,
+         <<type_name_size::uint32(), _type_name::binary(type_name_size), rest::binary>>,
          _id,
          _codecs,
          false
@@ -623,7 +636,7 @@ defmodule EdgeDB.Protocol do
 
   defp do_codec_parsing(
          type,
-         <<annotation_size::uint32, _annotation::binary(annotation_size), rest::binary>>,
+         <<annotation_size::uint32(), _annotation::binary(annotation_size), rest::binary>>,
          _id,
          _codecs,
          false
@@ -645,10 +658,10 @@ defmodule EdgeDB.Protocol do
     data
   end
 
-  defp do_system_config_decoding(<<num_typedesc::uint32, rest::binary>>) do
+  defp do_system_config_decoding(<<num_typedesc::uint32(), rest::binary>>) do
     typedesc_size = num_typedesc - 16
 
-    <<typedesc_id::uuid, typedesc::binary(typedesc_size), rest::binary>> = rest
+    <<typedesc_id::uuid(), typedesc::binary(typedesc_size), rest::binary>> = rest
     {[data], <<>>} = decode_data_element_list(rest, 1, [])
 
     %Types.ParameterStatus.SystemConfig{
@@ -661,13 +674,13 @@ defmodule EdgeDB.Protocol do
   defp encode_key_value_list(headers) do
     data =
       for header <- headers do
-        [<<header.code::uint16, byte_size(header.value)::uint32>>, header.value]
+        [<<header.code::uint16(), byte_size(header.value)::uint32()>>, header.value]
       end
 
-    [<<length(headers)::uint16>> | data]
+    [<<length(headers)::uint16()>> | data]
   end
 
-  defp decode_key_value_list(<<num_headers::uint16, data::binary>>) do
+  defp decode_key_value_list(<<num_headers::uint16(), data::binary>>) do
     decode_key_value_list(data, num_headers, [])
   end
 
@@ -676,7 +689,7 @@ defmodule EdgeDB.Protocol do
   end
 
   defp decode_key_value_list(<<data::binary>>, count, acc) do
-    <<code::uint16, value_size::uint32, value::binary(value_size), rest::binary>> = data
+    <<code::uint16(), value_size::uint32(), value::binary(value_size), rest::binary>> = data
     decode_key_value_list(rest, count - 1, [%Types.KeyValue{code: code, value: value} | acc])
   end
 
@@ -687,18 +700,18 @@ defmodule EdgeDB.Protocol do
 
         [
           <<
-            byte_size(annotation.name)::uint32,
+            byte_size(annotation.name)::uint32(),
             annotation.name::binary,
-            byte_size(value)::uint32,
+            byte_size(value)::uint32(),
             value::binary
           >>
         ]
       end
 
-    [<<length(annotations)::uint16>> | data]
+    [<<length(annotations)::uint16()>> | data]
   end
 
-  defp decode_annotation_list(<<num_annotations::uint16, data::binary>>) do
+  defp decode_annotation_list(<<num_annotations::uint16(), data::binary>>) do
     decode_annotation_list(data, num_annotations, [])
   end
 
@@ -707,14 +720,14 @@ defmodule EdgeDB.Protocol do
   end
 
   defp decode_annotation_list(<<data::binary>>, count, acc) do
-    <<name::uint16, value_size::uint32, value::binary(value_size), rest::binary>> = data
+    <<name::uint16(), value_size::uint32(), value::binary(value_size), rest::binary>> = data
 
     decode_annotation_list(rest, count - 1, [
       %Types.Annotation{name: name, value: @json_library.decode!(value)} | acc
     ])
   end
 
-  defp decode_data_element_list(<<num_data::uint16, data::binary>>) do
+  defp decode_data_element_list(<<num_data::uint16(), data::binary>>) do
     decode_data_element_list(data, num_data, [])
   end
 
@@ -723,12 +736,12 @@ defmodule EdgeDB.Protocol do
   end
 
   defp decode_data_element_list(
-         <<num_data::uint32, data::binary(num_data), rest::binary>>,
+         <<num_data::uint32(), data::binary(num_data), rest::binary>>,
          count,
          acc
        ) do
     decode_data_element_list(rest, count - 1, [
-      %Types.DataElement{data: <<num_data::uint32, data::binary>>} | acc
+      %Types.DataElement{data: <<num_data::uint32(), data::binary>>} | acc
     ])
   end
 
@@ -736,14 +749,14 @@ defmodule EdgeDB.Protocol do
     data =
       for param <- params do
         [
-          <<byte_size(param.name)::uint32>>,
+          <<byte_size(param.name)::uint32()>>,
           param.name,
-          <<byte_size(param.value)::uint32>>,
+          <<byte_size(param.value)::uint32()>>,
           param.value
         ]
       end
 
-    [<<length(params)::uint16>> | data]
+    [<<length(params)::uint16()>> | data]
   end
 
   defp encode_extension_list(extensions) do
@@ -752,16 +765,16 @@ defmodule EdgeDB.Protocol do
         annotations = map_into_annotation_list(extension.annotations)
 
         [
-          <<byte_size(extension.name)::uint32>>,
+          <<byte_size(extension.name)::uint32()>>,
           extension.name,
           annotations
         ]
       end
 
-    [<<length(extensions)::uint16>> | data]
+    [<<length(extensions)::uint16()>> | data]
   end
 
-  defp decode_extension_list(<<num_extensions::uint16, data::binary>>) do
+  defp decode_extension_list(<<num_extensions::uint16(), data::binary>>) do
     decode_extension_list(data, num_extensions, [])
   end
 
@@ -770,7 +783,7 @@ defmodule EdgeDB.Protocol do
   end
 
   defp decode_extension_list(
-         <<name_size::uint32, name::binary(name_size), rest::binary>>,
+         <<name_size::uint32(), name::binary(name_size), rest::binary>>,
          count,
          acc
        ) do
@@ -782,7 +795,7 @@ defmodule EdgeDB.Protocol do
     ])
   end
 
-  defp decode_string_list(<<num_strings::uint16, data::binary>>) do
+  defp decode_string_list(<<num_strings::uint16(), data::binary>>) do
     decode_string_list(data, num_strings, [])
   end
 
@@ -791,11 +804,11 @@ defmodule EdgeDB.Protocol do
   end
 
   defp decode_string_list(<<data::binary>>, count, acc) do
-    <<string_size::uint32, string::binary(string_size), rest::binary>> = data
+    <<string_size::uint32(), string::binary(string_size), rest::binary>> = data
     decode_string_list(rest, count - 1, [string | acc])
   end
 
-  defp decode_shape_element_list(<<element_count::uint16, data::binary>>) do
+  defp decode_shape_element_list(<<element_count::uint16(), data::binary>>) do
     decode_shape_element_list(data, element_count, [])
   end
 
@@ -805,11 +818,11 @@ defmodule EdgeDB.Protocol do
 
   defp decode_shape_element_list(<<data::binary>>, count, acc) do
     <<
-      flags::uint32,
-      cardinality::uint8,
-      name_size::uint32,
+      flags::uint32(),
+      cardinality::uint8(),
+      name_size::uint32(),
       name::binary(name_size),
-      type_pos::uint16,
+      type_pos::uint16(),
       rest::binary
     >> = data
 
@@ -824,7 +837,7 @@ defmodule EdgeDB.Protocol do
     ])
   end
 
-  defp decode_uint16_list(<<element_count::uint16, data::binary>>) do
+  defp decode_uint16_list(<<element_count::uint16(), data::binary>>) do
     decode_uint16_list(data, element_count, [])
   end
 
@@ -832,11 +845,11 @@ defmodule EdgeDB.Protocol do
     {Enum.reverse(acc), data}
   end
 
-  defp decode_uint16_list(<<element_type::uint16, rest::binary>>, count, acc) do
+  defp decode_uint16_list(<<element_type::uint16(), rest::binary>>, count, acc) do
     decode_uint16_list(rest, count - 1, [element_type | acc])
   end
 
-  defp decode_int32_list(<<element_count::uint16, data::binary>>) do
+  defp decode_int32_list(<<element_count::uint16(), data::binary>>) do
     decode_int32_list(data, element_count, [])
   end
 
@@ -844,11 +857,11 @@ defmodule EdgeDB.Protocol do
     {Enum.reverse(acc), data}
   end
 
-  defp decode_int32_list(<<element::int32, rest::binary>>, count, acc) do
+  defp decode_int32_list(<<element::int32(), rest::binary>>, count, acc) do
     decode_int32_list(rest, count - 1, [element | acc])
   end
 
-  defp decode_tuple_element_list(<<element_count::uint16, data::binary>>) do
+  defp decode_tuple_element_list(<<element_count::uint16(), data::binary>>) do
     decode_tuple_element_list(data, element_count, [])
   end
 
@@ -857,7 +870,7 @@ defmodule EdgeDB.Protocol do
   end
 
   defp decode_tuple_element_list(<<data::binary>>, count, acc) do
-    <<name_size::uint32, name::binary(name_size), type_pos::uint16, rest::binary>> = data
+    <<name_size::uint32(), name::binary(name_size), type_pos::uint16(), rest::binary>> = data
 
     decode_tuple_element_list(rest, count - 1, [
       %Types.TupleElement{name: name, type_pos: type_pos} | acc
@@ -868,7 +881,7 @@ defmodule EdgeDB.Protocol do
     Enum.reduce(headers, [], fn
       {:allow_capabilities, capabilities}, headers ->
         [
-          %Types.KeyValue{code: 0xFF04, value: <<process_capabilities(capabilities)::uint64>>}
+          %Types.KeyValue{code: 0xFF04, value: <<process_capabilities(capabilities)::uint64()>>}
           | headers
         ]
 
@@ -890,7 +903,7 @@ defmodule EdgeDB.Protocol do
 
       {:allow_capabilities, capabilities}, headers ->
         [
-          %Types.KeyValue{code: 0xFF04, value: <<process_capabilities(capabilities)::uint64>>}
+          %Types.KeyValue{code: 0xFF04, value: <<process_capabilities(capabilities)::uint64()>>}
           | headers
         ]
 
@@ -906,7 +919,7 @@ defmodule EdgeDB.Protocol do
     Enum.reduce(headers, [], fn
       {:allow_capabilities, capabilities}, headers ->
         [
-          %Types.KeyValue{code: 0xFF04, value: <<process_capabilities(capabilities)::uint64>>}
+          %Types.KeyValue{code: 0xFF04, value: <<process_capabilities(capabilities)::uint64()>>}
           | headers
         ]
 
@@ -967,7 +980,7 @@ defmodule EdgeDB.Protocol do
 
   defp key_value_list_into_map(:v0_command_complete, headers) do
     Enum.reduce(headers, %{}, fn
-      %{code: 0x1001, value: <<capabilities::uint64>>}, headers ->
+      %{code: 0x1001, value: <<capabilities::uint64()>>}, headers ->
         Map.put(headers, :capabilities, process_capabilities(capabilities))
 
       _header, headers ->
@@ -977,7 +990,7 @@ defmodule EdgeDB.Protocol do
 
   defp key_value_list_into_map(:v0_prepare_complete, headers) do
     Enum.reduce(headers, %{}, fn
-      %{code: 0x1001, value: <<capabilities::uint64>>}, headers ->
+      %{code: 0x1001, value: <<capabilities::uint64()>>}, headers ->
         Map.put(headers, :capabilities, process_capabilities(capabilities))
 
       _header, headers ->

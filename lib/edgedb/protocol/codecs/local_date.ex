@@ -37,7 +37,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.LocalDate do
       |> Date.diff(d)
       |> abs()
 
-    <<4::uint32, days::int32>>
+    <<4::uint32(), days::int32()>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -48,7 +48,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.LocalDate do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<4::uint32, days::int32>>, _codec_storage) do
+  def decode(_codec, <<4::uint32(), days::int32()>>, _codec_storage) do
     Date.add(@base_date, days)
   end
 end

@@ -33,7 +33,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.LocalTime do
     {seconds, microseconds} = Time.to_seconds_after_midnight(t)
     microseconds = microseconds + System.convert_time_unit(seconds, :second, :microsecond)
 
-    <<8::uint32, microseconds::int64>>
+    <<8::uint32(), microseconds::int64()>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -44,7 +44,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.LocalTime do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<8::uint32, microseconds::int64>>, _codec_storage) do
+  def decode(_codec, <<8::uint32(), microseconds::int64()>>, _codec_storage) do
     microseconds
     |> System.convert_time_unit(:microsecond, :second)
     |> Time.from_seconds_after_midnight()

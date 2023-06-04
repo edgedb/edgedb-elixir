@@ -30,12 +30,12 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Bool do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, true, _codec_storage) do
-    <<1::uint32, 1::uint8>>
+    <<1::uint32(), 1::uint8()>>
   end
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, false, _codec_storage) do
-    <<1::uint32, 0::uint8>>
+    <<1::uint32(), 0::uint8()>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -46,12 +46,12 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Bool do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<1::uint32, 1::uint8>>, _codec_storage) do
+  def decode(_codec, <<1::uint32(), 1::uint8()>>, _codec_storage) do
     true
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<1::uint32, 0::uint8>>, _codec_storage) do
+  def decode(_codec, <<1::uint32(), 0::uint8()>>, _codec_storage) do
     false
   end
 end

@@ -30,7 +30,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.DateDuration do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, %EdgeDB.DateDuration{} = d, _codec_storage) do
-    <<16::uint32, 0::int64, d.days::int32, d.months::int32>>
+    <<16::uint32(), 0::int64(), d.days::int32(), d.months::int32()>>
   end
 
   @impl EdgeDB.Protocol.Codec
@@ -41,7 +41,11 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.DateDuration do
   end
 
   @impl EdgeDB.Protocol.Codec
-  def decode(_codec, <<16::uint32, _reserved::int64, days::int32, months::int32>>, _codec_storage) do
+  def decode(
+        _codec,
+        <<16::uint32(), _reserved::int64(), days::int32(), months::int32()>>,
+        _codec_storage
+      ) do
     %EdgeDB.DateDuration{
       days: days,
       months: months

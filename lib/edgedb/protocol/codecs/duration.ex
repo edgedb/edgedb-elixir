@@ -32,7 +32,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Duration do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, duration, _codec_storage) when is_integer(duration) do
-    <<16::uint32, duration::int64, 0::int32, 0::int32>>
+    <<16::uint32(), duration::int64(), 0::int32(), 0::int32()>>
   end
 
   if @use_timex and Code.ensure_loaded?(Timex) do
@@ -52,12 +52,20 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Duration do
 
   if @use_timex and Code.ensure_loaded?(Timex) do
     @impl EdgeDB.Protocol.Codec
-    def decode(_codec, <<16::uint32, duration::int64, 0::int32, 0::int32>>, _codec_storage) do
+    def decode(
+          _codec,
+          <<16::uint32(), duration::int64(), 0::int32(), 0::int32()>>,
+          _codec_storage
+        ) do
       Timex.Duration.from_microseconds(duration)
     end
   else
     @impl EdgeDB.Protocol.Codec
-    def decode(_codec, <<16::uint32, duration::int64, 0::int32, 0::int32>>, _codec_storage) do
+    def decode(
+          _codec,
+          <<16::uint32(), duration::int64(), 0::int32(), 0::int32()>>,
+          _codec_storage
+        ) do
       duration
     end
   end
