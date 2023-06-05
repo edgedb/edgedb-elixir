@@ -126,11 +126,13 @@ defmodule Tests.Support.SharedCase do
 
             dir = String.replace(file, "${HASH}", hash)
             instance = Path.join(dir, "instance-name")
+            profile = Path.join(dir, "cloud-profile")
             project = Path.join(dir, "project-path")
 
             files
             |> Map.put(dir, "")
             |> Map.put(instance, data["instance-name"])
+            |> Map.put(profile, data["cloud-profile"])
             |> Map.put(project, data["project-path"])
           else
             Map.put(files, file, data)
@@ -138,11 +140,11 @@ defmodule Tests.Support.SharedCase do
         end)
 
       stub(Mocks.FileMock, :exists?, fn path ->
-        Map.has_key?(files, path)
+        not is_nil(files[path])
       end)
 
       stub(Mocks.FileMock, :exists?, fn path, _opts ->
-        Map.has_key?(files, path)
+        not is_nil(files[path])
       end)
 
       stub(Mocks.FileMock, :read!, fn path ->

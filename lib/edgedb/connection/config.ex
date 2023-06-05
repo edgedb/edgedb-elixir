@@ -2,6 +2,7 @@ defmodule EdgeDB.Connection.Config do
   @moduledoc false
 
   alias EdgeDB.Connection.Config.{
+    Cloud,
     Credentials,
     DSN,
     Validation
@@ -13,6 +14,10 @@ defmodule EdgeDB.Connection.Config do
   @default_user "edgedb"
   @default_timeout 15_000
 
+  @dsn_regex ~r"^[a-z]+://"
+  @instance_name_regex ~r/^(\w(?:-?\w)*)$/
+  @cloud_instance_name_regex ~r|^([A-Za-z0-9](?:-?[A-Za-z0-9])*)/([A-Za-z0-9](?:-?[A-Za-z0-9])*)$|
+
   @file_module Application.compile_env(:edgedb, :file_module, File)
   @path_module Application.compile_env(:edgedb, :path_module, Path)
   @system_module Application.compile_env(:edgedb, :system_module, System)
@@ -21,7 +26,7 @@ defmodule EdgeDB.Connection.Config do
   def connect_opts(opts) do
     {dsn, instance_name} =
       with {:ok, dsn} <- Keyword.fetch(opts, :dsn),
-           true <- Regex.match?(~r"(?i)^[a-z]+://", dsn) do
+           true <- Regex.match?(@dsn_regex, dsn) do
         {dsn, nil}
       else
         :error ->
@@ -166,7 +171,29 @@ defmodule EdgeDB.Connection.Config do
       |> @file_module.read!()
       |> String.trim()
 
-    {resolved_opts, _compounds} = resolve_opts(resolved_opts, instance_name: instance_name)
+    project_opts = [instance_name: instance_name]
+
+    cloud_profile_path = @path_module.join(stash_dir, "cloud-profile")
+
+    project_opts =
+      cond do
+        not is_nil(resolved_opts[:cloud_profile]) ->
+          project_opts
+
+        @file_module.exists?(cloud_profile_path) ->
+          cloud_profile =
+            cloud_profile_path
+            |> @file_module.read!()
+            |> String.trim()
+
+          Keyword.merge(project_opts, cloud_profile: cloud_profile)
+
+        true ->
+          project_opts
+      end
+
+    {resolved_opts, _compounds} = resolve_opts(resolved_opts, project_opts)
+
     resolved_opts
   end
 
@@ -240,7 +267,7 @@ defmodule EdgeDB.Connection.Config do
           DSN.parse_dsn_into_opts(dsn, resolved_opts)
 
         compound_params_count == 1 ->
-          credentials = parse_credentials(opts)
+          credentials = parse_credentials(opts, resolved_opts)
           Keyword.merge(credentials, resolved_opts)
 
         true ->
@@ -251,7 +278,7 @@ defmodule EdgeDB.Connection.Config do
     {resolved_opts, compound_params_count}
   end
 
-  defp parse_credentials(opts) do
+  defp parse_credentials(opts, resolved_opts) do
     cond do
       credentials_file = opts[:credentials_file] ->
         Credentials.read_creadentials(credentials_file)
@@ -259,10 +286,23 @@ defmodule EdgeDB.Connection.Config do
       credentials = opts[:credentials] ->
         Credentials.parse_credentials(credentials)
 
-      true ->
+      Regex.match?(@instance_name_regex, opts[:instance_name] || "") ->
         opts[:instance_name]
         |> Credentials.get_credentials_path()
         |> Credentials.read_creadentials()
+
+      Regex.match?(@cloud_instance_name_regex, opts[:instance_name] || "") ->
+        [org_slug, instance_name] = String.split(opts[:instance_name], "/")
+        secret_key = opts[:secret_key] || resolved_opts[:secret_key]
+        cloud_profile = opts[:cloud_profile] || resolved_opts[:cloud_profile]
+
+        Cloud.parse_cloud_credentials(org_slug, instance_name, secret_key, cloud_profile)
+
+      true ->
+        raise RuntimeError,
+          message:
+            "invalid DSN or instance name: " <>
+              "#{inspect(opts[:instance_name])} doesn't match valid local or cloud instance regex"
     end
   end
 
@@ -277,6 +317,8 @@ defmodule EdgeDB.Connection.Config do
       database: from_config(:database),
       user: from_config(:user),
       password: from_config(:password),
+      secret_key: from_config(:secret_key),
+      cloud_profile: from_config(:cloud_profile),
       tls_ca: from_config(:tls_ca),
       tls_ca_file: from_config(:tls_ca_file),
       tls_security: from_config(:tls_security),
@@ -318,6 +360,8 @@ defmodule EdgeDB.Connection.Config do
       database: from_env("EDGEDB_DATABASE"),
       user: from_env("EDGEDB_USER"),
       password: from_env("EDGEDB_PASSWORD"),
+      secret_key: from_env("EDGEDB_SECRET_KEY"),
+      cloud_profile: from_env("EDGEDB_CLOUD_PROFILE"),
       tls_ca: from_env("EDGEDB_TLS_CA"),
       tls_ca_file: from_env("EDGEDB_TLS_CA_FILE"),
       tls_security: from_env("EDGEDB_CLIENT_TLS_SECURITY"),

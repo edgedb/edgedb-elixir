@@ -68,6 +68,7 @@ defmodule EdgeDB do
     * `:database` - the name of the database to connect to.
     * `:user` - the user name to connect to.
     * `:password` - the user password to connect.
+    * `:secret_key` - the secret key to be used for authentication.
     * `:tls_ca` - TLS certificate to be used when connecting to the instance.
     * `:tls_ca_path` - the path to the TLS certificate to be used when connecting to the instance.
     * `:tls_security` - security mode for the TLS connection. See `t:tls_security/0`.

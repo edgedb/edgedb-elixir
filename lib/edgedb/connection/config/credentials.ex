@@ -6,21 +6,12 @@ defmodule EdgeDB.Connection.Config.Credentials do
     Validation
   }
 
-  @instance_name_regex ~r/^[A-Za-z_][A-Za-z_0-9]*$/
-
   @path_module Application.compile_env(:edgedb, :path_module, Path)
   @file_module Application.compile_env(:edgedb, :file_module, File)
   @json_library Application.compile_env(:edgedb, :json, Jason)
 
   @spec get_credentials_path(String.t()) :: String.t()
   def get_credentials_path(instance_name) do
-    if not Regex.match?(@instance_name_regex, instance_name) do
-      raise RuntimeError,
-        message:
-          "invalid DSN or instance name: " <>
-            "#{inspect(instance_name)} doesn't match valid instance regex"
-    end
-
     ["credentials", "#{instance_name}.json"]
     |> Platform.search_config_dir()
     |> @path_module.expand()
