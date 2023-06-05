@@ -25,6 +25,7 @@ if File.exists?(testcases_file) do
          message: ~r/no "edgedb.toml" found and no connection options specified/},
       "invalid_credentials_file" => {RuntimeError, message: ~r/invalid credentials/},
       "invalid_dsn_or_instance_name" => {RuntimeError, message: ~r/invalid DSN or instance name/},
+      "invalid_instance_name" => {RuntimeError, message: ~r/invalid instance name/},
       "invalid_dsn" => {RuntimeError, message: ~r/invalid DSN or instance name/},
       "unix_socket_unsupported" => {RuntimeError, message: ~r/unix socket paths not supported/},
       "invalid_host" => {RuntimeError, message: ~r/invalid host/},
@@ -55,7 +56,17 @@ if File.exists?(testcases_file) do
         RuntimeError,
         message:
           ~r"(one of `insecure`, `no_host_verification`, `strict` or `default`)|(tls_security must be set to strict)"
-      }
+      },
+      "invalid_secret_key" =>
+        {EdgeDB.Error,
+         type: EdgeDB.ClientConnectionError,
+         name: "ClientConnectionError",
+         message: ~r/invalid secret key/},
+      "secret_key_not_found" =>
+        {EdgeDB.Error,
+         type: EdgeDB.ClientConnectionError,
+         name: "ClientConnectionError",
+         message: ~r/can not determine secret key for cloud instance/}
     }
     @known_case_errors Map.keys(@case_to_client_errors)
 
@@ -105,7 +116,7 @@ if File.exists?(testcases_file) do
       configured_opts =
         Enum.reject(
           [
-            dsn: opts["dsn"],
+            dsn: opts["instance"] || opts["dsn"],
             credentials: opts["credentials"],
             credentials_file: opts["credentialsFile"],
             host: opts["host"],
@@ -113,6 +124,7 @@ if File.exists?(testcases_file) do
             database: opts["database"],
             user: opts["user"],
             password: opts["password"],
+            secret_key: opts["secretKey"],
             tls_ca: opts["tlsCA"],
             tls_ca_file: opts["tlsCAFile"],
             tls_security: opts["tlsSecurity"],
@@ -195,6 +207,7 @@ if File.exists?(testcases_file) do
             database: result["database"],
             user: result["user"],
             password: result["password"],
+            secret_key: result["secretKey"],
             tls_ca: result["tlsCAData"],
             tls_verify_hostname: result["tlsVerifyHostname"],
             server_settings: result["serverSettings"]

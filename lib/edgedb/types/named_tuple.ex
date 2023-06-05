@@ -162,7 +162,7 @@ defimpl Inspect, for: EdgeDB.NamedTuple do
       fields_order
       |> Enum.sort()
       |> Enum.map(fn {index, name} ->
-        {index, glue(name, ": ", inspect(items[name]))}
+        {index, concat([name, ": ", inspect(items[name])])}
       end)
       |> Enum.map(fn
         {^max_index, doc} ->

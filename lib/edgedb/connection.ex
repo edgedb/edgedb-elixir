@@ -124,6 +124,7 @@ defmodule EdgeDB.Connection do
     {host, port} = opts[:address]
     user = opts[:user]
     password = opts[:password]
+    secret_key = opts[:secret_key]
     database = opts[:database]
     codec_modules = Keyword.get(opts, :codecs, [])
 
@@ -151,7 +152,7 @@ defmodule EdgeDB.Connection do
 
     with {:ok, socket} <- open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout),
          state = %State{state | socket: socket},
-         {:ok, state} <- handshake(password, state),
+         {:ok, state} <- handshake(password, secret_key, state),
          {:ok, state} <- wait_for_post_connect_server_ready(state),
          {:ok, state} <- initialize_custom_codecs(codec_modules, state) do
       {:ok, state}
@@ -550,9 +551,9 @@ defmodule EdgeDB.Connection do
 
   defp open_ssl_connection(host, port, tcp_opts, ssl_opts, timeout) do
     host = to_charlist(host)
+    opts = Keyword.merge(tcp_opts, ssl_opts)
 
-    with {:ok, socket} <- :gen_tcp.connect(host, port, tcp_opts, timeout),
-         {:ok, socket} <- :ssl.connect(socket, ssl_opts, timeout),
+    with {:ok, socket} <- :ssl.connect(host, port, opts, timeout),
          {:ok, @edgedb_alpn_protocol} <- :ssl.negotiated_protocol(socket) do
       {:ok, socket}
     end
@@ -562,7 +563,7 @@ defmodule EdgeDB.Connection do
     socket_opts =
       case connect_opts[:tls_ca] do
         nil ->
-          socket_opts
+          Keyword.put(socket_opts, :cacertfile, CAStore.file_path())
 
         pem_cert_data ->
           {:Certificate, der_cert_data, _cipher_info} =
@@ -582,7 +583,12 @@ defmodule EdgeDB.Connection do
     socket_opts =
       case connect_opts[:tls_security] do
         :strict ->
-          Keyword.put(socket_opts, :verify, :verify_peer)
+          match_fun = :public_key.pkix_verify_hostname_match_fun(:https)
+
+          Keyword.merge(socket_opts,
+            verify: :verify_peer,
+            customize_hostname_check: [match_fun: match_fun]
+          )
 
         :no_host_verification ->
           socket_opts
@@ -594,20 +600,29 @@ defmodule EdgeDB.Connection do
     Keyword.put(socket_opts, :alpn_advertised_protocols, [@edgedb_alpn_protocol])
   end
 
-  defp handshake(password, %State{} = state) do
+  defp handshake(password, secret_key, %State{} = state) do
+    params = [
+      %ConnectionParam{
+        name: "user",
+        value: state.user
+      },
+      %ConnectionParam{
+        name: "database",
+        value: state.database
+      }
+    ]
+
+    params =
+      if secret_key do
+        [%ConnectionParam{name: "secret_key", value: secret_key} | params]
+      else
+        params
+      end
+
     message = %ClientHandshake{
       major_ver: @major_ver,
       minor_ver: @minor_ver,
-      params: [
-        %ConnectionParam{
-          name: "user",
-          value: state.user
-        },
-        %ConnectionParam{
-          name: "database",
-          value: state.database
-        }
-      ],
+      params: params,
       extensions: []
     }
 

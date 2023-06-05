@@ -207,14 +207,17 @@ defmodule EdgeDB.Connection.Config.Validation do
     %{}
   end
 
+  # wait_until_availble isn't an option that is supported by Elixir client
   def validate_server_settings(option) when is_map(option) do
-    Enum.into(option, %{}, fn
+    option
+    |> Enum.into(%{}, fn
       {key, value} when is_atom(key) ->
         {to_string(key), value}
 
       {key, value} ->
         {key, value}
     end)
+    |> Map.delete("wait_until_available")
   end
 
   def validate_server_settings(_option) do

@@ -44,6 +44,9 @@ defmodule EdgeDB.MixProject do
       {:db_connection, "~> 2.0"},
       {:elixir_uuid, "~> 1.2"},
       {:decimal, "~> 2.0"},
+      {:jose, "~> 1.11"},
+      {:crc, "~> 0.10.4"},
+      {:castore, "~> 0.1.0 or ~> 1.0"},
       {:jason, "~> 1.2", optional: true},
       {:timex, "~> 3.7", optional: true},
       # dev/test

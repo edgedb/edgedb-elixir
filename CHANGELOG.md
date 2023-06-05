@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - support for `cal::date_duration` EdgeDB type via `EdgeDB.DateDuration` structure.
+- support for EdgeDB Cloud.
 
 ### Changed
 
