@@ -18,13 +18,13 @@ defmodule EdgeDB.Connection.Config.Cloud do
           String.t() | nil
         ) :: Keyword.t()
   def parse_cloud_credentials(org_slug, instance_name, secret_key, cloud_profile) do
-    label = "#{instance_name}--#{org_slug}"
+    label = String.downcase("#{instance_name}--#{org_slug}")
 
     if String.length(label) > @max_domain_label_length do
       raise RuntimeError,
             "invalid instance name: " <>
               "cloud instance name length cannot exceed #{@max_domain_label_length - 1} characters: " <>
-              "#{org_slug}/#{label}"
+              "#{org_slug}/#{instance_name}"
     end
 
     secret_key =
@@ -35,7 +35,13 @@ defmodule EdgeDB.Connection.Config.Cloud do
       end
 
     dns_zone = read_dsn_zone_from_secret_key(secret_key)
-    dns_bucket = rem(CRC.ccitt_16_xmodem("#{org_slug}/#{instance_name}"), @dns_buckets)
+
+    dns_bucket =
+      "#{org_slug}/#{instance_name}"
+      |> String.downcase()
+      |> CRC.ccitt_16_xmodem()
+      |> rem(@dns_buckets)
+
     bucket_repr = String.pad_leading(to_string(dns_bucket), 2, "0")
     host = "#{label}.c-#{bucket_repr}.i.#{dns_zone}"
 
