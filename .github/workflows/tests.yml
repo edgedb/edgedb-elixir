@@ -26,6 +26,7 @@ jobs:
         edgedb-version:
           - "1.0"
           - "2.0"
+          - "3.0-rc.4"
 
     steps:
       - uses: actions/checkout@v3
@@ -36,7 +37,7 @@ jobs:
         env:
           EDGEDB_VERSION: ${{ matrix.edgedb-version }}
         run: |
-          EDGEDB_VERSION=${EDGEDB_VERSION%.*}
+          EDGEDB_VERSION=${EDGEDB_VERSION%%.*}
 
           for migration_file in `ls priv/edgedb/schema/migrations/`
           do

@@ -24,14 +24,10 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Tuple do
 
   @empty_set %EdgeDB.Set{__items__: []}
 
-  # tuples encoding is an internal part of the protocol
-  # i.e. users cannot pass them as query arguments and they will receive
-  # appropriate error before doing that.
-  # so any error that may occur here is a client bug
   @impl Codec
   def encode(%{codecs: codecs}, tuple, codec_storage) when is_tuple(tuple) do
     if length(codecs) != tuple_size(tuple) do
-      raise EdgeDB.InternalClientError.new(
+      raise EdgeDB.InvalidArgumentError.new(
               "unable to encode tuple: " <>
                 "expected #{length(codecs)} elements, got: #{tuple_size(tuple)}"
             )
