@@ -61,12 +61,11 @@ defmodule EdgeDB.Pool do
     conn_opts = [owner: self(), queue: queue, conn: [mod: conn_mod, opts: opts]]
     {:ok, _pid} = ConnectionSupervisor.start_supervised(conn_opts)
 
-    # if we're using sanbox connection then we shouldn't use many connections
+    # if we're using sandbox connection then we shouldn't use many connections
     # since in EdgeDB there are only serializable transactions and concurrent requests
-    # will break sandbox logic
-    # similar if we're using subtransaction, then we should ensure it will have a single connection
+    # will break sandbox logic.
     max_concurrency =
-      if conn_mod == EdgeDB.Sandbox or conn_mod == EdgeDB.Subtransaction do
+      if conn_mod == EdgeDB.Sandbox do
         1
       else
         opts[:max_concurrency]

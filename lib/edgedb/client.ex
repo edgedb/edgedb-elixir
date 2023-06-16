@@ -7,9 +7,8 @@ defmodule EdgeDB.Client do
     the client instance for the pool will be implicitly registered.
 
   In case you want to change the behavior of your queries, you will use the `EdgeDB.Client`,
-    which is acceptable by all `EdgeDB` API and will be provided to you in callbacks
-    in the `EdgeDB.transaction/3`, `EdgeDB.subtransaction/2` and `EdgeDB.subtransaction!/2`
-    functions.
+    which is acceptable by all `EdgeDB` API and will be provided to you in a callback
+    in the `EdgeDB.transaction/3` function.
   """
 
   defstruct [

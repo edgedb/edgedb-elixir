@@ -3,7 +3,7 @@ defmodule EdgeDB do
   EdgeDB client for Elixir.
 
   `EdgeDB` module provides an API to run a connection pool, query EdgeDB, perform transactions
-    and subtransactions and their rollback.
+    and their rollback.
 
   A simple example of how to use it:
 
@@ -20,11 +20,7 @@ defmodule EdgeDB do
   ```
   """
 
-  alias EdgeDB.Connection.{
-    Config,
-    InternalRequest
-  }
-
+  alias EdgeDB.Connection.Config
   alias EdgeDB.Protocol.Enums
 
   @typedoc """
@@ -170,13 +166,10 @@ defmodule EdgeDB do
   Supported options:
 
     * `:reason` - the reason for the rollback. Will be returned from `EdgeDB.transaction/3`
-      or `EdgeDB.subtransaction/2` as a `{:error, reason}` tuple in case block execution is interrupted.
-    * `:continue` - can be used when the client is in a subtransaction
-      and rollback should not stop further execution of the subtransaction block. See `EdgeDB.subtransaction/2`.
+      as a `{:error, reason}` tuple in case block execution is interrupted.
   """
   @type rollback_option() ::
           {:reason, term()}
-          | {:continue, boolean()}
 
   @typedoc """
   A tuple of the executed `EdgeDB.Query` and the received `EdgeDB.Result`.
@@ -549,9 +542,7 @@ defmodule EdgeDB do
 
   To rollback an open transaction, use `EdgeDB.rollback/2`.
 
-  `EdgeDB.transaction/3` calls **cannot** be nested more than once. If you want to start a new transaction
-    inside an already running one, you should use `EdgeDB.subtransaction/2`,
-    which will declare a new savepoint for the current transaction.
+  `EdgeDB.transaction/3` calls **cannot** be nested more than once.
 
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
@@ -592,101 +583,7 @@ defmodule EdgeDB do
   end
 
   @doc """
-  Open a subtransaction inside an already open transaction.
-
-  The result of the subtransaction is the `{:ok, result}` tuple, where `result`
-    is the result of the `callback` function executed in the subtransaction.
-
-  To rollback an open subtransaction, use `EdgeDB.rollback/2`. A subtransaction can be rolled back
-    without exiting the subtransaction block. See `t:rollback_option/0`.
-
-  `EdgeDB.subtransaction/2` calls **can** be nested multiple times. Each new call to `EdgeDB.subtransaction/2`
-    will declare a new savepoint for the current transaction.
-
-  ```elixir
-  iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> {:ok, tickets} =
-  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
-  ...(2)>    {:ok, tickets} =
-  ...(2)>      EdgeDB.subtransaction(tx_conn, fn subtx_conn1 ->
-  ...(2)>        {:ok, tickets} =
-  ...(2)>          EdgeDB.subtransaction(subtx_conn1, fn subtx_conn2 ->
-  ...(2)>            EdgeDB.query!(subtx_conn2, "insert Ticket{ number := 2}")
-  ...(2)>            EdgeDB.query!(subtx_conn2, "select Ticket{ number }")
-  ...(2)>          end)
-  ...(2)>        tickets
-  ...(2)>      end)
-  ...(2)>    tickets
-  ...(2)>  end)
-  iex(3)> tickets
-  #EdgeDB.Set<{#EdgeDB.Object<number := 2>}>
-  ```
-  """
-  @spec subtransaction(client(), (EdgeDB.Client.t() -> result())) ::
-          {:ok, result()} | {:error, term()}
-
-  def subtransaction(
-        %EdgeDB.Client{conn: %DBConnection{conn_mode: :transaction}} = client,
-        callback
-      ) do
-    EdgeDB.Borrower.borrow!(client.conn, :subtransaction, fn ->
-      {:ok, subtransaction_pid} =
-        DBConnection.start_link(EdgeDB.Subtransaction, conn: client.conn, backoff_type: :stop)
-
-      callback = fn conn ->
-        callback.(%EdgeDB.Client{client | conn: conn})
-      end
-
-      transaction_options = EdgeDB.Client.to_options(client)
-
-      try do
-        DBConnection.transaction(subtransaction_pid, callback, transaction_options)
-      rescue
-        exc ->
-          Process.unlink(subtransaction_pid)
-          Process.exit(subtransaction_pid, :kill)
-
-          reraise exc, __STACKTRACE__
-      else
-        result ->
-          Process.unlink(subtransaction_pid)
-          Process.exit(subtransaction_pid, :kill)
-          result
-      end
-    end)
-  end
-
-  def subtransaction(_client, _callback) do
-    raise EdgeDB.InterfaceError.new(
-            "EdgeDB.subtransaction/2 can be used only with client " <>
-              "that is already in transaction (check out EdgeDB.transaction/3) " <>
-              "or in another subtransaction"
-          )
-  end
-
-  @doc """
-  Open a subtransaction inside an already open transaction.
-
-  If an error in subtransaction occurs then subtransaction will automatically rollback.
-
-  See `EdgeDB.subtransaction/2` for more information.
-  """
-  @spec subtransaction!(client(), (EdgeDB.Client.t() -> result())) :: result()
-  def subtransaction!(client, callback) do
-    case subtransaction(client, callback) do
-      {:ok, result} ->
-        result
-
-      {:error, rollback_reason} ->
-        rollback(client, reason: rollback_reason)
-    end
-  end
-
-  @doc """
-  Rollback an open transaction or subtransaction.
-
-  By default `EdgeDB.rollback/2` will abort the transaction/subtransaction function and return to the external scope.
-    But subtransactions can skip this behavior and continue executing after the rollback using the `:continue` option.
+  Rollback an open transaction.
 
   See `t:rollback_option/0` for supported options.
 
@@ -697,51 +594,16 @@ defmodule EdgeDB do
   ...(2)>   EdgeDB.rollback(tx_conn, reason: :tx_rollback)
   ...(2)>  end)
   ```
-
-  ```elixir
-  iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> {:error, :subtx_rollback} =
-  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
-  ...(2)>   {:error, reason} =
-  ...(2)>     EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
-  ...(2)>      EdgeDB.rollback(subtx_conn, reason: :subtx_rollback)
-  ...(2)>     end)
-  ...(2)>    EdgeDB.rollback(tx_conn, reason: reason)
-  ...(2)>  end)
-  ```
-
-  ```elixir
-  iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> {:ok, 42} =
-  ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
-  ...(2)>   {:ok, result} =
-  ...(2)>     EdgeDB.subtransaction(tx_conn, fn subtx_conn ->
-  ...(2)>      EdgeDB.rollback(subtx_conn, continue: true)
-  ...(2)>      EdgeDB.query_required_single!(subtx_conn, "select 42")
-  ...(2)>     end)
-  ...(2)>   result
-  ...(2)>  end)
-  ```
   """
-  @spec rollback(EdgeDB.Client.t(), list(rollback_option())) :: :ok | no_return()
+
+  # 2 specs to satisfy the dialyser
+  @spec rollback(EdgeDB.Client.t()) :: no_return()
+  @spec rollback(EdgeDB.Client.t(), list(rollback_option())) :: no_return()
+
   def rollback(client, opts \\ []) do
-    %EdgeDB.Client{conn: conn} = client = to_client(client)
+    %EdgeDB.Client{conn: conn} = to_client(client)
     reason = opts[:reason] || :rollback
-    rollback_options = EdgeDB.Client.to_options(client)
-
-    with true <- opts[:continue],
-         {:ok, _query, true} <-
-           DBConnection.execute(conn, %InternalRequest{request: :is_subtransaction}, [], []),
-         {:ok, _query, _result} <-
-           DBConnection.execute(conn, %InternalRequest{request: :rollback}, [], rollback_options) do
-      :ok
-    else
-      {:error, exc} ->
-        raise exc
-
-      _other ->
-        DBConnection.rollback(conn, reason)
-    end
+    DBConnection.rollback(conn, reason)
   end
 
   @doc """

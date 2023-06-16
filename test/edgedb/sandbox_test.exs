@@ -62,24 +62,6 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
       assert EdgeDB.query_required_single!(client, "select Ticket { number } limit 1")[:number] ==
                1
     end
-
-    test "works with EdgeDB.subtransaction/2", %{client: client} do
-      {:ok, _result} =
-        EdgeDB.transaction(client, fn tx_conn ->
-          {:ok, _result} =
-            EdgeDB.subtransaction(tx_conn, fn subtx_conn1 ->
-              {:ok, _result} =
-                EdgeDB.subtransaction(subtx_conn1, fn subtx_conn2 ->
-                  EdgeDB.query!(subtx_conn2, "insert Ticket { number := 1 }")
-                end)
-            end)
-
-          :ok
-        end)
-
-      assert EdgeDB.query_required_single!(client, "select Ticket { number } limit 1")[:number] ==
-               1
-    end
   end
 
   describe "EdgeDB.Sandbox.clean/1" do
