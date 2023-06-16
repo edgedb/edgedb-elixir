@@ -11,12 +11,14 @@ defmodule EdgeDB.Client do
     in the `EdgeDB.transaction/3` function.
   """
 
+  alias EdgeDB.Client.State
+
   defstruct [
     :conn,
     readonly: false,
     transaction_options: [],
     retry_options: [],
-    state: %EdgeDB.State{}
+    state: %State{}
   ]
 
   @typedoc """
@@ -36,7 +38,7 @@ defmodule EdgeDB.Client do
           readonly: boolean(),
           transaction_options: list(transaction_option()),
           retry_options: list(retry_option()),
-          state: EdgeDB.State.t()
+          state: State.t()
         }
 
   @typedoc """
@@ -108,7 +110,7 @@ defmodule EdgeDB.Client do
   end
 
   @doc false
-  @spec with_state(t(), EdgeDB.State.t()) :: t()
+  @spec with_state(t(), State.t()) :: t()
   def with_state(client, state) do
     client = to_client(client)
     %__MODULE__{client | state: state}
@@ -118,49 +120,49 @@ defmodule EdgeDB.Client do
   @spec with_default_module(t(), String.t() | nil) :: t()
   def with_default_module(client, module \\ nil) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.with_default_module(client.state, module)}
+    %__MODULE__{client | state: State.with_default_module(client.state, module)}
   end
 
   @doc false
   @spec with_module_aliases(t(), %{String.t() => String.t()}) :: t()
   def with_module_aliases(client, aliases \\ %{}) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.with_module_aliases(client.state, aliases)}
+    %__MODULE__{client | state: State.with_module_aliases(client.state, aliases)}
   end
 
   @doc false
   @spec without_module_aliases(t(), list(String.t())) :: t()
   def without_module_aliases(client, aliases \\ []) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.without_module_aliases(client.state, aliases)}
+    %__MODULE__{client | state: State.without_module_aliases(client.state, aliases)}
   end
 
   @doc false
   @spec with_config(t(), %{atom() => term()}) :: t()
   def with_config(client, config \\ %{}) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.with_config(client.state, config)}
+    %__MODULE__{client | state: State.with_config(client.state, config)}
   end
 
   @doc false
   @spec without_config(t(), list(atom())) :: t()
   def without_config(client, config_keys \\ []) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.without_config(client.state, config_keys)}
+    %__MODULE__{client | state: State.without_config(client.state, config_keys)}
   end
 
   @doc false
   @spec with_globals(t(), %{String.t() => String.t()}) :: t()
   def with_globals(client, globals \\ %{}) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.with_globals(client.state, globals)}
+    %__MODULE__{client | state: State.with_globals(client.state, globals)}
   end
 
   @doc false
   @spec without_globals(t(), list(String.t())) :: t()
   def without_globals(client, global_names \\ []) do
     client = to_client(client)
-    %__MODULE__{client | state: EdgeDB.State.without_globals(client.state, global_names)}
+    %__MODULE__{client | state: State.without_globals(client.state, global_names)}
   end
 
   @doc false

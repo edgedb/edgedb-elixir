@@ -525,13 +525,17 @@ defmodule Tests.EdgeDB.APITest do
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
       state =
-        %EdgeDB.State{}
-        |> EdgeDB.State.with_default_module("schema")
-        |> EdgeDB.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
-        |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
+        %EdgeDB.Client.State{}
+        |> EdgeDB.Client.State.with_default_module("schema")
+        |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
 
-      %{client: EdgeDB.with_state(client, state), current_user: current_user, duration: duration}
+      %{
+        client: EdgeDB.with_client_state(client, state),
+        current_user: current_user,
+        duration: duration
+      }
     end
 
     test "passes state to EdgeDB", %{

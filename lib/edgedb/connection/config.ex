@@ -332,7 +332,7 @@ defmodule EdgeDB.Connection.Config do
       retry: from_config(:retry),
       connection: from_config(:connection),
       pool: from_config(:pool),
-      state: from_config(:state)
+      client_state: from_config(:client_state)
     )
   end
 
