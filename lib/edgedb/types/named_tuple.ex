@@ -6,8 +6,8 @@ defmodule EdgeDB.NamedTuple do
     by index or key and `Enumerable` protocol for iterating over tuple values.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> nt = EdgeDB.query_required_single!(pid, "select (a := 1, b := 'a', c := [3])")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   #EdgeDB.NamedTuple<a: 1, b: "a", c: [3]>
   iex(3)> nt[:b]
   "a"
@@ -34,8 +34,8 @@ defmodule EdgeDB.NamedTuple do
   Convert a named tuple to a regular erlang tuple.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> nt = EdgeDB.query_required_single!(pid, "select (a := 1, b := 'a', c := [3])")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.to_tuple(nt)
   {1, "a", [3]}
   ```
@@ -52,8 +52,8 @@ defmodule EdgeDB.NamedTuple do
   Convert a named tuple into a regular map.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> nt = EdgeDB.query_required_single!(pid, "select (a := 1, b := 'a', c := [3])")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.to_map(nt)
   %{"a" => 1, "b" => "a", "c" => [3]}
   ```
@@ -67,8 +67,8 @@ defmodule EdgeDB.NamedTuple do
   Get named tuple keys.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> nt = EdgeDB.query_required_single!(pid, "select (a := 1, b := 'a', c := [3])")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.keys(nt)
   ["a", "b", "c"]
   ```

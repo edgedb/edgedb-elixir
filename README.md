@@ -10,6 +10,3 @@ iex(2)> arg = [16, 13, 2, 42]
 iex(3)> ^arg = EdgeDB.query_required_single!(client, "select <array<int64>>$arg", arg: arg)
 [16, 13, 2, 42]
 ```
-
-# TODO:
-1. Query builder with schema reflection (long term)

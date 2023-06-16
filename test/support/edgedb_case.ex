@@ -86,7 +86,7 @@ defmodule Tests.Support.EdgeDBCase do
           socket
       end
 
-    %{client: client, pid: conn_pid, socket: socket}
+    %{client: client, conn_pid: conn_pid, socket: socket}
   end
 
   @spec rollback(EdgeDB.client(), (EdgeDB.client() -> any())) :: :ok
