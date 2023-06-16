@@ -1,10 +1,5 @@
 defmodule EdgeDB.Result do
-  @moduledoc """
-  A structure that contains information related to the query result.
-
-  It's mostly used in client internally, but user can retrive it along with `EdgeDB.Query` struct
-    from succeed query execution using `:raw` option for `EdgeDB.query*/4` functions. See `t:EdgeDB.query_option/0`.
-  """
+  @moduledoc false
 
   alias EdgeDB.Protocol.Enums
 
@@ -15,16 +10,6 @@ defmodule EdgeDB.Result do
     statement: nil
   ]
 
-  @typedoc """
-  A structure that contains information related to the query result.
-
-  Fields:
-
-    * `:statement` - EdgeQL statement that was executed.
-    * `:required` - flag specifying that the result should not be empty.
-    * `:set` - query result.
-    * `:cardinality` - the expected number of elements in the returned set as a result of the query.
-  """
   @type t() :: %__MODULE__{
           statement: String.t() | nil,
           required: boolean(),
@@ -32,9 +17,6 @@ defmodule EdgeDB.Result do
           cardinality: Enums.cardinality()
         }
 
-  @doc """
-  Process the result and extract the data.
-  """
   @spec extract(t()) ::
           {:ok, EdgeDB.Set.t() | term() | :done}
           | {:error, Exception.t()}

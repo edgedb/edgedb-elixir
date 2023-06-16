@@ -1,10 +1,5 @@
 defmodule EdgeDB.Query do
-  @moduledoc """
-  A structure carrying the information related to the query.
-
-  It's mostly used in client internally, but user can retrive it along with `EdgeDB.Result` struct
-    from succeed query execution using `:raw` option for `EdgeDB.query*/4` functions. See `t:EdgeDB.query_option/0`.
-  """
+  @moduledoc false
 
   alias EdgeDB.Protocol.{
     Codec,
@@ -30,29 +25,6 @@ defmodule EdgeDB.Query do
     params: []
   ]
 
-  @typedoc """
-  A structure carrying the information related to the query.
-
-  Fields:
-
-    * `:statement` - EdgeQL statement for execution.
-    * `:output_format` - the preferred format of the query result.
-    * `:implicit_limit` - the implicit limit of elements count in the returned set as a result of the query.
-    * `:inline_type_names` - flag specifying that the result objects should contain type name as property.
-    * `:inline_type_ids` - flag specifying that the result objects should contain type ID as property.
-    * `:inline_object_ids` - flag specifying that the result objects should contain ID as property.
-    * `:cardinality` - the expected number of elements in the returned set as a result of the query.
-    * `:required` - flag specifying that the result should not be empty.
-    * `:is_script` - flag specifying that the query statement is a script that shouldn't have any return value.
-    * `:capabilities` - query capabilities. See
-      [RFC](https://github.com/edgedb/rfcs/blob/master/text/1004-transactions-api.rst#edgedb-changes)
-      for more information.
-    * `:input_codec` - codec for encoding query parameters.
-    * `:output_codec` - codec for decoding the query result.
-    * `:codec_storage` - codec storage from connection used by query to encode parameters.
-    * `:cached` - flag specifying whether the request has already been cached by the connection.
-    * `:params` - query parameters.
-  """
   @type t() :: %__MODULE__{
           statement: String.t(),
           output_format: Enums.output_format(),
