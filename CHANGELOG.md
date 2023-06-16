@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - support for `cal::date_duration` EdgeDB type via `EdgeDB.DateDuration` structure.
 - support for EdgeDB Cloud.
+- support for tuples and named tuples as query arguments.
+- support for `EdgeDB 3.0`.
 
 ### Changed
 
