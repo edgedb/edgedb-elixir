@@ -1,6 +1,6 @@
-defmodule EdgeDB.State do
+defmodule EdgeDB.Client.State do
   @moduledoc """
-  State is an execution context that affects the execution of EdgeQL commands in different ways:
+  State for the client is an execution context that affects the execution of EdgeQL commands in different ways:
 
     1. default module.
     2. module aliases.
@@ -10,7 +10,7 @@ defmodule EdgeDB.State do
   The most convenient way to work with the state is to use the `EdgeDB` API to change a required part of
     the state.
 
-  See `EdgeDB.with_state/2`, `EdgeDB.with_default_module/2`,
+  See `EdgeDB.with_client_state/2`, `EdgeDB.with_default_module/2`,
     `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`,
     `EdgeDB.with_config/2`/`EdgeDB.without_config/2` and
     `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2` for more information.
@@ -24,7 +24,7 @@ defmodule EdgeDB.State do
             globals: %{}
 
   @typedoc """
-  State is an execution context that affects the execution of EdgeQL commands.
+  State for the client is an execution context that affects the execution of EdgeQL commands.
   """
   @opaque t() :: %__MODULE__{
             module: String.t() | nil,
@@ -34,7 +34,7 @@ defmodule EdgeDB.State do
           }
 
   @doc """
-  Returns an `EdgeDB.State` with adjusted default module.
+  Returns an `EdgeDB.Client.State` with adjusted default module.
 
   This is equivalent to using the `set module` command,
     or using the `reset module` command when giving `nil`.
@@ -45,7 +45,7 @@ defmodule EdgeDB.State do
   end
 
   @doc """
-  Returns an `EdgeDB.State` with adjusted module aliases.
+  Returns an `EdgeDB.Client.State` with adjusted module aliases.
 
   This is equivalent to using the `set alias` command.
   """
@@ -55,7 +55,7 @@ defmodule EdgeDB.State do
   end
 
   @doc """
-  Returns an `EdgeDB.State` without specified module aliases.
+  Returns an `EdgeDB.Client.State` without specified module aliases.
 
   This is equivalent to using the `reset alias` command.
   """
@@ -74,7 +74,7 @@ defmodule EdgeDB.State do
   end
 
   @doc """
-  Returns an `EdgeDB.State` with adjusted session config.
+  Returns an `EdgeDB.Client.State` with adjusted session config.
 
   This is equivalent to using the `configure session set` command.
   """
@@ -84,7 +84,7 @@ defmodule EdgeDB.State do
   end
 
   @doc """
-  Returns an `EdgeDB.State` without specified session config.
+  Returns an `EdgeDB.Client.State` without specified session config.
 
   This is equivalent to using the `configure session reset` command.
   """
@@ -103,7 +103,7 @@ defmodule EdgeDB.State do
   end
 
   @doc """
-  Returns an `EdgeDB.State` with adjusted global values.
+  Returns an `EdgeDB.Client.State` with adjusted global values.
 
   This is equivalent to using the `set global` command.
   """
@@ -122,7 +122,7 @@ defmodule EdgeDB.State do
   end
 
   @doc """
-  Returns an `EdgeDB.State` without specified globals.
+  Returns an `EdgeDB.Client.State` without specified globals.
 
   This is equivalent to using the `reset global` command.
   """

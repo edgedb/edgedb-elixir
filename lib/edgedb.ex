@@ -81,7 +81,7 @@ defmodule EdgeDB do
     * `:connection` - module that implements the `DBConnection` behavior for EdgeDB.
       For tests, it's possible to use `EdgeDB.Sandbox` to support automatic rollback after tests are done.
     * `:max_concurrency` - maximum number of pool connections, despite what EdgeDB recommends.
-    * `:state` - an `EdgeDB.State` struct that will be used in queries by default.
+    * `:client_state` - an `EdgeDB.Client.State` struct that will be used in queries by default.
   """
   @type connect_option() ::
           {:dsn, String.t()}
@@ -105,7 +105,7 @@ defmodule EdgeDB do
           | {:codecs, list(module())}
           | {:connection, module()}
           | {:max_concurrency, pos_integer()}
-          | {:state, EdgeDB.State.t()}
+          | {:client_state, EdgeDB.Client.State.t()}
 
   @typedoc """
   Options for `EdgeDB.start_link/1`.
@@ -639,8 +639,8 @@ defmodule EdgeDB do
     `EdgeDB.with_config/2`/`EdgeDB.without_config/2`, `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2`
     for more information.
   """
-  @spec with_state(client(), EdgeDB.State.t()) :: client()
-  def with_state(client, state) do
+  @spec with_client_state(client(), EdgeDB.Client.State.t()) :: client()
+  def with_client_state(client, state) do
     client
     |> to_client()
     |> EdgeDB.Client.with_state(state)
@@ -920,7 +920,7 @@ defmodule EdgeDB do
       conn: pid,
       transaction_options: opts[:transaction] || [],
       retry_options: opts[:retry] || [],
-      state: opts[:state] || %EdgeDB.State{}
+      state: opts[:client_state] || %EdgeDB.Client.State{}
     }
 
     Registry.register(EdgeDB.ClientsRegistry, pid, client)

@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - implementation of `Enumerable` protocol for `EdgeDB.Set`.
+- `EdgeDB.State` to `EdgeDB.Client.State`, `EdgeDB.with_state/2` to
+    `EdgeDB.with_client_state/2`, `:state` option to `:client_state`.
 
 ### Fixed
 

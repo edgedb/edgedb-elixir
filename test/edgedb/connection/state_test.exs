@@ -11,11 +11,11 @@ defmodule Tests.EdgeDB.Connection.StateTest do
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
       state =
-        %EdgeDB.State{}
-        |> EdgeDB.State.with_default_module("schema")
-        |> EdgeDB.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
-        |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
+        %EdgeDB.Client.State{}
+        |> EdgeDB.Client.State.with_default_module("schema")
+        |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
 
       %{state: state, current_user: current_user, duration: duration}
     end
@@ -31,7 +31,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
            tls_security: :insecure,
            max_concurrency: 1,
            show_sensitive_data_on_connection_error: true,
-           state: state}
+           client_state: state}
         )
 
       object =
@@ -63,14 +63,14 @@ defmodule Tests.EdgeDB.Connection.StateTest do
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
       state =
-        %EdgeDB.State{}
-        |> EdgeDB.State.with_default_module("schema")
-        |> EdgeDB.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
-        |> EdgeDB.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.State.with_config(%{query_execution_timeout: duration})
+        %EdgeDB.Client.State{}
+        |> EdgeDB.Client.State.with_default_module("schema")
+        |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
 
-      Application.put_env(:edgedb, :state, state)
-      on_exit(fn -> Application.delete_env(:edgedb, :state) end)
+      Application.put_env(:edgedb, :client_state, state)
+      on_exit(fn -> Application.delete_env(:edgedb, :client_state) end)
 
       %{current_user: current_user, duration: duration}
     end

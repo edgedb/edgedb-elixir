@@ -114,7 +114,7 @@ defmodule EdgeDB.Connection do
             last_active: integer() | nil,
             savepoint_id: integer(),
             edgeql_state_typedesc_id: Codec.id(),
-            edgeql_state_cache: {EdgeDB.State.t(), binary()} | nil,
+            edgeql_state_cache: {EdgeDB.Client.State.t(), binary()} | nil,
             protocol_version: non_neg_integer()
           }
   end
@@ -1519,7 +1519,7 @@ defmodule EdgeDB.Connection do
         codec = CodecStorage.get(state.codec_storage, state.edgeql_state_typedesc_id)
 
         state_data =
-          Codec.encode(codec, EdgeDB.State.to_encodable(edgeql_state), state.codec_storage)
+          Codec.encode(codec, EdgeDB.Client.State.to_encodable(edgeql_state), state.codec_storage)
 
         {state_data, %State{state | edgeql_state_cache: {edgeql_state, state_data}}}
     end
@@ -1569,10 +1569,10 @@ defmodule EdgeDB.Connection do
       end
 
     # use default state here, since it's connection initialization and we don't have any real state here
-    with {:ok, query, state} <- parse_fn.(query, [edgeql_state: %EdgeDB.State{}], state),
+    with {:ok, query, state} <- parse_fn.(query, [edgeql_state: %EdgeDB.Client.State{}], state),
          encoded_params = DBConnection.Query.encode(query, query.params, []),
          {:ok, query, result, state} <-
-           execute_fn.(query, encoded_params, [edgeql_state: %EdgeDB.State{}], state),
+           execute_fn.(query, encoded_params, [edgeql_state: %EdgeDB.Client.State{}], state),
          result = DBConnection.Query.decode(query, result, []),
          {:ok, types} <- EdgeDB.Result.extract(result) do
       {:ok, types, state}
