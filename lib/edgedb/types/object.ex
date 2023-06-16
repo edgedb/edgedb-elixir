@@ -5,9 +5,9 @@ defmodule EdgeDB.Object do
   `EdgeDB.Object` implements `Access` behavior to access properties by key.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
-  iex(2)>  EdgeDB.query_required_single!(pid, "
+  iex(2)>  EdgeDB.query_required_single!(client, "
   ...(2)>   select schema::ObjectType{
   ...(2)>     name
   ...(2)>   }
@@ -29,9 +29,9 @@ defmodule EdgeDB.Object do
     You can use the same property name as in the query to access them from the links.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
-  iex(2)>  EdgeDB.query_required_single!(pid, "
+  iex(2)>  EdgeDB.query_required_single!(client, "
   ...(2)>   select schema::Property {
   ...(2)>       name,
   ...(2)>       annotations: {
@@ -215,9 +215,9 @@ defmodule EdgeDB.Object do
   Convert an object into a regular map.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
+  iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> object =
-  iex(2)>  EdgeDB.query_required_single!(pid, "
+  iex(2)>  EdgeDB.query_required_single!(client, "
   ...(2)>   select schema::Property {
   ...(2)>       name,
   ...(2)>       annotations: {

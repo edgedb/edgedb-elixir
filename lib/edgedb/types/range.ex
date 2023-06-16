@@ -3,8 +3,8 @@ defmodule EdgeDB.Range do
   A value representing some interval of values.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> EdgeDB.query_required_single!(pid, "select range(1, 10)")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> EdgeDB.query_required_single!(client, "select range(1, 10)")
   #EdgeDB.Range<[1, 10)>
   ```
   """

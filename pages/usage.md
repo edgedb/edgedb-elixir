@@ -43,8 +43,8 @@ module default {
 Let's fill the database with some data, which will be used in further examples:
 
 ```elixir
-iex(1)> {:ok, pid} = EdgeDB.start_link()
-iex(2)> EdgeDB.query!(pid, "
+iex(1)> {:ok, client} = EdgeDB.start_link()
+iex(2)> EdgeDB.query!(client, "
 ...(2)> WITH
 ...(2)>     p1 := (
 ...(2)>         insert Post {
@@ -104,8 +104,8 @@ If you want to receive an `EdgeDB.Set` from your query, just use the `EdgeDB.que
 Let's query all existing posts with their bodies:
 
 ```elixir
-iex(1)> {:ok, pid} = EdgeDB.start_link()
-iex(2)> {:ok, posts} = EdgeDB.query(pid, "select Post { body }")
+iex(1)> {:ok, client} = EdgeDB.start_link()
+iex(2)> {:ok, posts} = EdgeDB.query(client, "select Post { body }")
 {:ok,
  #EdgeDB.Set<{#EdgeDB.Object<body := "EdgeDB is awesome! Try the Elixir client for it">,
   #EdgeDB.Object<body := "Yes!">, #EdgeDB.Object<body := "Absolutely amazing">,
@@ -134,8 +134,8 @@ If you know that the query will return only one element or none, you can use `Ed
 Let's query a post with a link to the Elixir client for EdgeDB:
 
 ```elixir
-iex(1)> {:ok, pid} = EdgeDB.start_link()
-iex(2)> %EdgeDB.Object{} = post = EdgeDB.query_single!(pid, "select Post filter contains(.body, 'https://hex.pm/packages/edgedb') limit 1")
+iex(1)> {:ok, client} = EdgeDB.start_link()
+iex(2)> %EdgeDB.Object{} = post = EdgeDB.query_single!(client, "select Post filter contains(.body, 'https://hex.pm/packages/edgedb') limit 1")
 iex(3)> post.id
 "3c5c9378-860f-11ec-a22a-0713dfca8baa"
 ```
@@ -143,7 +143,7 @@ iex(3)> post.id
 If we try to select a `Post` that does not exist, `nil` will be returned:
 
 ```elixir
-iex(4)> EdgeDB.query_single!(pid, "select Post filter .body = 'lol' limit 1")
+iex(4)> EdgeDB.query_single!(client, "select Post filter .body = 'lol' limit 1")
 nil
 ```
 
@@ -153,7 +153,7 @@ In case we want to ensure that the requested element must exist, we can use the 
   `EdgeDB.query_required_single!/4`. Instead of returning `nil` they will return `EdgeDB.Error` in case of a missing element:
 
 ```elixir
-iex(5)> EdgeDB.query_required_single!(pid, "select Post filter .body = 'lol' limit 1")
+iex(5)> EdgeDB.query_required_single!(client, "select Post filter .body = 'lol' limit 1")
 ** (EdgeDB.Error) NoDataError: expected result, but query did not return any data
 ```
 
@@ -166,9 +166,9 @@ iex(5)> EdgeDB.query_required_single!(pid, "select Post filter .body = 'lol' lim
 The API for transactions is provided by the `EdgeDB.transaction/3` function:
 
 ```elixir
-iex(1)> {:ok, pid} = EdgeDB.start_link()
+iex(1)> {:ok, client} = EdgeDB.start_link()
 iex(2)> {:ok, user} =
-...(2)>  EdgeDB.transaction(pid, fn conn ->
+...(2)>  EdgeDB.transaction(client, fn conn ->
 ...(2)>    EdgeDB.query_required_single!(conn, "insert User { name := <str>$username }", username: "user1")
 ...(2)>  end)
 ```
@@ -178,11 +178,11 @@ Transactions can be rollbacked using the `EdgeDB.rollback/2` function or automat
 
 ```elixir
 iex(3)> {:error, :rollback} =
-...(3)>  EdgeDB.transaction(pid, fn conn ->
+...(3)>  EdgeDB.transaction(client, fn conn ->
 ...(3)>    %EdgeDB.Object{} = EdgeDB.query_required_single!(conn, "insert User { name := <str>$username }", username: "wrong_username")
 ...(3)>    EdgeDB.rollback(conn)
 ...(3)>  end)
-iex(4)> EdgeDB.query_single!(pid, "select User { name } filter .name = <str>$username", username: "wrong_username")
+iex(4)> EdgeDB.query_single!(client, "select User { name } filter .name = <str>$username", username: "wrong_username")
 nil
 ```
 
@@ -202,10 +202,10 @@ iex(5)> callback = fn conn, body ->
 ...(5)>  Process.sleep(500)
 ...(5)> end
 iex(6)> spawn(fn ->
-...(6)>  {:ok, pid} = EdgeDB.start_link()
-...(6)>  EdgeDB.transaction(pid, &callback.(&1, "new_body_1"))
+...(6)>  {:ok, client} = EdgeDB.start_link()
+...(6)>  EdgeDB.transaction(client, &callback.(&1, "new_body_1"))
 ...(6)> end)
-iex(7)> EdgeDB.transaction(pid, &callback.(&1, "new_body_2"), retry: [transaction_conflict: [attempts: 0]])
+iex(7)> EdgeDB.transaction(client, &callback.(&1, "new_body_2"), retry: [transaction_conflict: [attempts: 0]])
 ** (EdgeDB.Error) TransactionSerializationError: could not serialize access due to concurrent update
 ```
 
@@ -213,10 +213,10 @@ Now let's execute the same thing but with enabled retries:
 
 ```elixir
 iex(8)> spawn(fn ->
-...(8)>  {:ok, pid} = EdgeDB.start_link()
-...(8)>  EdgeDB.transaction(pid, &callback.(&1, "new_body_1"))
+...(8)>  {:ok, client} = EdgeDB.start_link()
+...(8)>  EdgeDB.transaction(client, &callback.(&1, "new_body_1"))
 ...(8)> end)
-iex(9)> EdgeDB.transaction(pid, &callback.(&1, "new_body_2"))
+iex(9)> EdgeDB.transaction(client, &callback.(&1, "new_body_2"))
 {:ok, :ok}
 ```
 

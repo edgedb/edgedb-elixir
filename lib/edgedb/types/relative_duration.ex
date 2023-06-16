@@ -3,8 +3,8 @@ defmodule EdgeDB.RelativeDuration do
   An immutable value represeting an EdgeDB `cal::relative_duration` value.
 
   ```elixir
-  iex(1)> {:ok, pid} = EdgeDB.start_link()
-  iex(2)> EdgeDB.query_required_single!(pid, "select <cal::relative_duration>'45.6 seconds'")
+  iex(1)> {:ok, client} = EdgeDB.start_link()
+  iex(2)> EdgeDB.query_required_single!(client, "select <cal::relative_duration>'45.6 seconds'")
   #EdgeDB.RelativeDuration<"PT45.6S">
   ```
   """
