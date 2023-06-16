@@ -226,4 +226,4 @@ All failed transactions will be retried until they succeed or until the number o
 
 You can also check out an example application using this client to see how to work with it:
 
-https://github.com/nsidnev/edgedb-phoenix-example
+https://github.com/nsidnev/edgebeats
