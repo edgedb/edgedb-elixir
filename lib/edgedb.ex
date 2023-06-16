@@ -84,10 +84,7 @@ defmodule EdgeDB do
     * `:codecs` - list of custom codecs for EdgeDB scalars.
     * `:connection` - module that implements the `DBConnection` behavior for EdgeDB.
       For tests, it's possible to use `EdgeDB.Sandbox` to support automatic rollback after tests are done.
-    * `:pool` - module that will be used as pool for connections.
-      By default `EdgeDB.Pool` will be used.
     * `:max_concurrency` - maximum number of pool connections, despite what EdgeDB recommends.
-      Thise option take effect only if `EdgeDB.Pool` is used as a pool, which is the default.
     * `:state` - an `EdgeDB.State` struct that will be used in queries by default.
   """
   @type connect_option() ::
@@ -111,7 +108,6 @@ defmodule EdgeDB do
           | {:retry, list(EdgeDB.Client.retry_option())}
           | {:codecs, list(module())}
           | {:connection, module()}
-          | {:pool, module()}
           | {:max_concurrency, pos_integer()}
           | {:state, EdgeDB.State.t()}
 
