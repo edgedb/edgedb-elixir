@@ -139,14 +139,12 @@ defmodule EdgeDB do
     * `:cardinality` - expected number of items in set.
     * `:output_format` - preferred format of query result.
     * `:retry` - options for read-only queries retries.
-    * `:raw` - flag to return internal client structures for inspecting.
     * other - check `t:DBConnection.start_option/0`.
   """
   @type query_option() ::
           {:cardinality, Enums.cardinality()}
           | {:output_format, Enums.output_format()}
           | {:retry, list(EdgeDB.Client.retry_option())}
-          | {:raw, boolean()}
           | {:script, boolean()}
           | DBConnection.option()
 
@@ -172,17 +170,9 @@ defmodule EdgeDB do
           {:reason, term()}
 
   @typedoc """
-  A tuple of the executed `EdgeDB.Query` and the received `EdgeDB.Result`.
-
-  This tuple can be useful if you want to get the internal structures of the client and inspect them,
-    but in most cases you will not use it.
-  """
-  @type raw_result() :: {EdgeDB.Query.t(), EdgeDB.Result.t()}
-
-  @typedoc """
   The result that will be returned if the `EdgeDB.query*/4` function succeeds.
   """
-  @type result() :: EdgeDB.Set.t() | term() | raw_result()
+  @type result() :: EdgeDB.Set.t() | term()
 
   @doc """
   Creates a pool of EdgeDB connections linked to the current process.
@@ -850,6 +840,8 @@ defmodule EdgeDB do
       reraise exc, __STACKTRACE__
   end
 
+  # we're hiding some internal stuff for EdgeDB.Error and dialyzer doesn't like that.
+  @dialyzer {:nowarn_function, retry?: 3}
   defp retry?(exception, attempt, retry_opts) do
     rule = rule_for_retry(exception, retry_opts)
 

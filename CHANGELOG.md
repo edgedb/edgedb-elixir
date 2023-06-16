@@ -27,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EdgeDB.subtransaction/2`, `EdgeDB.subtransaction!/2` functions and other mentions of
     subtransactions support in the client.
 - support for custom pool configuration.
+- `:raw` option from `EdgeDB.query*` functions as well as access to `EdgeDB.Query`
+    and `EdgeDB.Result`.
+- API for constructing an `EdgeDB.Error`.
 
 ## [0.5.1] - 2022-08-25
 

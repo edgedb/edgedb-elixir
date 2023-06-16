@@ -30,41 +30,19 @@ defmodule EdgeDB.Error do
   Fields:
 
     * `:message` - human-readable error message.
+    * `:type` - alias module for EdgeDB error.
     * `:name` - error name from EdgeDB.
     * `:code` - internal error code.
-    * `:attributes` - additional error attributes that can be obtained from the
-      [`ErrorResponse`](https://www.edgedb.com/docs/reference/protocol/messages#ref-protocol-msg-error) server message.
-    * `:tags` - error tags.
-    * `:query` - query, which should have been executed when the error occurred.
   """
-  @type t() :: %__MODULE__{
+  @type t() :: %{
+          __struct__: __MODULE__,
           message: String.t(),
           type: module(),
           name: String.t(),
-          code: integer(),
-          attributes: map(),
-          tags: list(tag()),
-          query: EdgeDB.Query.t() | nil
+          code: integer()
         }
 
-  @typedoc """
-  Options for constructing an `EdgeDB.Error` instance.
-
-  Supported options:
-
-    * `:code` - internal error code.
-    * `:attributes` - additional error attributes that can be obtained from the
-      [`ErrorResponse`](https://www.edgedb.com/docs/reference/protocol/messages#ref-protocol-msg-error) server message.
-    * `:query` - query, which should have been executed when the error occurred.
-  """
-  @type option() ::
-          {:code, integer()}
-          | {:attributes, map()}
-          | {:query, EdgeDB.Query.t()}
-
-  @typedoc """
-  Error tags.
-  """
+  @typedoc false
   @type tag() :: :should_retry | :should_reconnect
 
   Module.register_attribute(__MODULE__, :supported_error_types, accumulate: true)
@@ -144,10 +122,13 @@ defmodule EdgeDB.Error do
 
         alias EdgeDB.Error
 
+        # we're hiding some internal stuff for EdgeDB.Error and dialyzer doesn't like that.
+        @dialyzer {:nowarn_function, new: 2}
+
         @doc """
         Create a new `EdgeDB.Error` with `#{inspect(__MODULE__)}` type.
         """
-        @spec new(String.t(), list(EdgeDB.Error.option())) :: EdgeDB.Error.t()
+        @spec new(String.t(), Keyword.t()) :: EdgeDB.Error.t()
         def new(message, opts \\ []) do
           EdgeDB.Error.unquote(snake_cased_name)(message, opts)
         end
@@ -157,7 +138,10 @@ defmodule EdgeDB.Error do
 
     Module.put_attribute(__MODULE__, :supported_error_types, error_mod_name)
 
-    @spec unquote(snake_cased_name)(String.t(), list(option())) :: t()
+    # we're hiding some internal stuff for EdgeDB.Error and dialyzer doesn't like that.
+    @dialyzer {:nowarn_function, {snake_cased_name, 2}}
+
+    @spec unquote(snake_cased_name)(String.t(), Keyword.t()) :: t()
 
     @doc """
     Create a new `EdgeDB.Error` with `#{inspect(error_mod_name)}` type.
