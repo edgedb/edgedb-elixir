@@ -1,25 +1,5 @@
 defmodule EdgeDB.Pool do
-  @moduledoc """
-  A lazy and dynamically resizable pool for `EdgeDB`.
-
-  Please note:
-
-    1. The pool won't create any connections to EdgeDB right after start.
-      To create a new connection, you need to make a call via the `EdgeDB` API.
-      This may cause a little delay between your call of the `EdgeDB` API
-      and the actual processing of query in the connection and EdgeDB.
-    2. EdgeDB has a
-      [`session_idle_timeout` configuration](https://www.edgedb.com/docs/reference/configuration#client-connections)
-      which defines how long connections can stay idle and do nothing. Once the timeout is up
-      EdgeDB will close connection and this connection will be removed from the pool.
-    3. EdgeDB provides clients a hint about how many connections the client should have in its pool.
-      Elixir client is aware of this hint and acts on it, so the count of connections in the pool
-      won't be more than EdgeDB suggests.
-    4. `:max_concurrency` can affect how many connections will be available in the pool,
-      since it has a higher priority in the sence of limiting the amount of connections.
-      Therefore, EdgeDB suggest is a "soft" limit, while `:max_concurrency` is a "hard" limit.
-      By default `:max_concurrency` is not set, so it won't have any effect on the pool.
-  """
+  @moduledoc false
 
   use GenServer
 
