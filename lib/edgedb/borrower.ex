@@ -5,7 +5,6 @@ defmodule EdgeDB.Borrower do
 
   @reasons_to_borrow ~w(
     transaction
-    subtransaction
   )a
 
   defmodule State do
@@ -14,7 +13,9 @@ defmodule EdgeDB.Borrower do
     defstruct borrowed: %{}
 
     @type t() :: %__MODULE__{
-            borrowed: %{EdgeDB.client() => :transaction | :subtransaction}
+            borrowed: %{
+              EdgeDB.client() => :transaction
+            }
           }
   end
 
@@ -87,10 +88,6 @@ defmodule EdgeDB.Borrower do
 
   defp error_for_reason(:transaction) do
     EdgeDB.InterfaceError.new("client is already borrowed for transaction")
-  end
-
-  defp error_for_reason(:subtransaction) do
-    EdgeDB.InterfaceError.new("client is already borrowed for subtransaction")
   end
 
   defp execute_on_borrowed(client, callback) do

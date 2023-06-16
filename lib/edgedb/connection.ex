@@ -474,16 +474,6 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_execute(
-        %InternalRequest{request: :is_subtransaction} = request,
-        _params,
-        _opts,
-        state
-      ) do
-    {:ok, request, false, state}
-  end
-
-  @impl DBConnection
   def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
     exc =
       EdgeDB.InternalClientError.new(

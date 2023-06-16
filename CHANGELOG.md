@@ -20,8 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `EdgeDB.Pool` crash after updating `db_connection` to `2.5`.
-- support for `DBConnection.ConnectionPool`.
+- crash after updating `db_connection` to `2.5`.
+
+### Removed
+
+- `EdgeDB.subtransaction/2`, `EdgeDB.subtransaction!/2` functions and other mentions of
+    subtransactions support in the client.
+- support for custom pool configuration.
 
 ## [0.5.1] - 2022-08-25
 

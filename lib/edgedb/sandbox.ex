@@ -5,9 +5,7 @@ defmodule EdgeDB.Sandbox do
 
   This connection, when started, wraps the actual connection to EdgeDB into a transaction using
     the `start transaction` statement. And then further calls to `EdgeDB.transaction/3` will result
-    in executing `declare savepoint` statement instead of `start transaction`. This connection
-    doesn't affect the availability of the `EdgeDB.subtransaction/2` and `EdgeDB.subtransaction!/2` calls,
-    you can continue to use them with this module.
+    in executing `declare savepoint` statement instead of `start transaction`.
 
   To use this module in tests, change the configuration of the `:edgedb` application in the `config/tests.exs`:
 

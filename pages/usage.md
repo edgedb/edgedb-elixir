@@ -4,8 +4,7 @@ The basic user API for `edgedb-elixir` is provided by the `EdgeDB` module and in
   The exception is when you want to [define custom codecs](pages/custom-codecs.md).
 
 `EdgeDB` provides several functions for querying data from the database, which are named in `EdgeDB.query*/4` format.
-  Transactions are supported with `EdgeDB.transaction/3` function and subtransactions (including nested ones)
-  with `EdgeDB.subtransaction/2` function.
+  Transactions are supported with `EdgeDB.transaction/3` function.
 
 ## Establishing a connection
 
@@ -160,6 +159,10 @@ iex(5)> EdgeDB.query_required_single!(pid, "select Post filter .body = 'lol' lim
 
 ## Transactions
 
+> #### NOTE {: .warning}
+>
+> Note that `EdgeDB.transaction/3` calls can not be nested.
+
 The API for transactions is provided by the `EdgeDB.transaction/3` function:
 
 ```elixir
@@ -218,29 +221,6 @@ iex(9)> EdgeDB.transaction(pid, &callback.(&1, "new_body_2"))
 ```
 
 All failed transactions will be retried until they succeed or until the number of retries exceeds the limit (the default is 3).
-
-Note that `EdgeDB.transaction/3` calls cannot be nested. If you want to open a nested transaction,
-  you should use `EdgeDB.subtransaction/2` instead:
-
-```elixir
-iex(1)> {:ok, pid} = EdgeDB.start_link()
-iex(2)> {:ok, %EdgeDB.Set{}} =
-...(2)>   EdgeDB.transaction(pid, fn tx_conn ->
-...(2)>     EdgeDB.subtransaction!(tx_conn, fn subtx_conn1 ->
-...(2)>       EdgeDB.subtransaction!(subtx_conn1, fn subtx_conn2 ->
-...(2)>         EdgeDB.query!(subtx_conn2, "insert User { name := <str>$username }", username: "user_subtx2")
-...(2)>         EdgeDB.rollback(subtx_conn2, continue: true)
-...(2)>         EdgeDB.query!(subtx_conn2, "insert User { name := <str>$username }", username: "user_subtx2_ver_2")
-...(2)>         :ok
-...(2)>       end)
-...(2)>       EdgeDB.query!(subtx_conn1, "insert User { name := <str>$username }", username: "user_subtx1")
-...(2)>       EdgeDB.query!(subtx_conn1, "select User { name } filter .name ilike '%subtx%'")
-...(2)>     end)
-...(2)>   end)
-{:ok,
- #EdgeDB.Set<{#EdgeDB.Object<name := "user_subtx2_ver_2">,
-  #EdgeDB.Object<name := "user_subtx1">}>}
-```
 
 ## Example
 
