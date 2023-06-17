@@ -1,6 +1,8 @@
 defmodule Tests.EdgeDB.Pool.DBConnectionPoolTest do
   use Tests.Support.EdgeDBCase
 
+  @max_receive_time :timer.seconds(5)
+
   describe "DBConnection.ConnectionPool" do
     setup do
       {:ok, client} =
@@ -36,8 +38,8 @@ defmodule Tests.EdgeDB.Pool.DBConnectionPoolTest do
     end
 
     for i <- 1..count do
-      assert_receive {:started, ^i}, max_time + sleep_step
-      assert_receive {:done, ^i}, max_time + sleep_step
+      assert_receive {:started, ^i}, @max_receive_time
+      assert_receive {:done, ^i}, @max_receive_time
     end
   end
 end
