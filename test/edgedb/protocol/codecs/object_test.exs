@@ -232,17 +232,27 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
     end)
   end
 
-  test "decoding object with property equals to empty set", %{client: client} do
-    rollback(client, fn client ->
-      object =
-        EdgeDB.query_required_single!(client, """
-        select {
-          a := <str>{}
-        }
-        limit 1
-        """)
+  test "decoding object with a single property equals to empty set", %{client: client} do
+    object =
+      EdgeDB.query_required_single!(client, """
+      select {
+        a := <str>{}
+      }
+      limit 1
+      """)
 
-      assert Enum.empty?(object[:a])
-    end)
+    assert is_nil(object[:a])
+  end
+
+  test "decoding object with a multi property equals to empty set", %{client: client} do
+    object =
+      EdgeDB.query_required_single!(client, """
+      select {
+        multi a := <str>{}
+      }
+      limit 1
+      """)
+
+    assert Enum.empty?(object[:a])
   end
 end
