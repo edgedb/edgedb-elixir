@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - crash after updating `db_connection` to `2.5`.
+- not catching an `EdgeDB.Error` exception during parameters encoding,
+    which caused throwing an exception for non-`!` functions.
 
 ### Removed
 

@@ -753,6 +753,9 @@ defmodule EdgeDB do
       {:error, exc} ->
         {:error, exc}
     end
+  rescue
+    exc in EdgeDB.Error ->
+      {:error, exc}
   end
 
   defp handle_query_result(query, result, opts) do
