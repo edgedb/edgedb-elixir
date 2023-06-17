@@ -33,4 +33,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.VectorTest do
 
     assert ^value = EdgeDB.query_single!(client, "select <ExVector>$0", [value])
   end
+
+  test "encoding empty vector value results in an error", %{client: client} do
+    assert {:error, %EdgeDB.Error{}} =
+             EdgeDB.query_single(client, "select <ext::pgvector::vector>$0", [])
+  end
 end
