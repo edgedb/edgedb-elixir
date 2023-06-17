@@ -1,4 +1,5 @@
 defmodule EdgeDB.Range do
+  @moduledoc since: "0.4.0"
   @moduledoc """
   A value representing some interval of values.
 

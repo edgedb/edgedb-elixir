@@ -1,4 +1,5 @@
 defmodule EdgeDB.DateDuration do
+  @moduledoc since: "0.6.0"
   @moduledoc """
   An immutable value represeting an EdgeDB `cal::date_duration` value.
 

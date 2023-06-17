@@ -28,3 +28,4 @@ The table below shows the correspondence between EdgeDB and Elixir types.
 | `set`                     | `t:EdgeDB.Set.t/0`                       | `#EdgeDB.Set<{1, 2, 3}>}`                            |
 | `cfg::memory`             | `t:EdgeDB.ConfigMemory.t/0`              | `#EdgeDB.ConfigMemory<"5KiB">`                       |
 | `range`                   | `t:EdgeDB.Range.t/0`                     | `#EdgeDB.Range<[1.1, 3.3)>`                          |
+| `ext::pgvector::vector`   | `t:list/0`                               | `[1.5, 2.0, 4.5]`                                    |
