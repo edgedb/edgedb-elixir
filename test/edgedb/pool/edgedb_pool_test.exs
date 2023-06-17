@@ -3,6 +3,8 @@ defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
 
   alias Tests.Support.Connections.PoolConnection
 
+  @max_receive_time :timer.seconds(5)
+
   describe "EdgeDB.Pool at the beginning" do
     setup do
       {:ok, client} =
@@ -153,6 +155,7 @@ defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
     for i <- 1..count do
       spawn(fn ->
         EdgeDB.transaction(client, fn client ->
+          send(test_pid, {:started, i})
           Process.sleep(max_time - sleep_step * (i - 1))
           EdgeDB.query_required_single!(client, "select 1")
         end)
@@ -162,7 +165,8 @@ defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
     end
 
     for i <- 1..count do
-      assert_receive {:done, ^i}, max_time + sleep_step
+      assert_receive {:started, ^i}, @max_receive_time
+      assert_receive {:done, ^i}, @max_receive_time
     end
   end
 end

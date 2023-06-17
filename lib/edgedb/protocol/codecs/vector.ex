@@ -72,7 +72,9 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Vector do
 
   @impl Codec
   def decode(_codec, <<length::uint32(), data::binary(length)>>, _codec_storage) do
-    <<vector_length::int16(), _reserved0::int16(), rest::binary(vector_length * 4)>> = data
+    <<vector_length::int16(), rest::binary>> = data
+    vector_length_size = vector_length * 4
+    <<_reserved0::int16(), rest::binary(vector_length_size)>> = rest
     decode_vector_values(rest)
   end
 

@@ -11,22 +11,27 @@ on:
 
 jobs:
   tests:
-    name: Run tests (OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }} / EdgeDB ${{ matrix.edgedb-version }})
-
-    runs-on: ubuntu-22.04
+    name: Run tests (OS ${{ matrix.os-version }} / OTP ${{ matrix.otp-version }} / Elixir ${{ matrix.elixir-version }} / EdgeDB ${{ matrix.edgedb-version }})
 
     strategy:
       matrix:
+        os-version:
+          - "ubuntu-22.04"
+
         otp-version:
-          - "25.3.2"
+          - "24"
 
         elixir-version:
-          - "1.14.5"
+          - "1.12"
+          - "1.13"
+          - "1.14"
 
         edgedb-version:
           - "1.0"
           - "2.0"
-          - "3.0-rc.4"
+          - "3.0-rc.5"
+
+    runs-on: ${{ matrix.os-version }}
 
     steps:
       - uses: actions/checkout@v3
@@ -68,7 +73,7 @@ jobs:
             deps
             _build
             priv/plts
-          key: tests-${{ runner.os }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-${{ hashFiles('mix.lock') }}
+          key: tests-${{ matrix.os-version }}-${{ matrix.otp-version }}-${{ matrix.elixir-version }}-${{ hashFiles('mix.lock') }}
 
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
