@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - support for EdgeDB Cloud.
 - support for tuples and named tuples as query arguments.
 - support for `EdgeDB 3.0`.
+- support for `ext::pgvector::vector` type.
 
 ### Changed
 

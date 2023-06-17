@@ -1,3 +1,5 @@
+using extension pgvector;
+
 module default {
     global current_user -> str;
 
@@ -109,4 +111,6 @@ module default {
     };
 
     scalar type Color extending enum<Red, Green, Blue>;
+
+    scalar type ExVector extending ext::pgvector::vector<1602>;
 };
