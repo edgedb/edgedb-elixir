@@ -295,9 +295,20 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
         element.name
       end
 
+    single_property? =
+      element.cardinality in [:at_most_one, :one] and
+        (link_property?(element) or not link?(element))
+
+    value =
+      if single_property? do
+        nil
+      else
+        @empty_set
+      end
+
     field = %EdgeDB.Object.Field{
       name: name,
-      value: @empty_set,
+      value: value,
       is_link: link?(element),
       is_link_property: link_property?(element),
       is_implicit: implicit?(element)
