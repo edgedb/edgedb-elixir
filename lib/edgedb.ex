@@ -895,9 +895,11 @@ defmodule EdgeDB do
   end
 
   defp to_client(client_name) when is_atom(client_name) do
-    client_name
-    |> Process.whereis()
-    |> to_client()
+    if pid = Process.whereis(client_name) do
+      to_client(pid)
+    else
+      raise EdgeDB.InterfaceError.new("could not find process associated with #{client_name}")
+    end
   end
 
   # ensure that client is really registered

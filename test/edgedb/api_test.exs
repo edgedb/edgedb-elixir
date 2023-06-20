@@ -563,4 +563,13 @@ defmodule Tests.EdgeDB.APITest do
       assert object[:user_type][:name] == "default::User"
     end
   end
+
+  test "EdgeDB API raises an error for wrong module name as a client" do
+    e =
+      assert_raise EdgeDB.Error, fn ->
+        EdgeDB.query!(EdgeDBWrongName, "select 'Hello world'")
+      end
+
+    assert %EdgeDB.Error{type: EdgeDB.InterfaceError} = e
+  end
 end
