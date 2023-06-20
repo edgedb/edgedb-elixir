@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - decoding a single propery for `EdgeDB.Object` that equals to an empty set.
 - not catching an `EdgeDB.Error` exception during parameters encoding,
     which caused throwing an exception for non-`!` functions.
+- silent error for calling `EdgeDB` API with wrong module names.
 
 ### Removed
 

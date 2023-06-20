@@ -36,6 +36,11 @@ defmodule EdgeDB.Borrower do
   end
 
   @spec ensure_unborrowed!(EdgeDB.client()) :: :ok | no_return()
+
+  def ensure_unborrowed!(client) when is_pid(client) do
+    :ok
+  end
+
   def ensure_unborrowed!(client) do
     case GenServer.call(__MODULE__, {:check_borrowed, client}) do
       :unborrowed ->
