@@ -3,7 +3,7 @@ defmodule EdgeDB.MixProject do
 
   @app :edgedb
   @version "0.6.0"
-  @source_url "https://github.com/nsidnev/edgedb-elixir"
+  @source_url "https://github.com/edgedb/edgedb-elixir"
   @description "EdgeDB client for Elixir"
 
   def project do
@@ -110,8 +110,10 @@ defmodule EdgeDB.MixProject do
 
   defp package do
     [
-      maintainers: ["Nik Sidnev"],
-      licenses: ["MIT"],
+      maintainers: [
+        "Nik Sidnev"
+      ],
+      licenses: ["Apache-2.0"],
       links: %{
         "GitHub" => @source_url
       }

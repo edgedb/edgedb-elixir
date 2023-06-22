@@ -54,5 +54,5 @@ mix deps.clean edgedb --build
 
 ## License
 
-This project is licensed under the terms of the MIT license.
-  See [LICENSE](https://github.com/nsidnev/edgedb-elixir/blob/master/LICENSE) for details.
+This project is licensed under the terms of the Apache 2.0 license.
+  See [LICENSE](https://github.com/edgedb/edgedb-elixir/blob/master/LICENSE) for details.
