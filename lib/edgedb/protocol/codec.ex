@@ -7,8 +7,8 @@ defprotocol EdgeDB.Protocol.Codec do
   Useful links for codec developers:
     * [EdgeDB datatypes used in data descriptions](https://www.edgedb.com/docs/reference/protocol/index#conventions-and-data-types).
     * [EdgeDB data wire formats](https://www.edgedb.com/docs/reference/protocol/dataformats).
-    * [Built-in EdgeDB codec implementations](https://github.com/nsidnev/edgedb-elixir/tree/master/lib/edgedb/protocol/codecs).
-    * [Custom codecs implementations](https://github.com/nsidnev/edgedb-elixir/tree/master/test/edgedb/protocol/codecs/custom).
+    * [Built-in EdgeDB codec implementations](https://github.com/edgedb/edgedb-elixir/tree/master/lib/edgedb/protocol/codecs).
+    * [Custom codecs implementations](https://github.com/edgedb/edgedb-elixir/tree/master/test/edgedb/protocol/codecs/custom).
     * [Guide to developing custom codecs](pages/custom-codecs.md).
   """
 

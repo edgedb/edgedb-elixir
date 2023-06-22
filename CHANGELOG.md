@@ -5,9 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## Unreleased
 
-[Compare with 0.5.1](https://github.com/nsidnev/edgedb-elixir/compare/v0.5.1...HEAD)
+[Compare with 0.6.0](https://github.com/edgedb/edgedb-elixir/compare/v0.6.0...HEAD)
+
+## [0.6.0] - 2023-06-22
+
+[Compare with 0.5.1](https://github.com/edgedb/edgedb-elixir/compare/v0.5.1...v0.6.0)
 
 ### Added
 
@@ -22,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - implementation of `Enumerable` protocol for `EdgeDB.Set`.
 - `EdgeDB.State` to `EdgeDB.Client.State`, `EdgeDB.with_state/2` to
     `EdgeDB.with_client_state/2`, `:state` option to `:client_state`.
+- license from `MIT` to `Apache 2.0`.
 
 ### Fixed
 
@@ -42,7 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.1] - 2022-08-25
 
-[Compare with 0.5.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.5.0...v0.5.1)
+[Compare with 0.5.0](https://github.com/edgedb/edgedb-elixir/compare/v0.5.0...v0.5.1)
 
 ### Removed
 
@@ -50,7 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2022-08-20
 
-[Compare with 0.4.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.4.0...v0.5.0)
+[Compare with 0.4.0](https://github.com/edgedb/edgedb-elixir/compare/v0.4.0...v0.5.0)
 
 ### Added
 
@@ -81,7 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2022-08-04
 
-[Compare with 0.3.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.3.0...v0.4.0)
+[Compare with 0.3.0](https://github.com/edgedb/edgedb-elixir/compare/v0.3.0...v0.4.0)
 
 ### Added
 
@@ -100,7 +106,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2022-05-29
 
-[Compare with 0.2.1](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.1...v0.3.0)
+[Compare with 0.2.1](https://github.com/edgedb/edgedb-elixir/compare/v0.2.1...v0.3.0)
 
 ### Added
 
@@ -121,7 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.1] - 2022-05-19
 
-[Compare with 0.2.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.2.0...v0.2.1)
+[Compare with 0.2.0](https://github.com/edgedb/edgedb-elixir/compare/v0.2.0...v0.2.1)
 
 ### Removed
 
@@ -134,7 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.0] - 2022-05-03
 
-[Compare with 0.1.0](https://github.com/nsidnev/edgedb-elixir/compare/v0.1.0...v0.2.0)
+[Compare with 0.1.0](https://github.com/edgedb/edgedb-elixir/compare/v0.1.0...v0.2.0)
 
 ### Added
 
@@ -157,7 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2022-02-10
 
-[Compare with first commit](https://github.com/nsidnev/edgedb-elixir/compare/a9c18f910e36e728eb8d59e6e8e41721474f201c...v0.1.0)
+[Compare with first commit](https://github.com/edgedb/edgedb-elixir/compare/a9c18f910e36e728eb8d59e6e8e41721474f201c...v0.1.0)
 
 ### Added
 
