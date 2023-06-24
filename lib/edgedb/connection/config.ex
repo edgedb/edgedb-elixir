@@ -236,9 +236,7 @@ defmodule EdgeDB.Connection.Config do
         compound_params_count == 1 and not is_nil(opts[:dsn] || opts[:host] || opts[:port]) ->
           resolved_opts =
             if port = opts[:port] do
-              Keyword.put_new_lazy(resolved_opts, :port, fn ->
-                Validation.validate_port(port)
-              end)
+              Keyword.put_new(resolved_opts, :port, Validation.validate_port(port))
             else
               resolved_opts
             end
@@ -247,21 +245,7 @@ defmodule EdgeDB.Connection.Config do
             if dsn = opts[:dsn] do
               dsn
             else
-              host =
-                if host = opts[:host] do
-                  host =
-                    if String.contains?(host, ":") do
-                      "[#{host}]"
-                    else
-                      host
-                    end
-
-                  Validation.validate_host(host)
-                else
-                  ""
-                end
-
-              "edgedb://#{host}"
+              "edgedb://#{parse_host(opts[:host])}"
             end
 
           DSN.parse_dsn_into_opts(dsn, resolved_opts)
@@ -418,5 +402,20 @@ defmodule EdgeDB.Connection.Config do
 
       find_edgedb_project_dir(parent)
     end
+  end
+
+  defp parse_host(nil) do
+    ""
+  end
+
+  defp parse_host(host) do
+    host =
+      if String.contains?(host, ":") do
+        "[#{host}]"
+      else
+        host
+      end
+
+    Validation.validate_host(host)
   end
 end
