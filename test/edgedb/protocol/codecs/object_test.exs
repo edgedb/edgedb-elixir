@@ -43,7 +43,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
 
     test "allows usage of keywords as arguments", %{client: client} do
       assert set =
-               EdgeDB.query!(client, "select {<str>$arg1, <str>$arg2}", arg1: "arg1", arg2: "arg2")
+               EdgeDB.query!(client, "select {<str>$arg1, <str>$arg2}",
+                 arg1: "arg1",
+                 arg2: "arg2"
+               )
 
       assert Enum.to_list(set) == ["arg1", "arg2"]
     end
