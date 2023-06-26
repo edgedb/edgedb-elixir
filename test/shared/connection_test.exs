@@ -241,7 +241,7 @@ if File.exists?(testcases_file) do
 else
   require Logger
 
-  Logger.warn(
+  Logger.warning(
     "No EdgeDB shared testcases file for connection options was found, these tests will be skipped, " <>
       "to run shared tests clone project with submodules: " <>
       ~s("git clone --recursive <repository>") <> " or initialize submodule manually"

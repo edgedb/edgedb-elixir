@@ -19,17 +19,32 @@ jobs:
           - "ubuntu-22.04"
 
         otp-version:
-          - "24"
+          - "24.3"
+          - "26.0"
 
         elixir-version:
           - "1.12"
           - "1.13"
           - "1.14"
+          - "1.15"
 
         edgedb-version:
           - "1.0"
           - "2.0"
-          - "3.0-rc.5"
+          - "3.0"
+
+        exclude:
+          - elixir-version: "1.12"
+            otp-version: "26.0"
+
+          - elixir-version: "1.13"
+            otp-version: "26.0"
+
+          - elixir-version: "1.14"
+            otp-version: "24.3"
+
+          - elixir-version: "1.15"
+            otp-version: "24.3"
 
     runs-on: ${{ matrix.os-version }}
 

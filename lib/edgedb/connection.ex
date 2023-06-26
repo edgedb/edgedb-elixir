@@ -550,10 +550,10 @@ defmodule EdgeDB.Connection do
   end
 
   defp add_custom_edgedb_ssl_opts(socket_opts, connect_opts) do
-    socket_opts =
+    {socket_opts, self_signed?} =
       case connect_opts[:tls_ca] do
         nil ->
-          Keyword.put(socket_opts, :cacertfile, CAStore.file_path())
+          {Keyword.put(socket_opts, :cacertfile, CAStore.file_path()), false}
 
         pem_cert_data ->
           {:Certificate, der_cert_data, _cipher_info} =
@@ -567,7 +567,8 @@ defmodule EdgeDB.Connection do
                 false
             end)
 
-          Keyword.put(socket_opts, :cacerts, [der_cert_data])
+          {Keyword.put(socket_opts, :cacerts, [der_cert_data]),
+           :public_key.pkix_is_self_signed(der_cert_data)}
       end
 
     socket_opts =
@@ -581,7 +582,27 @@ defmodule EdgeDB.Connection do
           )
 
         :no_host_verification ->
-          socket_opts
+          verify_fn = fn
+            _cert, {:bad_cert, :selfsigned_peer}, us when self_signed? ->
+              {:valid, us}
+
+            _cert, {:bad_cert, :hostname_check_failed}, us ->
+              {:valid, us}
+
+            _cert, {:bad_cert, _reason} = reason, _us ->
+              {:fail, reason}
+
+            _cert, {:extension, _ext}, us ->
+              {:unknown, us}
+
+            _cert, :valid, us ->
+              {:valid, us}
+
+            _cert, :valid_peer, us ->
+              {:valid, us}
+          end
+
+          Keyword.put(socket_opts, :verify_fun, {verify_fn, []})
 
         :insecure ->
           Keyword.put(socket_opts, :verify, :verify_none)
@@ -1591,7 +1612,7 @@ defmodule EdgeDB.Connection do
           CodecStorage.add(storage, type_id, codec_mod.new())
 
         _other ->
-          Logger.warn(
+          Logger.warning(
             "skip registration of codec for unknown type " <>
               "with name #{inspect(codec_mod.name())}"
           )

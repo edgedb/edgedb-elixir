@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.6.0](https://github.com/edgedb/edgedb-elixir/compare/v0.6.0...HEAD)
 
+### Added
+
+- support for `Elixir v1.15` and `Erlang/OTP 26`.
+
 ## [0.6.0] - 2023-06-22
 
 [Compare with 0.5.1](https://github.com/edgedb/edgedb-elixir/compare/v0.5.1...v0.6.0)
