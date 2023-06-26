@@ -7,7 +7,7 @@ defmodule Tests.Connection.ConfigTest do
     test "returns additional options along with connection options" do
       options =
         Config.connect_opts(
-          dsn: "edgedb://edgedb:edgedb@localhost/5656/edgedb",
+          dsn: "edgedb://edgedb:edgedb@localhost:5656/edgedb",
           show_sensitive_data_on_connection_error: true
         )
 

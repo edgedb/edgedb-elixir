@@ -24,7 +24,7 @@ defmodule EdgeDB.Borrower do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  @spec borrow!(EdgeDB.client(), term(), (() -> any())) :: any() | no_return()
+  @spec borrow!(EdgeDB.client(), term(), (-> any())) :: any() | no_return()
   def borrow!(client, reason, callback) when reason in @reasons_to_borrow do
     case borrow(client, reason) do
       :ok ->

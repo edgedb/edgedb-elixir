@@ -182,6 +182,7 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb")
+
   ```
 
   Otherwise, if the first argument is a list, it will be used as is to connect.
@@ -189,6 +190,7 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, _client} = EdgeDB.start_link(instance: "edgedb_elixir")
+
   ```
   """
   def start_link(opts \\ [])
@@ -222,6 +224,7 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb", tls_security: :insecure)
+
   ```
   """
   @spec start_link(String.t(), list(start_option())) :: GenServer.on_start()
@@ -583,6 +586,7 @@ defmodule EdgeDB do
   ...(2)>  EdgeDB.transaction(client, fn tx_conn ->
   ...(2)>   EdgeDB.rollback(tx_conn, reason: :tx_rollback)
   ...(2)>  end)
+
   ```
   """
 
