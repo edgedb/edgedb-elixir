@@ -102,14 +102,17 @@ defmodule EdgeDB.Error do
   end
 
   for error_desc <- Parser.parse_errors() do
+    # create a module for error type with shorthand builder
+
+    # we generate some module code here, so it's safe to call String.to_atom/1
+    # or Module.concat/1
+
+    # credo:disable-for-lines:4 Credo.Check.Warning.UnsafeToAtom
     snake_cased_name =
       error_desc.name
       |> Macro.underscore()
       |> String.to_atom()
 
-    # create a module for error type with shorthand builder
-
-    # this is safe, since this is the compile time
     # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     error_mod_name = Module.concat([EdgeDB, error_desc.name])
 

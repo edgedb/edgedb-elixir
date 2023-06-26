@@ -57,16 +57,7 @@ defmodule EdgeDB.Connection.Config.DSN do
 
     query =
       if query do
-        query
-        |> URI.query_decoder()
-        |> Enum.reduce(%{}, fn {key, value}, acc ->
-          if acc[key] do
-            raise RuntimeError,
-              message: "invalid DSN or instance name: duplicate query parameter #{inspect(key)}"
-          else
-            Map.put(acc, key, value)
-          end
-        end)
+        parse_query(query)
       else
         %{}
       end
@@ -201,16 +192,11 @@ defmodule EdgeDB.Connection.Config.DSN do
             option_value
 
           :env ->
-            env_value = @system_module.get_env(option_value)
-
-            if is_nil(env_value) do
+            @system_module.get_env(option_value) ||
               raise RuntimeError,
                 message:
                   "invalid DSN or instance name: " <>
                     "#{option}_env environment variable #{inspect(option_value)} doesn't exist"
-            else
-              env_value
-            end
 
           :file ->
             @file_module.read!(option_value)
@@ -224,5 +210,18 @@ defmodule EdgeDB.Connection.Config.DSN do
 
     query = Map.drop(query, [option, "#{option}_env", "#{option}_file"])
     {value, query}
+  end
+
+  defp parse_query(query) do
+    query
+    |> URI.query_decoder()
+    |> Enum.reduce(%{}, fn {key, value}, acc ->
+      if acc[key] do
+        raise RuntimeError,
+          message: "invalid DSN or instance name: duplicate query parameter #{inspect(key)}"
+      else
+        Map.put(acc, key, value)
+      end
+    end)
   end
 end
