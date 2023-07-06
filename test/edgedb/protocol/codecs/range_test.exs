@@ -4,12 +4,66 @@ defmodule Tests.EdgeDB.Protocol.Codecs.RangeTest do
   skip_before(version: 2, scope: :module)
 
   @input_ranges %{
-    "range<int64>" => [
-      EdgeDB.Range.new(1, 2, inc_lower: true, inc_upper: false),
-      {EdgeDB.Range.new(1, 2, inc_lower: true, inc_upper: true),
-       EdgeDB.Range.new(1, 3, inc_lower: true, inc_upper: false)},
+    "range<int32>" => [
+      EdgeDB.Range.new(1, 2),
+      {EdgeDB.Range.new(1, 2, inc_upper: true), EdgeDB.Range.new(1, 3)},
       EdgeDB.Range.empty(),
-      {EdgeDB.Range.new(1, 1, inc_lower: true, inc_upper: false), EdgeDB.Range.empty()},
+      {EdgeDB.Range.new(1, 1), EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<int64>" => [
+      EdgeDB.Range.new(1, 2),
+      {EdgeDB.Range.new(1, 2, inc_upper: true), EdgeDB.Range.new(1, 3)},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(1, 1), EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<float32>" => [
+      EdgeDB.Range.new(1.5, 2.5),
+      {EdgeDB.Range.new(1.5, 2.5, inc_upper: true), EdgeDB.Range.new(1.5, 2.5, inc_upper: true)},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(1.5, 1.5), EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<float64>" => [
+      EdgeDB.Range.new(1.5, 2.5),
+      {EdgeDB.Range.new(1.5, 2.5, inc_upper: true), EdgeDB.Range.new(1.5, 2.5, inc_upper: true)},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(1.5, 1.5), EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<decimal>" => [
+      EdgeDB.Range.new(Decimal.new(1), Decimal.new(2)),
+      {EdgeDB.Range.new(Decimal.new(1), Decimal.new(2), inc_upper: true),
+       EdgeDB.Range.new(Decimal.new(1), Decimal.new(2), inc_upper: true)},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(Decimal.new(1), Decimal.new(1)), EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<datetime>" => [
+      EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-12-01 00:00:00Z]),
+      {EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-12-01 00:00:00Z], inc_upper: true),
+       EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-12-01 00:00:00Z], inc_upper: true)},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-07-01 00:00:00Z]),
+       EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<cal::local_datetime>" => [
+      EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-12-01 00:00:00Z]),
+      {EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-12-01 00:00:00Z], inc_upper: true),
+       EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-12-01 00:00:00Z], inc_upper: true)},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-07-01 00:00:00Z]),
+       EdgeDB.Range.empty()},
+      EdgeDB.Range.new(nil, nil)
+    ],
+    "range<cal::local_date>" => [
+      EdgeDB.Range.new(~D[2022-07-01], ~D[2022-12-01]),
+      {EdgeDB.Range.new(~D[2022-07-01], ~D[2022-12-01], inc_upper: true),
+       EdgeDB.Range.new(~D[2022-07-01], ~D[2022-12-02])},
+      EdgeDB.Range.empty(),
+      {EdgeDB.Range.new(~D[2022-07-01], ~D[2022-07-01]), EdgeDB.Range.empty()},
       EdgeDB.Range.new(nil, nil)
     ]
   }
@@ -73,10 +127,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.RangeTest do
             {value, value}
         end
 
-      test "encoding #{inspect(input)} as #{inspect(type)} with expecting #{inspect(output)} in the end",
+      test "encoding #{inspect(input)} as #{inspect(type)} with expecting #{inspect(output)} as the result",
            %{client: client} do
-        value = "value"
-        assert ^value = EdgeDB.query_single!(client, "select <short_str>$0", [value])
+        type = unquote(type)
+        input = unquote(Macro.escape(input))
+        output = unquote(Macro.escape(output))
+        assert ^output = EdgeDB.query_single!(client, "select <#{type}>$0", [input])
       end
     end
   end

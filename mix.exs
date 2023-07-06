@@ -2,7 +2,7 @@ defmodule EdgeDB.MixProject do
   use Mix.Project
 
   @app :edgedb
-  @version "0.6.0"
+  @version "0.6.1"
   @source_url "https://github.com/edgedb/edgedb-elixir"
   @description "EdgeDB client for Elixir"
 
