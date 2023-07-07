@@ -33,12 +33,17 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
     codec = CodecStorage.get(codec_storage, codec)
     flags = encode_range_flags(range)
 
-    data = [
-      Codec.encode(codec, range.lower, codec_storage),
-      Codec.encode(codec, range.upper, codec_storage)
-    ]
+    data =
+      Enum.reject(
+        [
+          <<flags::uint8()>>,
+          range.lower && Codec.encode(codec, range.lower, codec_storage),
+          range.upper && Codec.encode(codec, range.upper, codec_storage)
+        ],
+        &is_nil/1
+      )
 
-    [<<IO.iodata_length(data)::uint32(), flags::uint8()>> | data]
+    [<<IO.iodata_length(data)::uint32()>> | data]
   end
 
   @impl Codec
@@ -115,6 +120,9 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
 
         range.inc_lower ->
           Bitwise.bor(flags, @lb_inc)
+
+        true ->
+          flags
       end
 
     cond do
@@ -123,6 +131,9 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Range do
 
       range.inc_upper ->
         Bitwise.bor(flags, @ub_inc)
+
+      true ->
+        flags
     end
   end
 end

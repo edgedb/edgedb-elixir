@@ -5,14 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-
 ## Unreleased
 
-[Compare with 0.6.0](https://github.com/edgedb/edgedb-elixir/compare/v0.6.0...HEAD)
+[Compare with 0.6.1](https://github.com/edgedb/edgedb-elixir/compare/v0.6.1...HEAD)
+
+## [0.6.1] - 2023-07-07
+
+[Compare with 0.6.0](https://github.com/edgedb/edgedb-elixir/compare/v0.6.0...v0.6.1)
 
 ### Added
 
 - support for `Elixir v1.15` and `Erlang/OTP 26`.
+
+### Fixed
+
+- encoding of `t:EdgeDB.Range.t/0` values.
+- constructing `t:EdgeDB.Range.t/0` from `EdgeDB.Range.new/3` with `nil` as values.
+- examples in the documentation and the `Inspect` implementation of
+    `t:EdgeDB.DateDuration.t/0` and `t:EdgeDB.Range.t/0`.
 
 ## [0.6.0] - 2023-06-22
 

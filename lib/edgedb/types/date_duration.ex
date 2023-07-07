@@ -6,7 +6,7 @@ defmodule EdgeDB.DateDuration do
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> EdgeDB.query_required_single!(client, "select <cal::date_duration>'1 year 2 days'")
-  #EdgeDB.Duration<"P1Y20D">
+  #EdgeDB.DateDuration<"P1Y2D">
   ```
   """
 
@@ -33,12 +33,12 @@ defimpl Inspect, for: EdgeDB.DateDuration do
 
   @impl Inspect
   def inspect(%EdgeDB.DateDuration{days: 0, months: 0}, _opts) do
-    concat(["#EdgeDB.RelativeDuration<\"", "P0D", "\">"])
+    concat(["#EdgeDB.DateDuration<\"", "P0D", "\">"])
   end
 
   @impl Inspect
   def inspect(%EdgeDB.DateDuration{} = duration, _opts) do
-    concat(["#EdgeDB.RelativeDuration<\"", format_date("P", duration), "\">"])
+    concat(["#EdgeDB.DateDuration<\"", format_date("P", duration), "\">"])
   end
 
   defp format_date(formatted_repr, %EdgeDB.DateDuration{} = duration) do

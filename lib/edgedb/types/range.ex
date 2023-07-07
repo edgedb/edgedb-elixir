@@ -18,8 +18,20 @@ defmodule EdgeDB.Range do
     is_empty: false
   ]
 
+  @typedoc since: "0.6.1"
   @typedoc """
-  A value representing some interval of values.
+  A type that is acceptable by EdgeDB ranges.
+  """
+  @type value() ::
+          integer()
+          | float()
+          | Decimal.t()
+          | DateTime.t()
+          | NaiveDateTime.t()
+          | Date.t()
+
+  @typedoc """
+  A value of `t:value/0` type representing some interval of values.
 
   Fields:
 
@@ -38,9 +50,9 @@ defmodule EdgeDB.Range do
         }
 
   @typedoc """
-  A value representing some interval of values.
+  A value of `t:value/0` type representing some interval of values.
   """
-  @type t() :: t(term())
+  @type t() :: t(value())
 
   @typedoc """
   Options for `EdgeDB.Range.new/3` function.
@@ -66,7 +78,7 @@ defmodule EdgeDB.Range do
   """
   @spec empty() :: t()
   def empty do
-    new(nil, nil, empty: true, inc_lower: false)
+    new(nil, nil, empty: true)
   end
 
   @doc """
@@ -77,19 +89,38 @@ defmodule EdgeDB.Range do
   #EdgeDB.Range<[1.1, 3.3]>
   ```
   """
-  @spec new(value, value, list(creation_option())) :: t(value) when value: term()
+  @spec new(value | nil, value | nil, list(creation_option())) :: t(value) when value: value()
   def new(lower, upper, opts \\ []) do
+    empty? = Keyword.get(opts, :empty, false)
     inc_lower? = Keyword.get(opts, :inc_lower, true)
     inc_upper? = Keyword.get(opts, :inc_upper, false)
-    empty? = Keyword.get(opts, :empty, false)
 
-    %__MODULE__{
-      lower: lower,
-      upper: upper,
-      inc_lower: inc_lower?,
-      inc_upper: inc_upper?,
-      is_empty: empty?
-    }
+    cond do
+      empty? and (not is_nil(lower) or not is_nil(upper)) ->
+        raise EdgeDB.InvalidArgumentError.new(
+                "conflicting arguments to construct range: " <>
+                  ":empty is `true` while the specified bounds " <>
+                  "suggest otherwise"
+              )
+
+      empty? ->
+        %__MODULE__{
+          lower: nil,
+          upper: nil,
+          inc_lower: false,
+          inc_upper: false,
+          is_empty: true
+        }
+
+      true ->
+        %__MODULE__{
+          lower: lower,
+          upper: upper,
+          inc_lower: not is_nil(lower) and inc_lower?,
+          inc_upper: not is_nil(upper) and inc_upper?,
+          is_empty: false
+        }
+    end
   end
 end
 
@@ -107,7 +138,7 @@ defimpl Inspect, for: EdgeDB.Range do
       "#EdgeDB.Range<",
       if(range.inc_lower, do: "[", else: "("),
       if(range.lower, do: Inspect.inspect(range.lower, opts), else: empty()),
-      ",",
+      ", ",
       if(range.upper, do: Inspect.inspect(range.upper, opts), else: empty()),
       if(range.inc_upper, do: "]", else: ")"),
       ">"

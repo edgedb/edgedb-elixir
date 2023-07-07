@@ -19,6 +19,12 @@ defmodule Tests.DocsTest do
   doctest EdgeDB.RelativeDuration
   doctest EdgeDB.Set
 
+  skip_before(version: 2)
+  doctest EdgeDB.DateDuration
+
+  skip_before(version: 2)
+  doctest EdgeDB.Range
+
   defp drop_tickets(client) do
     EdgeDB.query!(client, "delete Ticket")
 
