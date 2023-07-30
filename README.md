@@ -1,6 +1,6 @@
 # Elixir client for EdgeDB
 
-Documentation: https://hexdocs.pm/edgedb
+Client documentation is available on [edgedb.com](https://www.edgedb.com/docs/clients/elixir) and on [hex.pm](https://hexdocs.pm/edgedb).
 
 How to use:
 

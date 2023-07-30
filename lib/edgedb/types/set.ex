@@ -8,13 +8,13 @@ defmodule EdgeDB.Set do
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Set{} =
-  iex(2)>  EdgeDB.query!(client, "
+  iex(2)>  EdgeDB.query!(client, "\"\"
   ...(2)>   select schema::ObjectType{
   ...(2)>     name
   ...(2)>   }
   ...(2)>   filter .name IN {'std::BaseObject', 'std::Object', 'std::FreeObject'}
   ...(2)>   order by .name
-  ...(2)>  ")
+  ...(2)>  \"\"")
   #EdgeDB.Set<{#EdgeDB.Object<name := "std::BaseObject">, #EdgeDB.Object<name := "std::FreeObject">, #EdgeDB.Object<name := "std::Object">}>
   ```
   """

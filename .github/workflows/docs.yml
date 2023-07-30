@@ -1,0 +1,58 @@
+name: EdgeDB docs
+
+on:
+  push:
+    branches:
+      - "master"
+
+  pull_request:
+    branches:
+      - "*"
+
+env:
+  MIX_ENV: ci
+
+jobs:
+  styles:
+    name: Check EdgeDB docs
+
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "26.0"
+          elixir-version: "1.15"
+
+      - uses: r-lib/actions/setup-pandoc@v2
+        with:
+          pandoc-version: '3.1.6'
+
+      - name: Set up cache
+        uses: actions/cache@v3.3.1
+        id: cache
+        with:
+          path: |
+            deps
+            _build
+            priv/plts
+          key: docs-${{ runner.os }}-${{ hashFiles('mix.lock') }}
+
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: mix deps.get
+
+      - name: Generate EdgeDB docs
+        run: mix edgedb.docs
+
+      - name: Check EdgeDB docs
+        run: |
+          if ! git diff --quiet; then
+            echo "documentation is out of date, run the following command to update the EdgeDB documentation:"
+            echo "mix edgedb.docs"
+            exit 1
+          fi

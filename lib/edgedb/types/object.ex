@@ -7,13 +7,13 @@ defmodule EdgeDB.Object do
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
-  iex(2)>  EdgeDB.query_required_single!(client, "
+  iex(2)>  EdgeDB.query_required_single!(client, "\"\"
   ...(2)>   select schema::ObjectType{
   ...(2)>     name
   ...(2)>   }
   ...(2)>   filter .name = 'std::Object'
   ...(2)>   limit 1
-  ...(2)>  ")
+  ...(2)>  \"\"")
   #EdgeDB.Object<name := "std::Object">
   iex(3)> object[:name]
   "std::Object"
@@ -31,7 +31,7 @@ defmodule EdgeDB.Object do
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
-  iex(2)>  EdgeDB.query_required_single!(client, "
+  iex(2)>  EdgeDB.query_required_single!(client, "\"\"
   ...(2)>   select schema::Property {
   ...(2)>       name,
   ...(2)>       annotations: {
@@ -41,7 +41,7 @@ defmodule EdgeDB.Object do
   ...(2)>   }
   ...(2)>   filter .name = 'listen_port' and .source.name = 'cfg::Config'
   ...(2)>   limit 1
-  ...(2)>  ")
+  ...(2)>  \"\"")
   #EdgeDB.Object<name := "listen_port", annotations := #EdgeDB.Set<{#EdgeDB.Object<name := "cfg::system", @value := "true">}>>
   iex(3)> annotations = object[:annotations]
   #EdgeDB.Set<{#EdgeDB.Object<name := "cfg::system", @value := "true">}>
@@ -149,7 +149,7 @@ defmodule EdgeDB.Object do
   @doc """
   Get object fields names (properties, links and link propries) as list of strings.
 
-  See `t:fields_option/0` for supported options.
+  See `t:EdgeDB.Object.fields_option/0` for supported options.
   """
   @spec fields(object(), list(fields_option())) :: list(String.t())
   def fields(%__MODULE__{} = object, opts \\ []) do
@@ -185,7 +185,7 @@ defmodule EdgeDB.Object do
   @doc """
   Get object properties names as list.
 
-  See `t:properties_option/0` for supported options.
+  See `t:EdgeDB.Object.properties_option/0` for supported options.
   """
   @spec properties(object(), list(properties_option())) :: list(String.t())
   def properties(%__MODULE__{} = object, opts \\ []) do
@@ -217,7 +217,7 @@ defmodule EdgeDB.Object do
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> object =
-  iex(2)>  EdgeDB.query_required_single!(client, "
+  iex(2)>  EdgeDB.query_required_single!(client, "\"\"
   ...(2)>   select schema::Property {
   ...(2)>       name,
   ...(2)>       annotations: {
@@ -227,7 +227,7 @@ defmodule EdgeDB.Object do
   ...(2)>   }
   ...(2)>   filter .name = 'listen_port' and .source.name = 'cfg::Config'
   ...(2)>   limit 1
-  ...(2)>  ")
+  ...(2)>  \"\"")
   iex(3)> EdgeDB.Object.to_map(object)
   %{"name" => "listen_port", "annotations" => [%{"name" => "cfg::system", "@value" => "true"}]}
   ```

@@ -18,16 +18,16 @@ To implement custom codec it will be required to implement `EdgeDB.Protocol.Cust
 
 As an example, let's create a custom codec for a scalar that extends the standard `std::json` type.
 
-```edgeql
+```sdl
 module default {
     scalar type JSONPayload extending json;
 
     type User {
-        required property name -> str {
+        required name: str {
             constraint exclusive;
         };
 
-        required property payload -> JSONPayload;
+        required payload: JSONPayload;
     }
 };
 ```
@@ -108,9 +108,9 @@ Now let's test this codec:
 
 ```elixir
 iex(1)> {:ok, client} = EdgeDB.start_link(codecs: [MyApp.EdgeDB.Codecs.JSONPayload])
-iex(1)> payload = %MyApp.Users.Payload{public_id: 1, first_name: "Harry", last_name: "Potter"}
-iex(2)> EdgeDB.query!(client, "insert User { name := <str>$username, payload := <JSONPayload>$payload }", username: "user", payload: payload)
-iex(3) EdgeDB.Object{} = EdgeDB.query_required_single!(client, "select User {name, payload} filter .name = 'user' limit 1")
+iex(2)> payload = %MyApp.Users.Payload{public_id: 1, first_name: "Harry", last_name: "Potter"}
+iex(3)> EdgeDB.query!(client, "insert User { name := <str>$username, payload := <JSONPayload>$payload }", username: "user", payload: payload)
+iex(4) EdgeDB.Object{} = EdgeDB.query_required_single!(client, "select User {name, payload} filter .name = 'user' limit 1")
 #EdgeDB.Object<name := "user", payload := %MyApp.Users.Payload{
   first_name: "Harry",
   last_name: "Potter",
