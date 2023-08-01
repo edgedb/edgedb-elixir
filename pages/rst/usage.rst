@@ -4,7 +4,7 @@ Usage
 =====
 
 The basic user API for ``edgedb-elixir`` is provided by the ``EdgeDB`` module and in most cases you will use only it. The exception is when you
-want to `define custom codecs`_.
+want to define custom codecs. Checkout the guide on `hex.pm`_ or on `edgedb.com`_ for more information.
 
 ``EdgeDB`` provides several functions for querying data from the database, which are named in ``EdgeDB.query*/4`` format. Transactions are
 supported with ``EdgeDB.transaction/3`` function.
@@ -236,6 +236,7 @@ You can also check out an example application using this client to see how to wo
 
 https://github.com/nsidnev/edgebeats
 
-.. _define custom codecs: pages/md/custom-codecs.md
+.. _hex.pm: https://hexdocs.pm/edgedb/custom-codecs.html
+.. _edgedb.com: https://www.edgedb.com/docs/clients/elixir/custom-codecs
 .. _edgedb projects: https://www.edgedb.com/docs/cli/edgedb_project/index#edgedb-project
 .. _the relevant documentation: https://www.edgedb.com/docs/reference/edgeql/cardinality#cardinality

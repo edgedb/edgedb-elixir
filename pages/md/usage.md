@@ -1,7 +1,9 @@
 # Usage
 
 The basic user API for `edgedb-elixir` is provided by the `EdgeDB` module and in most cases you will use only it.
-  The exception is when you want to [define custom codecs](pages/md/custom-codecs.md).
+  The exception is when you want to define custom codecs. Checkout the guide on
+  [hex.pm](https://hexdocs.pm/edgedb/custom-codecs.html) or on
+  [edgedb.com](https://www.edgedb.com/docs/clients/elixir/custom-codecs) for more information.
 
 `EdgeDB` provides several functions for querying data from the database, which are named in `EdgeDB.query*/4` format.
   Transactions are supported with `EdgeDB.transaction/3` function.
