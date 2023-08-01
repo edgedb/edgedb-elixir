@@ -9,13 +9,13 @@ defmodule EdgeDB do
 
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> EdgeDB.query!(client, "
+  iex(2)> EdgeDB.query!(client, "\"\"
   ...(2)>   select Person{
   ...(2)>     first_name,
   ...(2)>     middle_name,
   ...(2)>     last_name
   ...(2)>   } filter .last_name = <str>$last_name;
-  ...(2)> ", last_name: "Radcliffe")
+  ...(2)> \"\"", last_name: "Radcliffe")
   #EdgeDB.Set<{#EdgeDB.Object<first_name := "Daniel", middle_name := "Jacob", last_name := "Radcliffe">}>
   ```
   """
@@ -35,7 +35,7 @@ defmodule EdgeDB do
   @typedoc """
   Security modes for TLS connection to EdgeDB server.
 
-  For more information, see [the official EdgeDB documentation on connection parameters](https://www.edgedb.com/docs/reference/connection#ref-reference-connection-granular).
+  For more information, see [the EdgeDB documentation on connection parameters](https://www.edgedb.com/docs/reference/connection#ref-reference-connection-granular).
 
   Supported options:
 
@@ -52,7 +52,7 @@ defmodule EdgeDB do
   Parameters for connecting to an EdgeDB instance and configuring the connection itself.
 
   EdgeDB clients allow a very flexible way to define how to connect to an instance.
-    For more information, see [the official EdgeDB documentation on connection parameters](https://www.edgedb.com/docs/reference/connection#ref-reference-connection-granular).
+    For more information, see [the EdgeDB documentation on connection parameters](https://www.edgedb.com/docs/reference/connection#ref-reference-connection-granular).
 
   Supported options:
 
@@ -67,16 +67,16 @@ defmodule EdgeDB do
     * `:secret_key` - the secret key to be used for authentication.
     * `:tls_ca` - TLS certificate to be used when connecting to the instance.
     * `:tls_ca_path` - the path to the TLS certificate to be used when connecting to the instance.
-    * `:tls_security` - security mode for the TLS connection. See `t:tls_security/0`.
+    * `:tls_security` - security mode for the TLS connection. See `t:EdgeDB.tls_security/0`.
     * `:timeout` - timeout for TCP operations with the database, such as connecting to it, sending or receiving data.
-    * `:command_timeout` - *not in use right now and added for compatibility with the official clients*.
-    * `:server_settings` - *not in use right now and added for compatibility with the official clients*.
+    * `:command_timeout` - *not in use right now and added for compatibility with other clients*.
+    * `:server_settings` - *not in use right now and added for compatibility with other clients*.
     * `:tcp` - options for the TCP connection.
     * `:ssl` - options for TLS connection.
     * `:transaction` - options for EdgeDB transactions, which correspond to
       [the EdgeQL transaction statement](https://www.edgedb.com/docs/reference/edgeql/tx_start#statement::start-transaction).
       See `t:EdgeDB.Client.transaction_option/0`.
-    * `:retry` - options to retry transactions in case of errors. See `t:retry_option/0`.
+    * `:retry` - options to retry transactions in case of errors. See `t:EdgeDB.Client.retry_option/0`.
     * `:codecs` - list of custom codecs for EdgeDB scalars.
     * `:connection` - module that implements the `DBConnection` behavior for EdgeDB.
       For tests, it's possible to use `EdgeDB.Sandbox` to support automatic rollback after tests are done.
@@ -110,7 +110,7 @@ defmodule EdgeDB do
   @typedoc """
   Options for `EdgeDB.start_link/1`.
 
-  See `t:connect_option/0` and `t:DBConnection.start_option/0`.
+  See `t:EdgeDB.connect_option/0` and `t:DBConnection.start_option/0`.
   """
   @type start_option() ::
           connect_option()
@@ -139,7 +139,7 @@ defmodule EdgeDB do
     * `:cardinality` - expected number of items in set.
     * `:output_format` - preferred format of query result.
     * `:retry` - options for read-only queries retries.
-    * other - check `t:DBConnection.start_option/0`.
+    * other - check `t:DBConnection.option/0`.
   """
   @type query_option() ::
           {:cardinality, Enums.cardinality()}
@@ -151,7 +151,8 @@ defmodule EdgeDB do
   @typedoc """
   Options for `EdgeDB.transaction/3`.
 
-  See `t:edgedb_transaction_option/0` and `t:DBConnection.start_option/0`.
+  See `t:EdgeDB.Client.transaction_option/0`, `t:EdgeDB.Client.retry_option/0`
+    and `t:DBConnection.option/0`.
   """
   @type transaction_option() ::
           EdgeDB.Client.transaction_option()
@@ -177,8 +178,8 @@ defmodule EdgeDB do
   @doc """
   Creates a pool of EdgeDB connections linked to the current process.
 
-  If the first argument is a string, it will be assumed to be the DSN and passed as
-    `[dsn: dsn]` keyword list to connect.
+  If the first argument is a string, it will be assumed to be the DSN or instance name
+    and passed as `[dsn: dsn]` keyword list to connect.
 
   ```elixir
   iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb")
@@ -186,7 +187,7 @@ defmodule EdgeDB do
   ```
 
   Otherwise, if the first argument is a list, it will be used as is to connect.
-    See `t:start_option/0` for supported connection options.
+    See `t:EdgeDB.start_option/0` for supported connection options.
 
   ```elixir
   iex(1)> {:ok, _client} = EdgeDB.start_link(instance: "edgedb_elixir")
@@ -220,7 +221,7 @@ defmodule EdgeDB do
 
   The first argument is the string which will be assumed as the DSN and passed as
     `[dsn: dsn]` keyword list along with other options to connect.
-    See `t:start_option/0` for supported connection options.
+    See `t:EdgeDB.start_option/0` for supported connection options.
 
   ```elixir
   iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb", tls_security: :insecure)
@@ -243,7 +244,7 @@ defmodule EdgeDB do
   @doc """
   Creates a child specification for the supervisor to start the EdgeDB pool.
 
-  See `t:start_option/0` for supported connection options.
+  See `t:EdgeDB.start_option/0` for supported connection options.
   """
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts \\ []) do
@@ -300,7 +301,7 @@ defmodule EdgeDB do
     then the client will try to repeat the query automatically (as long as the query is not executed in a transaction,
     because then [retrying transactions](`EdgeDB.transaction/3`) are used).
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query(client(), String.t(), list() | Keyword.t(), list(query_option())) ::
           {:ok, result()}
@@ -325,7 +326,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query!(client(), String.t(), list(), list(query_option())) :: result()
   def query!(client, statement, params \\ [], opts \\ []) do
@@ -340,7 +341,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_single(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
@@ -356,7 +357,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_single!(client(), String.t(), list(), list(query_option())) :: result()
   def query_single!(client, statement, params \\ [], opts \\ []) do
@@ -371,7 +372,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_required_single(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
@@ -387,7 +388,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_required_single!(client(), String.t(), list(), list(query_option())) :: result()
   def query_required_single!(client, statement, params \\ [], opts \\ []) do
@@ -402,7 +403,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_json(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
@@ -418,7 +419,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_json!(client(), String.t(), list(), list(query_option())) :: result()
   def query_json!(client, statement, params \\ [], opts \\ []) do
@@ -433,7 +434,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_single_json(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
@@ -449,7 +450,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_single_json!(client(), String.t(), list(), list(query_option())) :: result()
   def query_single_json!(client, statement, params \\ [], opts \\ []) do
@@ -464,7 +465,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_required_single_json(client(), String.t(), list(), list(query_option())) ::
           {:ok, result()}
@@ -480,7 +481,7 @@ defmodule EdgeDB do
 
   For the general usage, see `EdgeDB.query/4`.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec query_required_single_json!(client(), String.t(), list(), list(query_option())) ::
           result()
@@ -493,7 +494,7 @@ defmodule EdgeDB do
   @doc """
   Execute an EdgeQL command or commands on the client without returning anything.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec execute(client(), String.t(), list(), list(query_option())) ::
           :ok | {:error, Exception.t()}
@@ -514,7 +515,7 @@ defmodule EdgeDB do
     anything. If an error occurs while executing the query,
     it will be raised as an `EdgeDB.Error` exception.
 
-  See `t:query_option/0` for supported options.
+  See `t:EdgeDB.query_option/0` for supported options.
   """
   @spec execute!(client(), String.t(), list(), list(query_option())) :: :ok
   def execute!(client, statement, params \\ [], opts \\ []) do
@@ -547,7 +548,7 @@ defmodule EdgeDB do
   #EdgeDB.Set<{#EdgeDB.Object<>}>
   ```
 
-  See `t:transaction_option/0` for supported options.
+  See `t:EdgeDB.transaction_option/0` for supported options.
   """
   @spec transaction(client(), (EdgeDB.Client.t() -> result()), list(transaction_option())) ::
           {:ok, result()} | {:error, term()}
@@ -578,7 +579,7 @@ defmodule EdgeDB do
   @doc """
   Rollback an open transaction.
 
-  See `t:rollback_option/0` for supported options.
+  See `t:EdgeDB.rollback_option/0` for supported options.
 
   ```elixir
   iex(1)> {:ok, client} = EdgeDB.start_link()
@@ -615,7 +616,7 @@ defmodule EdgeDB do
   @doc """
   Configure the client so that futher transactions are executed with custom transaction options.
 
-  See `t:edgedb_transaction_option/0` for supported options.
+  See `t:EdgeDB.transaction_option/0` for supported options.
   """
   @spec with_transaction_options(client(), list(EdgeDB.Client.transaction_option())) :: client()
   def with_transaction_options(client, opts) do
@@ -627,7 +628,7 @@ defmodule EdgeDB do
   @doc """
   Configure the client so that futher transactions retries are executed with custom retries options.
 
-  See `t:retry_option/0` for supported options.
+  See `t:EdgeDB.Client.retry_option/0` for supported options.
   """
   @spec with_retry_options(client(), list(EdgeDB.Client.retry_option())) :: client()
   def with_retry_options(client, opts) do

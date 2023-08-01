@@ -1,41 +1,41 @@
 # Usage
 
 The basic user API for `edgedb-elixir` is provided by the `EdgeDB` module and in most cases you will use only it.
-  The exception is when you want to [define custom codecs](pages/custom-codecs.md).
+  The exception is when you want to [define custom codecs](pages/md/custom-codecs.md).
 
 `EdgeDB` provides several functions for querying data from the database, which are named in `EdgeDB.query*/4` format.
   Transactions are supported with `EdgeDB.transaction/3` function.
 
 ## Establishing a connection
 
-`edgedb-elixir`, like official clients, allows a very flexible way to define how to connect to an instance.
+`edgedb-elixir`, like other EdgeDB clients, allows a very flexible way to define how to connect to an instance.
   For more information, see `t:EdgeDB.connect_option/0`.
 
 The examples on this page will involve connecting to an instance using
-  [`edgedb projects`](https://www.edgedb.com/docs/cli/edgedb_project/index#edgedb-project).
+  [edgedb projects](https://www.edgedb.com/docs/cli/edgedb_project/index#edgedb-project).
   Run `edgedb project init` to initialize the project:
 
 ```bash
-edgedb project init
+$ edgedb project init
 ```
 
 ### Database schema
 
 Ensure that your database has the following schema:
 
-```edgeql
+```sdl
 module default {
     type User {
-        required property name -> str {
+        required name: str {
             constraint exclusive;
         };
     }
 
     type Post {
-        required property body -> str;
+        required body: str;
 
-        required link author -> User;
-        multi link comments -> Post;
+        required author: User;
+        multi comments: Post;
     }
 };
 ```
@@ -44,7 +44,7 @@ Let's fill the database with some data, which will be used in further examples:
 
 ```elixir
 iex(1)> {:ok, client} = EdgeDB.start_link()
-iex(2)> EdgeDB.query!(client, "
+iex(2)> EdgeDB.query!(client, """
 ...(2)> WITH
 ...(2)>     p1 := (
 ...(2)>         insert Post {
@@ -85,14 +85,14 @@ iex(2)> EdgeDB.query!(client, "
 ...(2)>     ),
 ...(2)>     comments := {p1, p2, p3}
 ...(2)> }
-...(2)> ")
+...(2)> """)
 ```
 
 ## Querying data from EdgeDB
 
 Depending on the expected results of the query, you can use different functions to retrieve data from the database.
   This is called the cardinality of the result and is better explained in
-  [the official documentation](https://www.edgedb.com/docs/reference/edgeql/cardinality#cardinality).
+  [the relevant documentation](https://www.edgedb.com/docs/reference/edgeql/cardinality#cardinality).
 
 ### Querying a set of elements
 
@@ -190,6 +190,7 @@ Transactions are retriable. This means that if certain types of errors occur whe
   the transaction block can be automatically retried.
 
 The following types of errors can be retried retried:
+
   * `TransactionConflictError` and its inheritors.
   * Network errors (e.g. a socket was closed).
 

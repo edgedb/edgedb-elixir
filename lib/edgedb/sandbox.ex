@@ -7,7 +7,7 @@ defmodule EdgeDB.Sandbox do
     the `start transaction` statement. And then further calls to `EdgeDB.transaction/3` will result
     in executing `declare savepoint` statement instead of `start transaction`.
 
-  To use this module in tests, change the configuration of the `:edgedb` application in the `config/tests.exs`:
+  To use this module in tests, change the configuration of the `:edgedb` application in the `config/test.exs`:
 
   ```elixir
   config :edgedb,

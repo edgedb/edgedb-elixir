@@ -49,12 +49,15 @@ defmodule EdgeDB.MixProject do
       {:castore, "~> 0.1.0 or ~> 1.0"},
       {:jason, "~> 1.2", optional: true},
       {:timex, "~> 3.7", optional: true},
-      # dev/test
+      # test
+      {:excoveralls, "~> 0.14", only: [:test, :ci]},
+      {:mox, "~> 1.0", only: [:test, :ci]},
+      # ci
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:credo, "~> 1.2", only: [:dev, :ci], runtime: false},
+      # docs
       {:ex_doc, "~> 0.28", only: [:dev, :ci], runtime: false},
-      {:excoveralls, "~> 0.14", only: [:test, :ci]},
-      {:mox, "~> 1.0", only: [:test, :ci]}
+      {:panpipe, "~> 0.2", [only: [:ci]]}
     ]
   end
 
@@ -91,6 +94,7 @@ defmodule EdgeDB.MixProject do
       dialyzer: :ci,
       credo: :ci,
       docs: :ci,
+      "edgedb.docs": :ci,
       coveralls: :test,
       "coveralls.detail": :test,
       "coveralls.html": :test
@@ -126,10 +130,10 @@ defmodule EdgeDB.MixProject do
       source_ref: "v#{@version}",
       main: "main",
       extras: [
-        "pages/main.md",
-        "pages/usage.md",
-        "pages/datatypes.md",
-        "pages/custom-codecs.md",
+        "pages/md/main.md",
+        "pages/md/usage.md",
+        "pages/md/datatypes.md",
+        "pages/md/custom-codecs.md",
         "CHANGELOG.md"
       ],
       skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
@@ -162,6 +166,9 @@ defmodule EdgeDB.MixProject do
       "edgedb.roles.reset": [
         "cmd priv/scripts/drop-roles.sh",
         "cmd priv/scripts/setup-roles.sh"
+      ],
+      "edgedb.docs": [
+        "run priv/scripts/edgedb_docs.exs"
       ]
     ]
   end

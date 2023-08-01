@@ -4,7 +4,7 @@ defmodule EdgeDB.Error do
 
   Most of the functions in the `EdgeDB.Error` module are a shorthands for simplifying `EdgeDB.Error` exception
     constructing. These functions are generated at compile time from a copy of the
-    [`errors.txt`](https://github.com/edgedb/edgedb/blob/a529aae753319f26cce942ae4fc7512dd0c5a37b/edb/api/errors.txt) file.
+    [errors.txt](https://github.com/edgedb/edgedb/blob/a529aae753319f26cce942ae4fc7512dd0c5a37b/edb/api/errors.txt) file.
 
   The useful ones are:
 

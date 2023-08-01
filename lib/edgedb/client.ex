@@ -48,6 +48,7 @@ defmodule EdgeDB.Client do
     they correspond to [the EdgeQL transaction statement](https://www.edgedb.com/docs/reference/edgeql/tx_start#statement::start-transaction).
 
   Supported options:
+
     * `:isolation` - If `:serializable` is used, the built statement will use the `isolation serializable` mode.
       Currently only `:serializable` is supported by this client and EdgeDB.
     * `:readonly` - if set to `true` then the built statement will use `read only` mode,

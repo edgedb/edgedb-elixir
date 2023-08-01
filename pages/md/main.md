@@ -1,10 +1,12 @@
 # EdgeDB client for Elixir
 
-`edgedb-elixir` is the [EdgeDB](https://edgedb.com) client for Elixir.
+`edgedb-elixir` is the [EdgeDB](https://edgedb.com) client for Elixir. The documentation for client
+  is available on [edgedb.com](https://www.edgedb.com/docs/clients/elixir) and on
+  [hex.pm](https://hexdocs.pm/edgedb).
 
 ## Installation
 
-`edgedb-elixir` is available  in [`hex.pm`](https://hex.pm/packages/edgedb) and can be installed via `mix`.
+`edgedb-elixir` is available on [hex.pm](https://hex.pm/packages/edgedb) and can be installed via `mix`.
   Just add `:edgedb` to your dependencies in the `mix.exs` file:
 
 ```elixir
@@ -30,7 +32,7 @@ config :edgedb,
 The JSON library is injected in the compiled `EdgeDB` code, so be sure to recompile `EdgeDB` if you change it:
 
 ```bash
-mix deps.clean edgedb --build
+$ mix deps.clean edgedb --build
 ```
 
 ## Timex support
@@ -49,7 +51,7 @@ config :edgedb,
   so be sure to recompile `EdgeDB` if you change this behavior:
 
 ```bash
-mix deps.clean edgedb --build
+$ mix deps.clean edgedb --build
 ```
 
 ## License

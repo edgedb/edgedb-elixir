@@ -2,14 +2,16 @@ defprotocol EdgeDB.Protocol.Codec do
   @moduledoc since: "0.2.0"
   @moduledoc """
   A codec knows how to work with the internal binary data from EdgeDB.
-  The binary protocol specification for the codecs can be found on
-    [the official EdgeDB site](https://www.edgedb.com/docs/reference/protocol).
+  The binary protocol specification for the codecs can be found in
+    [the relevant part of the EdgeDB documentation](https://www.edgedb.com/docs/reference/protocol).
   Useful links for codec developers:
+
     * [EdgeDB datatypes used in data descriptions](https://www.edgedb.com/docs/reference/protocol/index#conventions-and-data-types).
     * [EdgeDB data wire formats](https://www.edgedb.com/docs/reference/protocol/dataformats).
     * [Built-in EdgeDB codec implementations](https://github.com/edgedb/edgedb-elixir/tree/master/lib/edgedb/protocol/codecs).
     * [Custom codecs implementations](https://github.com/edgedb/edgedb-elixir/tree/master/test/edgedb/protocol/codecs/custom).
-    * [Guide to developing custom codecs](pages/custom-codecs.md).
+    * Guide to developing custom codecs on [hex.pm](https://hexdocs.pm/edgedb/custom-codecs.html)
+        or on [edgedb.com](https://www.edgedb.com/docs/clients/elixir/custom-codecs).
   """
 
   alias EdgeDB.Protocol.CodecStorage

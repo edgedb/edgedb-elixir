@@ -31,7 +31,7 @@ defmodule EdgeDB.Range do
           | Date.t()
 
   @typedoc """
-  A value of `t:value/0` type representing some interval of values.
+  A value of `t:EdgeDB.Range.value/0` type representing some interval of values.
 
   Fields:
 
@@ -50,7 +50,7 @@ defmodule EdgeDB.Range do
         }
 
   @typedoc """
-  A value of `t:value/0` type representing some interval of values.
+  A value of `t:EdgeDB.Range.value/0` type representing some interval of values.
   """
   @type t() :: t(value())
 

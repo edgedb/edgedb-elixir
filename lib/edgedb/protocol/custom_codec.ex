@@ -2,7 +2,9 @@ defmodule EdgeDB.Protocol.CustomCodec do
   @moduledoc since: "0.2.0"
   @moduledoc """
   Behaviour for custom scalar codecs.
-  See [custom codecs development guide](pages/custom-codecs.md) for more information.
+
+  See custom codecs development guide on [hex.pm](https://hexdocs.pm/edgedb/custom-codecs.html)
+    or on [edgedb.com](https://www.edgedb.com/docs/clients/elixir/custom-codecs) for more information.
   """
 
   alias EdgeDB.Protocol.Codec
