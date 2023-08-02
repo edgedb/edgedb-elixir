@@ -7,7 +7,7 @@ defmodule EdgeDB do
 
   A simple example of how to use it:
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> EdgeDB.query!(client, "\"\"
   ...(2)>   select Person{
@@ -181,7 +181,7 @@ defmodule EdgeDB do
   If the first argument is a string, it will be assumed to be the DSN or instance name
     and passed as `[dsn: dsn]` keyword list to connect.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb")
 
   ```
@@ -189,7 +189,7 @@ defmodule EdgeDB do
   Otherwise, if the first argument is a list, it will be used as is to connect.
     See `t:EdgeDB.start_option/0` for supported connection options.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, _client} = EdgeDB.start_link(instance: "edgedb_elixir")
 
   ```
@@ -223,7 +223,7 @@ defmodule EdgeDB do
     `[dsn: dsn]` keyword list along with other options to connect.
     See `t:EdgeDB.start_option/0` for supported connection options.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb", tls_security: :insecure)
 
   ```
@@ -260,7 +260,7 @@ defmodule EdgeDB do
   Execute the query on the client and return the results as a `{:ok, set}` tuple
     if successful, where `set` is `EdgeDB.Set`.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select 42")
   iex(3)> set
@@ -270,7 +270,7 @@ defmodule EdgeDB do
   If an error occurs, it will be returned as a `{:error, exception}` tuple
     where `exception` is `EdgeDB.Error`.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(client, "select UndefinedType")
   iex(2)> raise error
@@ -280,14 +280,14 @@ defmodule EdgeDB do
   If a query has arguments, they can be passed as a list for a query with positional arguments
     or as a list of keywords for a query with named arguments.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$0", [42])
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$arg", arg: 42)
   iex(3)> set
@@ -538,7 +538,7 @@ defmodule EdgeDB do
 
   `EdgeDB.transaction/3` calls **cannot** be nested more than once.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, tickets} = EdgeDB.transaction(client, fn client ->
   ...(2)>  EdgeDB.query!(client, "insert Ticket{ number := 2}")
@@ -581,7 +581,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.rollback_option/0` for supported options.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:error, :tx_rollback} =
   ...(2)>  EdgeDB.transaction(client, fn tx_conn ->

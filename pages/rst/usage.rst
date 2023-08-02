@@ -45,7 +45,7 @@ Ensure that your database has the following schema:
 
 Let’s fill the database with some data, which will be used in further examples:
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> EdgeDB.query!(client, """
@@ -107,7 +107,7 @@ between the two functions is that ``EdgeDB.query/4`` will return an ``:ok`` tupl
 
 Let’s query all existing posts with their bodies:
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:ok, posts} = EdgeDB.query(client, "select Post { body }")
@@ -118,7 +118,7 @@ Let’s query all existing posts with their bodies:
 
 We can iterate over ``EdgeDB.Set`` and inspect each object separately:
 
-.. code:: elixir
+.. code:: iex
 
    iex(3)> Enum.each(posts, fn %EdgeDB.Object{} = post ->
    ...(3)>   IO.inspect(post[:body], label: "post (#{inspect(post.id)})")
@@ -137,7 +137,7 @@ This function will automatically unpack the underlying ``EdgeDB.Set`` and return
 
 Let’s query a post with a link to the Elixir client for EdgeDB:
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Object{} = post = EdgeDB.query_single!(client, "select Post filter contains(.body, 'https://hex.pm/packages/edgedb') limit 1")
@@ -146,7 +146,7 @@ Let’s query a post with a link to the Elixir client for EdgeDB:
 
 If we try to select a ``Post`` that does not exist, ``nil`` will be returned:
 
-.. code:: elixir
+.. code:: iex
 
    iex(4)> EdgeDB.query_single!(client, "select Post filter .body = 'lol' limit 1")
    nil
@@ -157,7 +157,7 @@ Querying a required single element
 In case we want to ensure that the requested element must exist, we can use the functions ``EdgeDB.query_required_single/4`` and
 ``EdgeDB.query_required_single!/4``. Instead of returning ``nil`` they will return ``EdgeDB.Error`` in case of a missing element:
 
-.. code:: elixir
+.. code:: iex
 
    iex(5)> EdgeDB.query_required_single!(client, "select Post filter .body = 'lol' limit 1")
    ** (EdgeDB.Error) NoDataError: expected result, but query did not return any data
@@ -172,7 +172,7 @@ Transactions
 
 The API for transactions is provided by the ``EdgeDB.transaction/3`` function:
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:ok, user} =
@@ -182,7 +182,7 @@ The API for transactions is provided by the ``EdgeDB.transaction/3`` function:
 
 Transactions can be rollbacked using the ``EdgeDB.rollback/2`` function or automatically if an error has occurred inside a transaction block:
 
-.. code:: elixir
+.. code:: iex
 
    iex(3)> {:error, :rollback} =
    ...(3)>  EdgeDB.transaction(client, fn conn ->
@@ -202,7 +202,7 @@ The following types of errors can be retried retried:
 
 As an example, let’s create a transaction conflict to show how this works. In the first example, we will disable retries:
 
-.. code:: elixir
+.. code:: iex
 
    iex(5)> callback = fn conn, body ->
    ...(5)>  Process.sleep(500)
@@ -218,7 +218,7 @@ As an example, let’s create a transaction conflict to show how this works. In 
 
 Now let’s execute the same thing but with enabled retries:
 
-.. code:: elixir
+.. code:: iex
 
    iex(8)> spawn(fn ->
    ...(8)>  {:ok, client} = EdgeDB.start_link()

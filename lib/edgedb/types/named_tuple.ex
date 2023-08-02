@@ -5,7 +5,7 @@ defmodule EdgeDB.NamedTuple do
   `EdgeDB.NamedTuple` implements `Access` behavior to access fields
     by index or key and `Enumerable` protocol for iterating over tuple values.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   #EdgeDB.NamedTuple<a: 1, b: "a", c: [3]>
@@ -33,7 +33,7 @@ defmodule EdgeDB.NamedTuple do
   @doc """
   Convert a named tuple to a regular erlang tuple.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.to_tuple(nt)
@@ -51,7 +51,7 @@ defmodule EdgeDB.NamedTuple do
   @doc """
   Convert a named tuple into a regular map.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.to_map(nt)
@@ -66,7 +66,7 @@ defmodule EdgeDB.NamedTuple do
   @doc """
   Get named tuple keys.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
   iex(3)> EdgeDB.NamedTuple.keys(nt)

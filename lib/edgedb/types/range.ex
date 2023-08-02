@@ -3,7 +3,7 @@ defmodule EdgeDB.Range do
   @moduledoc """
   A value representing some interval of values.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> EdgeDB.query_required_single!(client, "select range(1, 10)")
   #EdgeDB.Range<[1, 10)>
@@ -71,7 +71,7 @@ defmodule EdgeDB.Range do
   @doc """
   Create an empty range.
 
-    ```elixir
+  ```iex
   iex(1)> EdgeDB.Range.empty()
   #EdgeDB.Range<empty>
   ```
@@ -84,7 +84,7 @@ defmodule EdgeDB.Range do
   @doc """
   Create new range.
 
-    ```elixir
+  ```iex
   iex(1)> EdgeDB.Range.new(1.1, 3.3, inc_upper: true)
   #EdgeDB.Range<[1.1, 3.3]>
   ```

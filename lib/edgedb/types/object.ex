@@ -4,7 +4,7 @@ defmodule EdgeDB.Object do
 
   `EdgeDB.Object` implements `Access` behavior to access properties by key.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
   iex(2)>  EdgeDB.query_required_single!(client, "\"\"
@@ -28,7 +28,7 @@ defmodule EdgeDB.Object do
     Links can also have their own properties (denoted as `@<link_prop_name>` in EdgeQL syntax).
     You can use the same property name as in the query to access them from the links.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Object{} = object =
   iex(2)>  EdgeDB.query_required_single!(client, "\"\"
@@ -214,7 +214,7 @@ defmodule EdgeDB.Object do
   @doc """
   Convert an object into a regular map.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> object =
   iex(2)>  EdgeDB.query_required_single!(client, "\"\"

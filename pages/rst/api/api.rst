@@ -12,7 +12,7 @@ EdgeDB client for Elixir.
 
 A simple example of how to use it:
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> EdgeDB.query!(client, """
@@ -262,7 +262,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 Execute the query on the client and return the results as a ``{:ok, set}`` tuple if successful, where ``set`` is ``EdgeDB.Set``.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select 42")
@@ -271,7 +271,7 @@ Execute the query on the client and return the results as a ``{:ok, set}`` tuple
 
 If an error occurs, it will be returned as a ``{:error, exception}`` tuple where ``exception`` is ``EdgeDB.Error``.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(client, "select UndefinedType")
@@ -281,14 +281,14 @@ If an error occurs, it will be returned as a ``{:error, exception}`` tuple where
 If a query has arguments, they can be passed as a list for a query with positional arguments or as a list of keywords for a query with named
 arguments.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$0", [42])
    iex(3)> set
    #EdgeDB.Set<{42}>
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$arg", arg: 42)
@@ -481,7 +481,7 @@ Rollback an open transaction.
 
 See ``EdgeDB.rollback_option/0`` for supported options.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:error, :tx_rollback} =
@@ -501,13 +501,13 @@ Creates a pool of EdgeDB connections linked to the current process.
 
 If the first argument is a string, it will be assumed to be the DSN or instance name and passed as ``[dsn: dsn]`` keyword list to connect.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb")
 
 Otherwise, if the first argument is a list, it will be used as is to connect. See ``EdgeDB.start_option/0`` for supported connection options.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, _client} = EdgeDB.start_link(instance: "edgedb_elixir")
 
@@ -523,7 +523,7 @@ Creates a pool of EdgeDB connections linked to the current process.
 The first argument is the string which will be assumed as the DSN and passed as ``[dsn: dsn]`` keyword list along with other options to connect.
 See ``EdgeDB.start_option/0`` for supported connection options.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, _client} = EdgeDB.start_link("edgedb://edgedb:edgedb@localhost:5656/edgedb", tls_security: :insecure)
 
@@ -547,7 +547,7 @@ To rollback an open transaction, use ``EdgeDB.rollback/2``.
 
 ``EdgeDB.transaction/3`` calls **cannot** be nested more than once.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:ok, tickets} = EdgeDB.transaction(client, fn client ->

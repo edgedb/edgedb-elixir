@@ -10,7 +10,7 @@ An immutable representation of an object instance returned from a query.
 
 ``EdgeDB.Object`` implements ``Access`` behavior to access properties by key.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Object{} = object =
@@ -34,7 +34,7 @@ In EdgeDB, objects can have links to other objects or a set of objects. You can 
 properties. Links can also have their own properties (denoted as ``@<link_prop_name>`` in EdgeQL syntax). You can use the same property name as
 in the query to access them from the links.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Object{} = object =
@@ -179,7 +179,7 @@ See ``EdgeDB.Object.properties_option/0`` for supported options.
 
 Convert an object into a regular map.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> object =
@@ -204,7 +204,7 @@ A representation of an immutable set of values returned by a query. Nested sets 
 
 ``EdgeDB.Set`` implements ``Enumerable`` protocol for iterating over set values.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Set{} =
@@ -245,7 +245,7 @@ Functions
 
 Check if set is empty.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Set{} = set = EdgeDB.query!(client, "select Ticket")
@@ -260,7 +260,7 @@ An immutable value representing an EdgeDB named tuple value.
 ``EdgeDB.NamedTuple`` implements ``Access`` behavior to access fields by index or key and ``Enumerable`` protocol for iterating over tuple
 values.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
@@ -300,7 +300,7 @@ Functions
 
 Get named tuple keys.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
@@ -316,7 +316,7 @@ Get named tuple keys.
 
 Convert a named tuple into a regular map.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
@@ -332,7 +332,7 @@ Convert a named tuple into a regular map.
 
 Convert a named tuple to a regular erlang tuple.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
@@ -344,7 +344,7 @@ EdgeDB.RelativeDuration
 
 An immutable value represeting an EdgeDB ``cal::relative_duration`` value.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> EdgeDB.query_required_single!(client, "select <cal::relative_duration>'45.6 seconds'")
@@ -379,7 +379,7 @@ EdgeDB.DateDuration
 
 An immutable value represeting an EdgeDB ``cal::date_duration`` value.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> EdgeDB.query_required_single!(client, "select <cal::date_duration>'1 year 2 days'")
@@ -409,7 +409,7 @@ EdgeDB.ConfigMemory
 
 An immutable value represeting an EdgeDB ``cfg::memory`` value as a quantity of memory storage.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> mem = EdgeDB.query_required_single!(client, "select <cfg::memory>'5KiB'")
@@ -450,7 +450,7 @@ EdgeDB.Range
 
 A value representing some interval of values.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> EdgeDB.query_required_single!(client, "select range(1, 10)")
@@ -531,7 +531,7 @@ Functions
 
 Create an empty range.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> EdgeDB.Range.empty()
    #EdgeDB.Range<empty>
@@ -545,7 +545,7 @@ Create an empty range.
 
 Create new range.
 
-.. code:: elixir
+.. code:: iex
 
    iex(1)> EdgeDB.Range.new(1.1, 3.3, inc_upper: true)
    #EdgeDB.Range<[1.1, 3.3]>

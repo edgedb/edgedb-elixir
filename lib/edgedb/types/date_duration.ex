@@ -3,7 +3,7 @@ defmodule EdgeDB.DateDuration do
   @moduledoc """
   An immutable value represeting an EdgeDB `cal::date_duration` value.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> EdgeDB.query_required_single!(client, "select <cal::date_duration>'1 year 2 days'")
   #EdgeDB.DateDuration<"P1Y2D">
