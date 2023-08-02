@@ -8,7 +8,7 @@ defmodule EdgeDB.Set do
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Set{} =
-  iex(2)>  EdgeDB.query!(client, "\"\"
+  ...(2)>  EdgeDB.query!(client, "\"\"
   ...(2)>   select schema::ObjectType{
   ...(2)>     name
   ...(2)>   }

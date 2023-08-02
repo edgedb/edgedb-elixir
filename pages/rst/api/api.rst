@@ -275,7 +275,7 @@ If an error occurs, it will be returned as a ``{:error, exception}`` tuple where
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(client, "select UndefinedType")
-   iex(2)> raise error
+   iex(3)> raise error
    ** (EdgeDB.Error) InvalidReferenceError: object type or alias 'default::UndefinedType' does not exist
 
 If a query has arguments, they can be passed as a list for a query with positional arguments or as a list of keywords for a query with named
