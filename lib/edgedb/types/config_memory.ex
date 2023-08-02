@@ -2,7 +2,7 @@ defmodule EdgeDB.ConfigMemory do
   @moduledoc """
   An immutable value represeting an EdgeDB `cfg::memory` value as a quantity of memory storage.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> mem = EdgeDB.query_required_single!(client, "select <cfg::memory>'5KiB'")
   #EdgeDB.ConfigMemory<"5KiB">

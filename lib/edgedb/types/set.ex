@@ -5,7 +5,7 @@ defmodule EdgeDB.Set do
 
   `EdgeDB.Set` implements `Enumerable` protocol for iterating over set values.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Set{} =
   iex(2)>  EdgeDB.query!(client, "\"\"
@@ -31,7 +31,7 @@ defmodule EdgeDB.Set do
   @doc """
   Check if set is empty.
 
-  ```elixir
+  ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> %EdgeDB.Set{} = set = EdgeDB.query!(client, "select Ticket")
   iex(3)> EdgeDB.Set.empty?(set)

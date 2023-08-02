@@ -106,11 +106,11 @@ end
 
 Now let's test this codec:
 
-```elixir
+```iex
 iex(1)> {:ok, client} = EdgeDB.start_link(codecs: [MyApp.EdgeDB.Codecs.JSONPayload])
 iex(2)> payload = %MyApp.Users.Payload{public_id: 1, first_name: "Harry", last_name: "Potter"}
 iex(3)> EdgeDB.query!(client, "insert User { name := <str>$username, payload := <JSONPayload>$payload }", username: "user", payload: payload)
-iex(4) EdgeDB.Object{} = EdgeDB.query_required_single!(client, "select User {name, payload} filter .name = 'user' limit 1")
+iex(4)> EdgeDB.Object{} = EdgeDB.query_required_single!(client, "select User {name, payload} filter .name = 'user' limit 1")
 #EdgeDB.Object<name := "user", payload := %MyApp.Users.Payload{
   first_name: "Harry",
   last_name: "Potter",
