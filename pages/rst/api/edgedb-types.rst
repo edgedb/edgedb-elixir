@@ -14,7 +14,7 @@ An immutable representation of an object instance returned from a query.
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Object{} = object =
-   iex(2)>  EdgeDB.query_required_single!(client, """
+   ...(2)>  EdgeDB.query_required_single!(client, """
    ...(2)>   select schema::ObjectType{
    ...(2)>     name
    ...(2)>   }
@@ -38,7 +38,7 @@ in the query to access them from the links.
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Object{} = object =
-   iex(2)>  EdgeDB.query_required_single!(client, """
+   ...(2)>  EdgeDB.query_required_single!(client, """
    ...(2)>   select schema::Property {
    ...(2)>       name,
    ...(2)>       annotations: {
@@ -183,7 +183,7 @@ Convert an object into a regular map.
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> object =
-   iex(2)>  EdgeDB.query_required_single!(client, """
+   ...(2)>  EdgeDB.query_required_single!(client, """
    ...(2)>   select schema::Property {
    ...(2)>       name,
    ...(2)>       annotations: {
@@ -208,7 +208,7 @@ A representation of an immutable set of values returned by a query. Nested sets 
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> %EdgeDB.Set{} =
-   iex(2)>  EdgeDB.query!(client, """
+   ...(2)>  EdgeDB.query!(client, """
    ...(2)>   select schema::ObjectType{
    ...(2)>     name
    ...(2)>   }
