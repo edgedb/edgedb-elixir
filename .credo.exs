@@ -31,7 +31,13 @@
           "apps/*/test/",
           "apps/*/web/"
         ],
-        excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/", ~r"/test/*/codegen/"]
+        excluded: [
+          ~r"/_build/",
+          ~r"/deps/",
+          ~r"/node_modules/",
+          ~r"/test/codegen/queries/",
+          ~r"/test/support/scripts/"
+        ]
       },
       #
       # Load and configure plugins here:

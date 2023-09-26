@@ -1,6 +1,8 @@
 defmodule Tests.CodegenTest do
   use Tests.Support.EdgeDBCase
 
+  alias Tests.Codegen.Queries.Standart.SelectStartartTypesNamedSimple
+
   @queries_path Application.compile_env!(:edgedb, :generation)[:queries_path]
 
   queries =
@@ -38,7 +40,7 @@ defmodule Tests.CodegenTest do
                e: ^e,
                f: ^f
              } =
-               Tests.Codegen.Queries.Standart.SelectStartartTypesNamedSimple.query!(client,
+               SelectStartartTypesNamedSimple.query!(client,
                  e: e,
                  f: f
                )
