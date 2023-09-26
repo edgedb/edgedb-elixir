@@ -182,7 +182,8 @@ defmodule EdgeDB.EdgeQL.Generator do
         render_shape: &render_shape/1,
         render_builtin: &render_builtin/1,
         render_object: &render_object/1,
-        render_set: &render_set/1
+        render_set: &render_set/1,
+        camelize: &Macro.camelize/1
       )
 
     rendered_schema =
@@ -203,8 +204,7 @@ defmodule EdgeDB.EdgeQL.Generator do
         shape: rendered_shape,
         schema: rendered_schema,
         query_function: @cardinality_to_function[query.result_cardinality],
-        should_render_type_for_shape: complex_shape?(raw_shape),
-        result_type: (complex_shape?(raw_shape) && "result()") || rendered_shape,
+        result_type: "Result.t()",
         query: %{
           statement: query.statement,
           has_positional_args: positional? and length(args) != 0,
@@ -429,18 +429,6 @@ defmodule EdgeDB.EdgeQL.Generator do
       |> Enum.map_join("__", &Macro.underscore/1)
 
     "#{type_name}()"
-  end
-
-  defp complex_shape?(%{type: :builtin}) do
-    false
-  end
-
-  defp complex_shape?(%{type: :set, shape: shape}) do
-    complex_shape?(shape)
-  end
-
-  defp complex_shape?(%{type: :object}) do
-    true
   end
 
   defp shape_to_schema(%{type: :set, shape: shape}) do

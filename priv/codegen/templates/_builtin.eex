@@ -1,1 +1,4 @@
 <%= @builtin.typespec %>
+<%= if @builtin[:is_optional] do %>
+| nil
+<% end %>

@@ -26,9 +26,9 @@ defmodule <%= @module_name %> do
   @type <%= type_name %> :: <%= typespec %>
   <% end %>
 
-  <%= if @should_render_type_for_shape do %>
-  @type result() :: <%= @shape %>
-  <% end %>
+  defmodule Result do
+    <%= @shape %>
+  end
 
   <%= if @query.has_positional_args do %>
 
