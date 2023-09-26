@@ -275,6 +275,10 @@ defmodule EdgeDB do
   iex(2)> {:error, %EdgeDB.Error{} = error} = EdgeDB.query(client, "select UndefinedType")
   iex(3)> raise error
   ** (EdgeDB.Error) InvalidReferenceError: object type or alias 'default::UndefinedType' does not exist
+    ┌─ query:1:8
+    │
+  1 │   select UndefinedType
+    │          ^^^^^^^^^^^^^ error
   ```
 
   If a query has arguments, they can be passed as a list for a query with positional arguments

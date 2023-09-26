@@ -10,6 +10,14 @@ defmodule EdgeDB.Error do
 
     * `EdgeDB.Error.retry?/1`
     * `EdgeDB.Error.inheritor?/2`
+
+  By default the client generates exception messages in full format, attempting to output all useful
+    information about the error location if it is possible.
+
+  This behavior can be disabled by using the `:render_error_hints` configuration of the `:edgedb` application.
+
+  The renderer also tries to colorize the output message. This behavior defaults to `IO.ANSI.enabled?/0`,
+    but can also be configured with the `:rended_colored_errors` setting for the `:edgedb` application.
   """
 
   alias EdgeDB.Error.Parser
@@ -68,7 +76,11 @@ defmodule EdgeDB.Error do
 
   @impl Exception
   def message(%__MODULE__{} = exception) do
-    "#{exception.name}: #{exception.message}"
+    render_hints? = Application.get_env(:edgedb, :render_error_hints, true)
+    color_errors? = Application.get_env(:edgedb, :rended_colored_errors, IO.ANSI.enabled?())
+
+    config = generate_render_config(exception, render_hints?, color_errors?)
+    generate_message(exception, config)
   end
 
   @doc """
@@ -183,5 +195,207 @@ defmodule EdgeDB.Error do
 
   def inheritor?(_exception, _error_type) do
     false
+  end
+
+  defp generate_message(
+         %__MODULE__{
+           query: %EdgeDB.Query{statement: query}
+         } = exception,
+         %{start: start} = config
+       )
+       when start >= 0 do
+    lines =
+      query
+      |> String.split("\n")
+      |> Enum.map(&"#{&1}\n")
+
+    padding =
+      lines
+      |> length()
+      |> Integer.digits()
+      |> length()
+
+    config = Map.put(config, :padding, padding)
+
+    {_config, lines} =
+      lines
+      |> Enum.with_index(1)
+      |> Enum.reduce_while({config, []}, fn {line, idx}, {config, lines} ->
+        line_size = string_length(line)
+        line = String.trim_trailing(line)
+
+        case render_line(line, line_size, to_string(idx), config, lines) do
+          {:rendered, {config, lines}} ->
+            {:cont, {config, lines}}
+
+          {:finished, {config, lines}} ->
+            {:halt, {config, lines}}
+        end
+      end)
+
+    [
+      [:reset, "#{exception.name}: "],
+      [:bright, "#{exception.message}", "\n"],
+      [:blue, "#{String.pad_leading("", padding)} ┌─ "],
+      [:reset, "query:#{config.line}:#{config.col}", "\n"],
+      [:blue, "#{String.pad_leading("", padding)} │", "\n"]
+      | Enum.reverse(lines)
+    ]
+    |> IO.ANSI.format(config.use_color)
+    |> IO.iodata_to_binary()
+  end
+
+  defp generate_message(%__MODULE__{} = exception, _config) do
+    "#{exception.name}: #{exception.message}"
+  end
+
+  defp generate_render_config(%__MODULE__{} = exception, true, color_errors?) do
+    position_start =
+      case Integer.parse(exception.attributes[:character_start] || "") do
+        {position_start, ""} ->
+          position_start
+
+        :error ->
+          -1
+      end
+
+    position_end =
+      case Integer.parse(exception.attributes[:character_end] || "") do
+        {position_end, ""} ->
+          position_end
+
+        :error ->
+          -1
+      end
+
+    %{
+      start: position_start,
+      offset: max(1, position_end - position_start),
+      line: exception.attributes[:line_start] || "?",
+      col: exception.attributes[:column_start] || "?",
+      hint: exception.attributes[:hint] || "error",
+      use_color: color_errors?
+    }
+  end
+
+  defp generate_render_config(%__MODULE__{}, _render_hints?, _color_errors?) do
+    %{}
+  end
+
+  defp render_line(_line, line_size, _line_num, %{start: start} = config, lines)
+       when start >= line_size do
+    {:rendered, {%{config | start: start - line_size}, lines}}
+  end
+
+  defp render_line(line, line_size, line_num, config, lines) do
+    {line, line_size, config, lines} =
+      render_border(line, line_size, line_num, config, lines)
+
+    render_error(line, line_size, config, lines)
+  end
+
+  defp render_border(line, line_size, line_num, %{start: start} = config, lines)
+       when start >= 0 do
+    {first_half, line} = split_string_at(line, config.start)
+    line_size = line_size - config.start
+
+    lines = [
+      [
+        [:blue, "#{String.pad_leading(line_num, config.padding)} │   "],
+        [:reset, first_half]
+      ]
+      | lines
+    ]
+
+    config = %{config | start: unicode_width(first_half)}
+
+    {line, line_size, config, lines}
+  end
+
+  defp render_border(line, line_size, line_num, config, lines) do
+    lines = [
+      [
+        [:blue, "#{String.pad_leading(line_num, config.padding)} │ "],
+        [:red, "│ "]
+      ]
+      | lines
+    ]
+
+    {line, line_size, config, lines}
+  end
+
+  defp render_error(line, line_size, %{offset: offset, start: start} = config, lines)
+       when offset > line_size and start >= 0 do
+    lines = [
+      [
+        [:red, line, "\n"],
+        [:blue, "#{String.pad_leading("", config.padding)} │ "],
+        [:red, "╭─#{String.duplicate("─", config.start)}^", "\n"]
+      ]
+      | lines
+    ]
+
+    config = %{config | offset: config.offset - line_size, start: -1}
+    {:rendered, {config, lines}}
+  end
+
+  defp render_error(line, line_size, %{offset: offset} = config, lines) when offset > line_size do
+    lines = [[:red, line, "\n"] | lines]
+
+    config = %{config | offset: config.offset - line_size, start: -1}
+    {:rendered, {config, lines}}
+  end
+
+  defp render_error(line, _line_size, %{start: start} = config, lines) when start >= 0 do
+    {first_half, line} = split_string_at(line, config.offset)
+    error_width = unicode_width(first_half)
+    padding_string = String.pad_leading("", config.padding)
+
+    lines =
+      [
+        [
+          [:red, first_half],
+          [:reset, line, "\n"],
+          [:blue, "#{padding_string} │   #{String.duplicate(" ", config.start)}"],
+          [:red, "#{String.duplicate("^", error_width)} #{config.hint}"]
+        ]
+        | lines
+      ]
+
+    {:finished, {config, lines}}
+  end
+
+  defp render_error(line, _line_size, config, lines) do
+    {first_half, line} = split_string_at(line, config.offset)
+    error_width = unicode_width(first_half)
+
+    lines =
+      [
+        [
+          [:red, first_half],
+          [:reset, line, "\n"],
+          [:blue, "#{String.duplicate(" ", config.padding)} │ "],
+          [:red, "╰─#{String.duplicate("─", error_width - 1)}^ #{config.hint}"]
+        ]
+        | lines
+      ]
+
+    {:finished, {config, lines}}
+  end
+
+  defp string_length(text) do
+    text
+    |> String.codepoints()
+    |> length
+  end
+
+  defp unicode_width(text) do
+    Ucwidth.width(text)
+  end
+
+  defp split_string_at(text, position) do
+    codes = String.codepoints(text)
+    {list1, list2} = Enum.split(codes, position)
+    {Enum.join(list1), Enum.join(list2)}
   end
 end

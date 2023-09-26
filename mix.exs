@@ -47,6 +47,7 @@ defmodule EdgeDB.MixProject do
       {:jose, "~> 1.11"},
       {:crc, "~> 0.10.4"},
       {:castore, "~> 0.1.0 or ~> 1.0"},
+      {:ucwidth, "~> 0.2.0"},
       {:jason, "~> 1.2", optional: true},
       {:timex, "~> 3.7", optional: true},
       # test

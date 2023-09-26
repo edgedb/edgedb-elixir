@@ -16,6 +16,14 @@ The useful ones are:
 -  ``EdgeDB.Error.retry?/1``
 -  ``EdgeDB.Error.inheritor?/2``
 
+By default the client generates exception messages in full format, attempting to output all useful information about the error location if it is
+possible.
+
+This behavior can be disabled by using the ``:render_error_hints`` configuration of the ``:edgedb`` application.
+
+The renderer also tries to colorize the output message. This behavior defaults to ``IO.ANSI.enabled?/0``, but can also be configured with the
+``:rended_colored_errors`` setting for the ``:edgedb`` application.
+
 Types
 ~~~~~
 
