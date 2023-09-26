@@ -1,11 +1,11 @@
-[
+{
   <%= for type <- @schema do %>
     <%= case type do %>
       <% {name, schema} -> %>
-  <%= name %>: <%= @render_schema.(schema: schema, render_schema: @render_schema) %>,
-
+        <%= name %>: %Result.<%= Macro.camelize(name) %>
+          <%= @render_schema.(schema: schema, render_schema: @render_schema, paths: @paths ++ [name]) %>,
       <% name -> %>
-  :<%= name %>,
+        <%= name %>: result<%= Enum.map_join(@paths, &("[\"#{&1}\"]")) %>["<%= name %>"],
     <% end %>
   <% end %>
-]
+}

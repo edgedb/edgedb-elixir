@@ -12,8 +12,7 @@
         render_shape: @render_shape,
         render_builtin: @render_builtin,
         render_object: @render_object,
-        render_set: @render_set,
-        camelize: @camelize
+        render_set: @render_set
     ) %>
 
   <% %{type: :set} = set -> %>

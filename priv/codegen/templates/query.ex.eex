@@ -151,15 +151,8 @@ defmodule <%= @module_name %> do
 
   <% end %>
 
-  <%= if not is_nil(@schema) do %>
-  @schema <%= @schema %>
-  defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __transform_result__: [schema: @schema])
-    EdgeDB.<%= @query_function %>(client, @query, args, opts)
-  end
-  <% else %>
   defp do_query(client, args, opts) do
     EdgeDB.<%= @query_function %>(client, @query, args, opts)
+    shape = %Result<%= @schema %>
   end
-  <% end %>
 end

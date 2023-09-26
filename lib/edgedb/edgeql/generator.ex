@@ -182,15 +182,15 @@ defmodule EdgeDB.EdgeQL.Generator do
         render_shape: &render_shape/1,
         render_builtin: &render_builtin/1,
         render_object: &render_object/1,
-        render_set: &render_set/1,
-        camelize: &Macro.camelize/1
+        render_set: &render_set/1
       )
 
     rendered_schema =
       if raw_schema do
         render_schema(
           schema: raw_schema,
-          render_schema: &render_schema/1
+          render_schema: &render_schema/1,
+          paths: []
         )
       else
         nil
@@ -209,6 +209,7 @@ defmodule EdgeDB.EdgeQL.Generator do
           statement: query.statement,
           has_positional_args: positional? and length(args) != 0,
           has_named_args: not positional? and length(args) != 0,
+          cardinality: query.result_cardinality,
           args: args
         }
       )

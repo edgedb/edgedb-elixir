@@ -1,14 +1,13 @@
 <%= for {name, field} <- @object.fields do %>
     <%= case field do %>
             <% %{type: :object} -> %>
-                defmodule <%= @camelize.(name) %> do
+                defmodule <%= Macro.camelize(name) %> do
                     <%= @render_object.(
                         object: field,
                         render_shape: @render_shape,
                         render_builtin: @render_builtin,
                         render_object: @render_object,
-                        render_set: @render_set,
-                        camelize: @camelize
+                        render_set: @render_set
                     ) %>
                 end;
             <% _ -> %>
@@ -26,7 +25,7 @@ defstruct [
     <%= for {name, field} <- @object.fields do %>
         <%= case field do %>
             <% %{type: :object} -> %>
-                <%= name %>: <%= @camelize.(name) %>.t() 
+                <%= name %>: <%= Macro.camelize(name) %>.t() 
                 <%= if field[:is_optional] do %>| nil<% end %>,
 
             <% _ -> %>
@@ -41,8 +40,7 @@ defstruct [
                     render_shape: @render_shape,
                     render_builtin: @render_builtin,
                     render_object: @render_object,
-                    render_set: @render_set,
-                    camelize: @camelize
+                    render_set: @render_set
                 ) %>,
         <% end %>
     <% end %>
