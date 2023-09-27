@@ -2,5 +2,5 @@
 server-version = "3.0"
 
 [project]
-# schema-dir = "./test/support/schema"
-schema-dir = "./priv/edgedb/schema"
+schema-dir = "./test/support/schema"
+#schema-dir = "./priv/edgedb/schema"
