@@ -159,31 +159,33 @@ defmodule Tests.Codegen.Queries.MediaLibrary.GetCurrentActiveSong do
   end
 
   defp do_query(client, args, opts) do
-    EdgeDB.query_single(client, @query, args, opts)
-
-    shape = %Result{
-      updated_at: result["updated_at"],
-      title: result["title"],
-      status: result["status"],
-      server_ip: result["server_ip"],
-      position: result["position"],
-      played_at: result["played_at"],
-      paused_at: result["paused_at"],
-      inserted_at: result["inserted_at"],
-      id: result["id"],
-      duration: result["duration"],
-      date_released: result["date_released"],
-      date_recorded: result["date_recorded"],
-      attribution: result["attribution"],
-      artist: result["artist"],
-      user: %Result.User{id: result["user"]["id"]},
-      mp3: %Result.Mp3{
-        url: result["mp3"]["url"],
-        id: result["mp3"]["id"],
-        filesize: result["mp3"]["filesize"],
-        filepath: result["mp3"]["filepath"],
-        filename: result["mp3"]["filename"]
+    with {:ok, result} when not is_nil(result) <- EdgeDB.query_single(client, @query, args, opts) do
+      shape = %Result{
+        updated_at: result["updated_at"],
+        title: result["title"],
+        status: result["status"],
+        server_ip: result["server_ip"],
+        position: result["position"],
+        played_at: result["played_at"],
+        paused_at: result["paused_at"],
+        inserted_at: result["inserted_at"],
+        id: result["id"],
+        duration: result["duration"],
+        date_released: result["date_released"],
+        date_recorded: result["date_recorded"],
+        attribution: result["attribution"],
+        artist: result["artist"],
+        user: %Result.User{id: result["user"]["id"]},
+        mp3: %Result.Mp3{
+          url: result["mp3"]["url"],
+          id: result["mp3"]["id"],
+          filesize: result["mp3"]["filesize"],
+          filepath: result["mp3"]["filepath"],
+          filename: result["mp3"]["filename"]
+        }
       }
-    }
+
+      {:ok, shape}
+    end
   end
 end

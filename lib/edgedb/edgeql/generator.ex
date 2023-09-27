@@ -175,6 +175,7 @@ defmodule EdgeDB.EdgeQL.Generator do
     {args, positional?} = input_codec_to_args(input_codec, query.codec_storage)
     raw_shape = output_codec_to_shape(query, output_codec, query.codec_storage)
     raw_schema = shape_to_schema(raw_shape)
+    complex = complex_shape?(raw_shape)
 
     rendered_shape =
       render_shape(
@@ -203,8 +204,9 @@ defmodule EdgeDB.EdgeQL.Generator do
         types: types(),
         shape: rendered_shape,
         schema: rendered_schema,
-        query_function: @cardinality_to_function[query.result_cardinality],
-        result_type: "Result.t()",
+        should_render_type_for_shape: rendered_schema && complex,
+        cardinality_to_function: @cardinality_to_function,
+        result_type: (complex && "Result.t()") || rendered_shape,
         query: %{
           statement: query.statement,
           has_positional_args: positional? and length(args) != 0,
@@ -432,6 +434,18 @@ defmodule EdgeDB.EdgeQL.Generator do
     "#{type_name}()"
   end
 
+  defp complex_shape?(%{type: :builtin}) do
+    false
+  end
+
+  defp complex_shape?(%{type: :set, shape: shape}) do
+    complex_shape?(shape)
+  end
+
+  defp complex_shape?(%{type: :object}) do
+    true
+  end
+
   defp shape_to_schema(%{type: :set, shape: shape}) do
     shape_to_schema(shape)
   end
@@ -487,7 +501,7 @@ defmodule EdgeDB.EdgeQL.Generator do
         nil
 
       schema ->
-        schema
+        [:builtin, schema]
     end
   end
 

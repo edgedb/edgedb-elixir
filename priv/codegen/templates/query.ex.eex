@@ -26,9 +26,11 @@ defmodule <%= @module_name %> do
   @type <%= type_name %> :: <%= typespec %>
   <% end %>
 
+  <%= if @should_render_type_for_shape do %>
   defmodule Result do
     <%= @shape %>
   end
+  <% end %>
 
   <%= if @query.has_positional_args do %>
 
@@ -152,7 +154,35 @@ defmodule <%= @module_name %> do
   <% end %>
 
   defp do_query(client, args, opts) do
-    EdgeDB.<%= @query_function %>(client, @query, args, opts)
+    <%= case @query.cardinality do %>
+      <% :at_most_one -> %>
+        with {:ok, result} when not is_nil(result) <- EdgeDB.query_single(client, @query, args, opts) do
+      
+      <% :one -> %>
+        with {:ok, result} <- EdgeDB.query_required_single(client, @query, args, opts) do
+      
+      <% :no_result -> %>
+        with {:ok, result} <- EdgeDB.execute(client, @query, args, opts) do
+      
+      <% _ -> %>
+        with {:ok, results} <- EdgeDB.query(client, @query, args, opts) do
+          case result do
+            [] -> nil
+            _ -> Enum.map(results, fn result ->
+    <% end %>
+
+    <%= if @should_render_type_for_shape do %>
     shape = %Result<%= @schema %>
+
+    {:ok, shape}
+    <% else %>
+    {:ok, result}
+    <% end %>
+
+    <%= if @query.cardinality in [:at_least_one, :many] do %>
+      end);
+      end;
+    <% end %>
+    end
   end
 end

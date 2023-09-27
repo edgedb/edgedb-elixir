@@ -1,41 +1,46 @@
 <%= for {name, field} <- @object.fields do %>
     <%= case field do %>
-            <% %{type: :object} -> %>
-                defmodule <%= Macro.camelize(name) %> do
-                    <%= @render_object.(
-                        object: field,
-                        render_shape: @render_shape,
-                        render_builtin: @render_builtin,
-                        render_object: @render_object,
-                        render_set: @render_set
-                    ) %>
-                end;
-            <% _ -> %>
-                <% false %>
+        <% %{type: :object} -> %>
+            defmodule <%= Macro.camelize(name) %> do
+                <%= @render_object.(
+                    object: field,
+                    render_shape: @render_shape,
+                    render_builtin: @render_builtin,
+                    render_object: @render_object,
+                    render_set: @render_set
+                ) %>
+            end;
+        <% %{type: :set} -> %>
+            defmodule <%= Macro.camelize(name) %> do
+                <%= @render_set.(
+                    set: field,
+                    render_shape: @render_shape,
+                    render_builtin: @render_builtin,
+                    render_object: @render_object,
+                    render_set: @render_set
+                ) %>
+            end;
+        <% _ -> %>
+            <% false %>
     <% end %>
 <% end %>
 
 defstruct [
     <%= for {name, _} <- @object.fields do %>
-        :<%= name %>,
+    :<%= name %>,
     <% end %>
 ];
 
 @type t() :: %__MODULE__{
     <%= for {name, field} <- @object.fields do %>
         <%= case field do %>
-            <% %{type: :object} -> %>
-                <%= name %>: <%= Macro.camelize(name) %>.t() 
-                <%= if field[:is_optional] do %>| nil<% end %>,
+            <% %{type: type} when type in [:object, :set] -> %>
+                <%= name %>: <%= if field[:is_list] do %>list(<% end %>
+                    <%= Macro.camelize(name) %>.t() 
+                <%= if field[:is_list] do %>)<% end %><%= if field[:is_optional] do %>| nil<% end %>,
 
             <% _ -> %>
-                <%= if field[:is_link_property] do %>
-                    "@<%= name %>":
-                <% else %>
-                    <%= name %>:
-                <% end %>
-
-                <%= @render_shape.(
+                <%= name %>: <%= @render_shape.(
                     shape: field,
                     render_shape: @render_shape,
                     render_builtin: @render_builtin,

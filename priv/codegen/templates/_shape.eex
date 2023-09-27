@@ -1,7 +1,3 @@
-<%= if @shape[:is_list] do %>
-[
-<% end %>
-
 <%= case @shape do %>
   <% %{type: :builtin} = builtin -> %>
     <%= @render_builtin.(builtin: builtin) %>
@@ -23,12 +19,4 @@
         render_object: @render_object,
         render_set: @render_set
     ) %>
-<% end %>
-
-<%= if @shape[:is_list] do %>
-]
-
-<%= if @shape[:is_optional] do %>
-| nil
-<% end %>
 <% end %>
