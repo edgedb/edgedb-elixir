@@ -13,6 +13,7 @@
             end;
         <% %{type: :set} -> %>
             defmodule <%= Macro.camelize(name) %> do
+                <%= if field.shape[:type] == :builtin do %>@type t() ::<% end %>
                 <%= @render_set.(
                     set: field,
                     render_shape: @render_shape,

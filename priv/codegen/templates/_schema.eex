@@ -8,7 +8,7 @@
           paths: @paths ++ [name]) 
         %>,
       <% {name, schema} -> %>
-        <%= name %>: %Result.<%= Macro.camelize(name) %><%= @render_schema.(
+        <%= name %>: %Result.<%= Enum.map_join(@paths ++ [name],".", &(Macro.camelize(&1))) %><%= @render_schema.(
           schema: schema, 
           render_schema: @render_schema, 
           paths: @paths ++ [name]) 

@@ -1,5 +1,5 @@
 <%= if @builtin[:is_list] do %>list(<% end %>
-<%= if @builtin[:registered] do %><%= @module_name %>.<% end %><%= @builtin.typespec %>
+<%= if @builtin[:is_registered] do %><%= @module_name %>.<% end %><%= @builtin.typespec %>
 <%= if @builtin[:is_list] do %>)<% end %>
 <%= if @builtin[:is_optional] do %>
 | nil
