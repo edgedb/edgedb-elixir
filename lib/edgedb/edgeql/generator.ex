@@ -176,6 +176,8 @@ defmodule EdgeDB.EdgeQL.Generator do
     raw_shape = output_codec_to_shape(query, output_codec, query.codec_storage)
     raw_schema = shape_to_schema(raw_shape)
     complex = complex_shape?(raw_shape)
+    final_list = query.result_cardinality in [:many, :at_least_one]
+    types = types()
 
     rendered_shape =
       render_shape(
@@ -183,7 +185,8 @@ defmodule EdgeDB.EdgeQL.Generator do
         render_shape: &render_shape/1,
         render_builtin: &render_builtin/1,
         render_object: &render_object/1,
-        render_set: &render_set/1
+        render_set: &render_set/1,
+        module_name: module_name
       )
 
     rendered_schema =
@@ -201,12 +204,14 @@ defmodule EdgeDB.EdgeQL.Generator do
       generate_query_module(
         query_file: query_file,
         module_name: module_name,
-        types: types(),
+        types: types,
         shape: rendered_shape,
         schema: rendered_schema,
         should_render_type_for_shape: rendered_schema && complex,
         cardinality_to_function: @cardinality_to_function,
-        result_type: (complex && "Result.t()") || rendered_shape,
+        result_type:
+          (complex && final_list && "list(Result.t())") || (complex && "Result.t()") ||
+            rendered_shape,
         query: %{
           statement: query.statement,
           has_positional_args: positional? and length(args) != 0,
@@ -298,7 +303,8 @@ defmodule EdgeDB.EdgeQL.Generator do
               is_list: list?,
               is_optional: optional?,
               is_link_property: link_property?,
-              index: index
+              index: index,
+              registered: false
             },
             codec_to_shape(codec, codec_storage)
           )
@@ -320,14 +326,14 @@ defmodule EdgeDB.EdgeQL.Generator do
     typename = "uuid()"
     uuid_typespec = @builtin_scalars_to_typespecs[Codecs.UUID]
     register_typespec(typename, uuid_typespec)
-    %{type: :builtin, typespec: typename}
+    %{type: :builtin, typespec: typename, registered: true}
   end
 
   defp codec_to_shape(%Codecs.JSON{}, _codec_storage) do
     typename = "json()"
     json_typespec = @builtin_scalars_to_typespecs[Codecs.JSON]
     register_typespec(typename, json_typespec)
-    %{type: :builtin, typespec: typename}
+    %{type: :builtin, typespec: typename, registered: true}
   end
 
   defp codec_to_shape(%Codecs.Duration{}, _codec_storage) do
@@ -345,14 +351,14 @@ defmodule EdgeDB.EdgeQL.Generator do
         register_typespec(typename, duration_typespec)
     end
 
-    %{type: :builtin, typespec: typename}
+    %{type: :builtin, typespec: typename, registered: true}
   end
 
   defp codec_to_shape(%Codecs.Vector{}, _codec_storage) do
     typename = "vector()"
     vector_typespec = @builtin_scalars_to_typespecs[Codecs.Vector]
     register_typespec(typename, vector_typespec)
-    %{type: :builtin, typespec: typename}
+    %{type: :builtin, typespec: typename, registered: true}
   end
 
   defp codec_to_shape(%codec_name{}, _codec_storage) when codec_name in @scalar_codecs do
@@ -374,14 +380,14 @@ defmodule EdgeDB.EdgeQL.Generator do
 
     register_typespec(full_type_name, {typedoc, subcodec_typespec})
 
-    %{type: :builtin, typespec: full_type_name}
+    %{type: :builtin, typespec: full_type_name, registered: true}
   end
 
   defp codec_to_shape(%Codecs.Enum{name: type_name, members: members}, _codec_storage) do
     full_type_name = full_name_to_typespec(type_name)
     typedoc = "scalar type #{type_name} extending enum<#{Enum.join(members, ", ")}>"
     register_typespec(full_type_name, {typedoc, ["String.t()" | Enum.map(members, &":#{&1}")]})
-    %{type: :builtin, typespec: full_type_name}
+    %{type: :builtin, typespec: full_type_name, registered: true}
   end
 
   defp codec_to_shape(%Codecs.Array{codec: subcodec}, codec_storage) do

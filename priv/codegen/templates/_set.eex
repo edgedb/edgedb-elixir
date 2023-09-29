@@ -3,5 +3,6 @@
     render_shape: @render_shape,
     render_builtin: @render_builtin,
     render_object: @render_object,
-    render_set: @render_set
+    render_set: @render_set,
+    module_name: @module_name
 ) %>

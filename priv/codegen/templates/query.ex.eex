@@ -166,15 +166,13 @@ defmodule <%= @module_name %> do
       
       <% _ -> %>
         with {:ok, results} <- EdgeDB.query(client, @query, args, opts) do
-          case result do
+          results = case results do
             [] -> nil
             _ -> Enum.map(results, fn result ->
     <% end %>
 
     <%= if @should_render_type_for_shape do %>
-    shape = %Result<%= @schema %>
-
-    {:ok, shape}
+      %Result<%= @schema %>
     <% else %>
     {:ok, result}
     <% end %>
@@ -182,6 +180,7 @@ defmodule <%= @module_name %> do
     <%= if @query.cardinality in [:at_least_one, :many] do %>
       end);
       end;
+      {:ok, results};
     <% end %>
     end
   end
