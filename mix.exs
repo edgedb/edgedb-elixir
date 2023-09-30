@@ -167,14 +167,14 @@ defmodule EdgeDB.MixProject do
   defp aliases do
     [
       "edgedb.roles.setup": [
-        "cmd priv/test/support/scripts/setup-roles.sh"
+        "cmd test/support/scripts/setup-roles.sh"
       ],
       "edgedb.roles.reset": [
-        "cmd priv/test/support/scripts/drop-roles.sh",
-        "cmd priv/test/support/scripts/setup-roles.sh"
+        "cmd test/support/scripts/drop-roles.sh",
+        "cmd test/support/scripts/setup-roles.sh"
       ],
       "edgedb.docs": [
-        "run priv/test/suppport/scripts/edgedb_docs.exs"
+        "run test/support/scripts/edgedb_docs.exs"
       ]
     ]
   end

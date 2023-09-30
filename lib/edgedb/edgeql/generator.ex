@@ -61,7 +61,7 @@ defmodule EdgeDB.EdgeQL.Generator do
   EEx.function_from_file(:defp, :render_object_template, @object_template, [:assigns])
   EEx.function_from_file(:defp, :render_set_template, @set_template, [:assigns])
 
-  @spec generate(Keyword.t()) :: {:ok, list(Path.t())} | {:error, term()}
+  @spec generate(Keyword.t()) :: {:ok, %{Path.t() => Path.t()}} | {:error, term()}
   def generate(opts) do
     silent? = Keyword.get(opts, :silent, false)
 
@@ -332,7 +332,7 @@ defmodule EdgeDB.EdgeQL.Generator do
 
     typename = "duration()"
 
-    case Code.loaded?(Timex) do
+    case Code.ensure_loaded?(Timex) do
       true when timex? ->
         {typedoc, typespec} = @builtin_scalars_to_typespecs[Codecs.Duration]
         register_typespec(typename, {typedoc, ["Timex.Duration.t()", typespec]})

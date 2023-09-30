@@ -312,7 +312,7 @@ Get named tuple keys.
 
 .. code:: elixir
 
-   @spec EdgeDB.NamedTuple.to_map(t()) :: %{required(String.t()) => term()}
+   @spec EdgeDB.NamedTuple.to_map(t()) :: %{required(String.t() | integer()) => term()}
 
 Convert a named tuple into a regular map.
 
@@ -321,7 +321,7 @@ Convert a named tuple into a regular map.
    iex(1)> {:ok, client} = EdgeDB.start_link()
    iex(2)> nt = EdgeDB.query_required_single!(client, "select (a := 1, b := 'a', c := [3])")
    iex(3)> EdgeDB.NamedTuple.to_map(nt)
-   %{"a" => 1, "b" => "a", "c" => [3]}
+   %{"a" => 1, 0 => 1, "b" => "a", 1 => "a", "c" => [3], 2 => [3]}
 
 *function* ``EdgeDB.NamedTuple.to_tuple(nt)``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

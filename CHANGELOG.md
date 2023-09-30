@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - rendering hints for query errors from EdgeDB.
+- support for generating Elixir modules from EdgeQL queries via `mix edgedb.generate`.
+- abitility to pass atoms as valid arguments for enums.
+
+### Changed
+- `jason` to be required library, but still configurable.
+- `EdgeDB.NamedTuple.to_map/2` to include indexes as keys into result map.
 
 ## [0.6.1] - 2023-07-07
 
@@ -20,12 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - support for `Elixir v1.15` and `Erlang/OTP 26`.
-- support for generating Elixir modules from EdgeQL queries via `mix edgedb.generate`.
-- abitility to pass atoms as valid arguments for enums.
-
-### Changed
-- `jason` to be required library, but still configurable.
-- `EdgeDB.NamedTuple.to_map/2` to include indexes as keys into result map.
 
 ### Fixed
 

@@ -2,4 +2,4 @@
 
 set -e
 
-edgedb query --file priv/scripts/edgeql/drop-roles.edgeql
+edgedb query --file test/support/scripts/edgeql/drop-roles.edgeql
