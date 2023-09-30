@@ -127,12 +127,14 @@ defmodule Tests.Support.SharedCase do
             dir = String.replace(file, "${HASH}", hash)
             instance = Path.join(dir, "instance-name")
             profile = Path.join(dir, "cloud-profile")
+            database = Path.join(dir, "database")
             project = Path.join(dir, "project-path")
 
             files
             |> Map.put(dir, "")
             |> Map.put(instance, data["instance-name"])
             |> Map.put(profile, data["cloud-profile"])
+            |> Map.put(database, data["database"])
             |> Map.put(project, data["project-path"])
           else
             Map.put(files, file, data)

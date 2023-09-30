@@ -192,6 +192,16 @@ defmodule EdgeDB.Connection.Config do
           project_opts
       end
 
+    database_path = @path_module.join(stash_dir, "database")
+
+    project_opts =
+      if @file_module.exists?(database_path) do
+        database = @file_module.read!(database_path)
+        Keyword.merge(project_opts, database: database)
+      else
+        project_opts
+      end
+
     {resolved_opts, _compounds} = resolve_opts(resolved_opts, project_opts)
 
     resolved_opts
