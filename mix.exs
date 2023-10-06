@@ -48,6 +48,7 @@ defmodule EdgeDB.MixProject do
       {:jose, "~> 1.11"},
       {:crc, "~> 0.10.4"},
       {:castore, "~> 0.1.0 or ~> 1.0"},
+      {:ucwidth, "~> 0.2.0"},
       {:nimble_options, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:timex, "~> 3.7", optional: true},
@@ -166,14 +167,14 @@ defmodule EdgeDB.MixProject do
   defp aliases do
     [
       "edgedb.roles.setup": [
-        "cmd priv/test/support/scripts/setup-roles.sh"
+        "cmd test/support/scripts/setup-roles.sh"
       ],
       "edgedb.roles.reset": [
-        "cmd priv/test/support/scripts/drop-roles.sh",
-        "cmd priv/test/support/scripts/setup-roles.sh"
+        "cmd test/support/scripts/drop-roles.sh",
+        "cmd test/support/scripts/setup-roles.sh"
       ],
       "edgedb.docs": [
-        "run priv/test/suppport/scripts/edgedb_docs.exs"
+        "run test/support/scripts/edgedb_docs.exs"
       ]
     ]
   end

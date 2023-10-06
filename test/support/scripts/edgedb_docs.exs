@@ -2,6 +2,9 @@ defmodule EdgeDB.Docs do
   @moduledoc false
 
   @skip_pages ~w(CHANGELOG.md)
+  @skip_modules [
+    Mix.Tasks.Edgedb.Generate
+  ]
 
   @error_group :Errors
   @api_group :API
@@ -252,6 +255,9 @@ defmodule EdgeDB.Docs do
       {module, Code.fetch_docs(module)}
     end)
     |> Enum.filter(fn
+      {mod, _doc} when mod in @skip_modules ->
+        false
+
       {_mod, {:docs_v1, _annotation, _lang, _format, mod_doc, _meta, _docs}}
       when mod_doc in [:none, :hidden] ->
         false

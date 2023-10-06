@@ -1,7 +1,7 @@
 defmodule Tests.CodegenTest do
   use Tests.Support.EdgeDBCase
 
-  alias Tests.Codegen.Queries.Standart.SelectStartartTypesNamedSimple
+  skip_before(version: 3, scope: :module)
 
   @queries_path Application.compile_env!(:edgedb, :generation)[:queries_path]
 
@@ -25,7 +25,15 @@ defmodule Tests.CodegenTest do
       %{files: files}
     end
 
-    test "codegen returns a complex shape as atomized maps", %{client: client} do
+    test "codegen returns a complex shape as atomized maps", %{client: client, files: files} do
+      [{mod, _code}] =
+        files
+        |> Enum.find(fn {_query_file, elixir_file} ->
+          String.contains?(elixir_file, "select_startart_types_named_simple")
+        end)
+        |> elem(1)
+        |> Code.compile_file()
+
       e = "arg"
       f = 42
 
@@ -39,11 +47,7 @@ defmodule Tests.CodegenTest do
                d: [4, 5, 6],
                e: ^e,
                f: ^f
-             } =
-               SelectStartartTypesNamedSimple.query!(client,
-                 e: e,
-                 f: f
-               )
+             } = mod.query!(client, e: e, f: f)
     end
 
     for query_path <- queries do

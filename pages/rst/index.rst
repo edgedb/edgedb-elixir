@@ -8,6 +8,7 @@ EdgeDB client for Elixir
   :hidden:
 
   usage
+  codegen
   datatypes
   custom-codecs
   api/api
@@ -32,12 +33,7 @@ dependencies in the ``mix.exs`` file:
 JSON support
 ------------
 
-``EdgeDB`` comes with JSON support out of the box via the ``Jason`` library. To use it, add ``:jason`` to your dependencies in the ``mix.exs``
-file:
-
-.. code:: elixir
-
-   {:jason, "~> 1.0"}
+``EdgeDB`` comes with JSON support out of the box via the ``Jason`` library.
 
 The JSON library can be configured using the ``:json`` option in the ``:edgedb`` application configuration:
 

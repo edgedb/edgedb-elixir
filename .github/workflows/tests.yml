@@ -59,12 +59,12 @@ jobs:
         run: |
           EDGEDB_VERSION=${EDGEDB_VERSION%%.*}
 
-          for migration_file in `ls priv/edgedb/schema/migrations/`
+          for migration_file in `ls test/support/schema/migrations/`
           do
               migration_number=${migration_file%.*}
               if test ${migration_number} -gt ${EDGEDB_VERSION}
               then
-                  rm "priv/edgedb/schema/migrations/${migration_file}"
+                  rm "test/support/schema/migrations/${migration_file}"
               fi
           done
 
