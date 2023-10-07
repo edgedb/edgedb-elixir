@@ -341,7 +341,7 @@ defmodule EdgeDB.EdgeQL.Generator do
 
     typename = "duration()"
 
-    case Code.loaded?(Timex) do
+    case Code.ensure_loaded?(Timex) do
       true when timex? ->
         {typedoc, typespec} = @builtin_scalars_to_typespecs[Codecs.Duration]
         register_typespec(typename, {typedoc, ["Timex.Duration.t()", typespec]})
