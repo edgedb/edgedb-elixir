@@ -94,9 +94,8 @@ defmodule Mix.Tasks.Edgedb.Generate do
         )
 
       {:error, {query_file, %EdgeDB.Error{} = error}} ->
-        Mix.shell().error(
-          "Error while generating module for query from #{query_file}: #{Exception.message(error)}"
-        )
+        Mix.shell().error("Error while generating module for query from #{query_file}!")
+        Mix.shell().error(Exception.message(error))
     end
   end
 

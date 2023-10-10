@@ -154,7 +154,13 @@ defmodule EdgeDB.EdgeQL.Generator do
         List.flatten([query_parts, query_name])
       end
 
-    query = %EdgeDB.Query{statement: statement, required: true, inline_type_names: true}
+    query = %EdgeDB.Query{
+      statement: statement,
+      required: true,
+      inline_type_names: true,
+      __file__: query_file
+    }
+
     module_name = Enum.map_join(module_parts, ".", &Macro.camelize/1)
 
     with {:ok, query} <- DBConnection.prepare(conn, query, edgeql_state: %EdgeDB.Client.State{}),

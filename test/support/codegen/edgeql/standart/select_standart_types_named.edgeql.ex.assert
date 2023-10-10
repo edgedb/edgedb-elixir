@@ -111,6 +111,8 @@ defmodule Tests.Codegen.Queries.Standart.SelectStandartTypesNamed do
   ```
   """
 
+  @query_file "test/support/codegen/edgeql/standart/select_standart_types_named.edgeql"
+
   @typedoc """
   ```edgeql
   std::uuid
@@ -511,7 +513,7 @@ defmodule Tests.Codegen.Queries.Standart.SelectStandartTypesNamed do
     :cp_array_int64
   ]
   defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __transform_result__: [schema: @schema])
+    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema])
     EdgeDB.query_required_single(client, @query, args, opts)
   end
 end

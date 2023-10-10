@@ -371,6 +371,8 @@ defmodule Tests.Codegen.Queries.Types.SelectResult do
   ```
   """
 
+  @query_file "test/support/codegen/edgeql/types/select_result.edgeql"
+
   @typedoc """
   ```edgeql
   std::uuid
@@ -982,7 +984,7 @@ defmodule Tests.Codegen.Queries.Types.SelectResult do
     ]
   ]
   defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __transform_result__: [schema: @schema])
+    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema])
     EdgeDB.query(client, @query, args, opts)
   end
 end

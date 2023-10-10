@@ -23,7 +23,8 @@ defmodule EdgeDB.Query do
     output_codec: nil,
     codec_storage: nil,
     cached: false,
-    params: []
+    params: [],
+    __file__: nil,
   ]
 
   @type t() :: %__MODULE__{
@@ -42,7 +43,8 @@ defmodule EdgeDB.Query do
           output_codec: Codec.id() | nil,
           codec_storage: CodecStorage.t(),
           cached: boolean(),
-          params: list(any())
+          params: map() | list() | Keyword.t(),
+          __file__: Path.t() | nil
         }
 end
 

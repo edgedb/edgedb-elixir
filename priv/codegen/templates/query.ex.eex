@@ -17,6 +17,8 @@ defmodule <%= @module_name %> do
   ```
   """
 
+  @query_file "<%= @query_file %>"
+
   <%= for {type_name, {typedoc, typespec}} <- @types do %>
   @typedoc """
   ```edgeql
@@ -154,11 +156,12 @@ defmodule <%= @module_name %> do
   <%= if not is_nil(@schema) do %>
   @schema <%= @schema %>
   defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __transform_result__: [schema: @schema])
+    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema])
     EdgeDB.<%= @query_function %>(client, @query, args, opts)
   end
   <% else %>
   defp do_query(client, args, opts) do
+    opts = Keyword.merge(opts, __file__: @query_file)
     EdgeDB.<%= @query_function %>(client, @query, args, opts)
   end
   <% end %>
