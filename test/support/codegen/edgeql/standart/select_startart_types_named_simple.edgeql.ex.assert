@@ -27,6 +27,8 @@ defmodule Tests.Codegen.Queries.Standart.SelectStartartTypesNamedSimple do
   ```
   """
 
+  @query_file "test/support/codegen/edgeql/standart/select_startart_types_named_simple.edgeql"
+
   @type result() :: %{
           a: integer(),
           b: %{b_a: integer(), b_b: integer()},
@@ -80,7 +82,7 @@ defmodule Tests.Codegen.Queries.Standart.SelectStartartTypesNamedSimple do
 
   @schema [:f, :e, :d, :c, :a, b: [:b_b, :b_a]]
   defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __transform_result__: [schema: @schema])
+    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema])
     EdgeDB.query_required_single(client, @query, args, opts)
   end
 end

@@ -154,7 +154,13 @@ defmodule EdgeDB.EdgeQL.Generator do
         List.flatten([query_parts, query_name])
       end
 
-    query = %EdgeDB.Query{statement: statement, required: true, inline_type_names: true}
+    query = %EdgeDB.Query{
+      statement: statement,
+      required: true,
+      inline_type_names: true,
+      __file__: query_file
+    }
+
     module_name = Enum.map_join(module_parts, ".", &Macro.camelize/1)
 
     with {:ok, query} <- DBConnection.prepare(conn, query, edgeql_state: %EdgeDB.Client.State{}),
@@ -386,7 +392,12 @@ defmodule EdgeDB.EdgeQL.Generator do
   defp codec_to_shape(%Codecs.Enum{name: type_name, members: members}, _codec_storage) do
     full_type_name = full_name_to_typespec(type_name)
     typedoc = "scalar type #{type_name} extending enum<#{Enum.join(members, ", ")}>"
-    register_typespec(full_type_name, {typedoc, ["String.t()" | Enum.map(members, &":#{&1}")]})
+
+    register_typespec(
+      full_type_name,
+      {typedoc, ["String.t()" | Enum.map(members, &":#{inspect(&1)}")]}
+    )
+
     %{type: :builtin, typespec: full_type_name, is_registered: true}
   end
 

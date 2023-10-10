@@ -17,6 +17,8 @@ defmodule Tests.Codegen.Queries.SelectStringFromRoot do
   ```
   """
 
+  @query_file "test/support/codegen/edgeql/select_string_from_root.edgeql"
+
   @doc """
   Run the query.
   """
@@ -49,6 +51,7 @@ defmodule Tests.Codegen.Queries.SelectStringFromRoot do
   end
 
   defp do_query(client, args, opts) do
+    opts = Keyword.merge(opts, __file__: @query_file)
     EdgeDB.query_required_single(client, @query, args, opts)
   end
 end

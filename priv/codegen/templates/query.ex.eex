@@ -17,6 +17,8 @@ defmodule <%= @module_name %> do
   ```
   """
 
+  @query_file "<%= @query_file %>"
+
   <%= for {type_name, {typedoc, typespec}} <- @types do %>
   @typedoc """
   ```edgeql
@@ -154,6 +156,7 @@ defmodule <%= @module_name %> do
   <% end %>
 
   defp do_query(client, args, opts) do
+    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema]);
     <%= case @query.cardinality do %>
       <% :at_most_one -> %>
         with {:ok, result} when not is_nil(result) <- EdgeDB.query_single(client, @query, args, opts) do
