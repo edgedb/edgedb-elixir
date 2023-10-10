@@ -249,7 +249,11 @@ defmodule EdgeDB.Error do
     "#{exception.name}: #{exception.message}"
   end
 
-  defp generate_render_config(%__MODULE__{query: %EdgeDB.Query{}} = exception, true, color_errors?) do
+  defp generate_render_config(
+         %__MODULE__{query: %EdgeDB.Query{}} = exception,
+         true,
+         color_errors?
+       ) do
     position_start =
       case Integer.parse(exception.attributes[:character_start] || "") do
         {position_start, ""} ->

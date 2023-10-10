@@ -24,7 +24,7 @@ defmodule EdgeDB.Query do
     codec_storage: nil,
     cached: false,
     params: [],
-    __file__: nil,
+    __file__: nil
   ]
 
   @type t() :: %__MODULE__{
