@@ -29,7 +29,9 @@ defmodule <%= @module_name %> do
   <% end %>
 
   <%= if @should_render_type_for_shape do %>
-  @type result() :: <%= @shape %>
+  defmodule Result do
+    <%= @shape %>
+  end
   <% end %>
 
   <%= if @query.has_positional_args do %>
@@ -153,16 +155,36 @@ defmodule <%= @module_name %> do
 
   <% end %>
 
-  <%= if not is_nil(@schema) do %>
-  @schema <%= @schema %>
   defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema])
-    EdgeDB.<%= @query_function %>(client, @query, args, opts)
+    opts = Keyword.merge(opts, __file__: @query_file, __transform_result__: [schema: @schema]);
+    <%= case @query.cardinality do %>
+      <% :at_most_one -> %>
+        with {:ok, result} when not is_nil(result) <- EdgeDB.query_single(client, @query, args, opts) do
+      
+      <% :one -> %>
+        with {:ok, result} <- EdgeDB.query_required_single(client, @query, args, opts) do
+      
+      <% :no_result -> %>
+        with {:ok, result} <- EdgeDB.execute(client, @query, args, opts) do
+      
+      <% _ -> %>
+        with {:ok, results} <- EdgeDB.query(client, @query, args, opts) do
+          results = case results do
+            [] -> nil
+            _ -> Enum.map(results, fn result ->
+    <% end %>
+
+    <%= if @should_render_type_for_shape do %>
+      %Result<%= @schema %>
+    <% else %>
+    {:ok, result}
+    <% end %>
+
+    <%= if @query.cardinality in [:at_least_one, :many] do %>
+      end);
+      end;
+      {:ok, results};
+    <% end %>
+    end
   end
-  <% else %>
-  defp do_query(client, args, opts) do
-    opts = Keyword.merge(opts, __file__: @query_file)
-    EdgeDB.<%= @query_function %>(client, @query, args, opts)
-  end
-  <% end %>
 end

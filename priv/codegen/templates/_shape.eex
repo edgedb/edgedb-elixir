@@ -1,10 +1,6 @@
-<%= if @shape[:is_list] do %>
-[
-<% end %>
-
 <%= case @shape do %>
   <% %{type: :builtin} = builtin -> %>
-    <%= @render_builtin.(builtin: builtin) %>
+    <%= @render_builtin.(builtin: builtin, module_name: @module_name) %>
 
   <% %{type: :object} = object -> %>
     <%= @render_object.(
@@ -12,7 +8,8 @@
         render_shape: @render_shape,
         render_builtin: @render_builtin,
         render_object: @render_object,
-        render_set: @render_set
+        render_set: @render_set,
+        module_name: @module_name
     ) %>
 
   <% %{type: :set} = set -> %>
@@ -21,14 +18,7 @@
         render_shape: @render_shape,
         render_builtin: @render_builtin,
         render_object: @render_object,
-        render_set: @render_set
+        render_set: @render_set,
+        module_name: @module_name
     ) %>
-<% end %>
-
-<%= if @shape[:is_list] do %>
-]
-<% end %>
-
-<%= if @shape[:is_optional] do %>
-| nil
 <% end %>
