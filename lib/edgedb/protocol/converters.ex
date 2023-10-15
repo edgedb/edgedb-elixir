@@ -4,6 +4,8 @@ defmodule EdgeDB.Protocol.Converters do
   defmacro binary(size), do: quote(do: binary - size(unquote(size)))
   defmacro uuid, do: quote(do: binary(16))
 
+  defmacro bool, do: quote(do: unsigned)
+
   defmacro int8, do: quote(do: signed - 8)
   defmacro int16, do: quote(do: signed - 16)
   defmacro int32, do: quote(do: signed - 32)

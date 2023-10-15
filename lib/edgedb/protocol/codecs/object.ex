@@ -9,14 +9,27 @@ defmodule EdgeDB.Protocol.Codecs.Object do
 
   defstruct [
     :id,
+    :name,
     :shape_elements,
     :codecs,
     :is_sparse
   ]
 
-  @spec new(Codec.id(), list(Types.ShapeElement.t()), list(Codec.id()), boolean()) :: Codec.t()
-  def new(id, shape_elements, codecs, sparse?) do
-    %__MODULE__{id: id, shape_elements: shape_elements, codecs: codecs, is_sparse: sparse?}
+  @spec new(
+          Codec.id(),
+          String.t() | nil,
+          list(Types.ShapeElement.t()),
+          list(Codec.id()),
+          boolean()
+        ) :: Codec.t()
+  def new(id, name, shape_elements, codecs, sparse?) do
+    %__MODULE__{
+      id: id,
+      name: name,
+      shape_elements: shape_elements,
+      codecs: codecs,
+      is_sparse: sparse?
+    }
   end
 end
 

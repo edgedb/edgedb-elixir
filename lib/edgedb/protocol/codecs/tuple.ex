@@ -5,12 +5,13 @@ defmodule EdgeDB.Protocol.Codecs.Tuple do
 
   defstruct [
     :id,
+    :name,
     :codecs
   ]
 
-  @spec new(Codec.id(), list(Codec.id())) :: Codec.t()
-  def new(id, codecs) do
-    %__MODULE__{id: id, codecs: codecs}
+  @spec new(Codec.id(), String.t() | nil, list(Codec.id())) :: Codec.t()
+  def new(id, name, codecs) do
+    %__MODULE__{id: id, name: name, codecs: codecs}
   end
 end
 
