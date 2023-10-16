@@ -146,7 +146,8 @@ defmodule EdgeDB.MixProject do
           EdgeDB.RelativeDuration,
           EdgeDB.DateDuration,
           EdgeDB.ConfigMemory,
-          EdgeDB.Range
+          EdgeDB.Range,
+          EdgeDB.MultiRange
         ],
         Protocol: [
           EdgeDB.Protocol.Codec,

@@ -549,3 +549,53 @@ Create new range.
 
    iex(1)> EdgeDB.Range.new(1.1, 3.3, inc_upper: true)
    #EdgeDB.Range<[1.1, 3.3]>
+
+EdgeDB.MultiRange
+-----------------
+
+A value representing a collection of ranges.
+
+``EdgeDB.MultiRange`` implements ``Enumerable`` protocol for iterating over the collection. Each range in the collection is an instance of the
+``EdgeDB.Range.t/0`` struct.
+
+.. code:: iex
+
+   iex(1)> {:ok, client} = EdgeDB.start_link()
+   iex(2)> EdgeDB.query_required_single!(client, "select multirange([range(1, 10)])")
+   #EdgeDB.MultiRange<[#EdgeDB.Range<[1, 10)>]>
+
+.. _edgedb-elixir-edgedb-types-types-7:
+
+Types
+~~~~~
+
+*type* ``EdgeDB.MultiRange.t/0``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @type EdgeDB.MultiRange.t() :: t(value())
+
+A value of ``EdgeDB.MultiRange.value/0`` type representing a collection of intervals of values.
+
+*type* ``EdgeDB.MultiRange.t/1``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @type EdgeDB.MultiRange.t(value) :: %EdgeDB.MultiRange{ranges: [EdgeDB.Range.t(value)]}
+
+A value of ``EdgeDB.MultiRange.value/0`` type representing a collection of intervals of values.
+
+Fields:
+
+-  ``:ranges`` - collection of ranges.
+
+*type* ``EdgeDB.MultiRange.value/0``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @type EdgeDB.MultiRange.value() :: EdgeDB.Range.value()
+
+A type that is acceptable by EdgeDB ranges.
