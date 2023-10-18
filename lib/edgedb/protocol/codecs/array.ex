@@ -8,13 +8,14 @@ defmodule EdgeDB.Protocol.Codecs.Array do
 
   defstruct [
     :id,
+    :name,
     :codec,
     :dimensions
   ]
 
-  @spec new(Codec.id(), Codec.t(), list(Types.Dimension.t())) :: Codec.t()
-  def new(id, codec, dimensions) do
-    %__MODULE__{id: id, codec: codec, dimensions: dimensions}
+  @spec new(Codec.id(), String.t() | nil, Codec.t(), list(Types.Dimension.t())) :: Codec.t()
+  def new(id, name, codec, dimensions) do
+    %__MODULE__{id: id, name: name, codec: codec, dimensions: dimensions}
   end
 end
 

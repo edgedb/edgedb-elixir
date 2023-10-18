@@ -3,11 +3,11 @@ defmodule EdgeDB.Protocol.Codecs.Enum do
 
   alias EdgeDB.Protocol.Codec
 
-  defstruct [:id, :members]
+  defstruct [:id, :name, :members]
 
-  @spec new(Codec.t(), list(String.t())) :: Codec.t()
-  def new(id, members) do
-    %__MODULE__{id: id, members: members}
+  @spec new(Codec.t(), String.t() | nil, list(String.t())) :: Codec.t()
+  def new(id, name, members) do
+    %__MODULE__{id: id, name: name, members: members}
   end
 end
 

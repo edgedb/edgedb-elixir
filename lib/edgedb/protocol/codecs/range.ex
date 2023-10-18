@@ -5,12 +5,13 @@ defmodule EdgeDB.Protocol.Codecs.Range do
 
   defstruct [
     :id,
+    :name,
     :codec
   ]
 
-  @spec new(Codec.id(), Codec.t()) :: Codec.t()
-  def new(id, codec) do
-    %__MODULE__{id: id, codec: codec}
+  @spec new(Codec.id(), String.t() | nil, Codec.t()) :: Codec.t()
+  def new(id, name, codec) do
+    %__MODULE__{id: id, name: name, codec: codec}
   end
 end
 

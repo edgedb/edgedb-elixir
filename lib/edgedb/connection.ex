@@ -64,13 +64,11 @@ defmodule EdgeDB.Connection do
   @scram_sha_256 "SCRAM-SHA-256"
   @supported_authentication_methods [@scram_sha_256]
 
-  @major_ver 1
-  @minor_ver 0
-  @minor_ver_min 0
+  @major_version Protocol.major_version()
+  @minor_version Protocol.minor_version()
 
-  @legacy_major_ver 0
-  @legacy_minor_ver 13
-  @legacy_minor_ver_min 13
+  @min_major_version Protocol.min_major_version()
+  @min_minor_version Protocol.min_minor_version()
 
   @edgedb_alpn_protocol "edgedb-binary"
   @message_header_length Protocol.message_header_length()
@@ -96,7 +94,7 @@ defmodule EdgeDB.Connection do
       savepoint_id: 0,
       edgeql_state_typedesc_id: CodecStorage.null_codec_id(),
       edgeql_state_cache: nil,
-      protocol_version: 1
+      protocol_version: {Protocol.major_version(), Protocol.minor_version()}
     ]
 
     @type t() :: %__MODULE__{
@@ -115,7 +113,7 @@ defmodule EdgeDB.Connection do
             savepoint_id: integer(),
             edgeql_state_typedesc_id: Codec.id(),
             edgeql_state_cache: {EdgeDB.Client.State.t(), binary()} | nil,
-            protocol_version: non_neg_integer()
+            protocol_version: {non_neg_integer(), non_neg_integer()}
           }
   end
 
@@ -249,7 +247,7 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{protocol_version: 0} = state) do
+  def handle_prepare(%EdgeDB.Query{} = query, opts, %State{protocol_version: {0, _minor}} = state) do
     cached_query =
       QueriesCache.get(
         state.queries_cache,
@@ -315,7 +313,7 @@ defmodule EdgeDB.Connection do
         %EdgeDB.Query{is_script: true, params: params} = query,
         _params,
         _opts,
-        %State{protocol_version: 0} = state
+        %State{protocol_version: {0, _minor}} = state
       )
       when (is_list(params) and params == []) or (is_map(params) and map_size(params) == 0) do
     execution_result =
@@ -342,7 +340,7 @@ defmodule EdgeDB.Connection do
         %EdgeDB.Query{is_script: true} = query,
         _params,
         _opts,
-        %State{protocol_version: 0} = state
+        %State{protocol_version: {0, _minor}} = state
       ) do
     exc =
       EdgeDB.QueryArgumentError.new("EdgeDB 1.0 doesn't support scripts with parameters",
@@ -376,7 +374,7 @@ defmodule EdgeDB.Connection do
         %EdgeDB.Query{cached: true} = query,
         params,
         opts,
-        %State{protocol_version: 0} = state
+        %State{protocol_version: {0, _minor}} = state
       ) do
     case legacy_optimistic_execute_query(query, params, opts, state) do
       {:ok, query, result, state} ->
@@ -391,7 +389,12 @@ defmodule EdgeDB.Connection do
   end
 
   @impl DBConnection
-  def handle_execute(%EdgeDB.Query{} = query, params, opts, %State{protocol_version: 0} = state) do
+  def handle_execute(
+        %EdgeDB.Query{} = query,
+        params,
+        opts,
+        %State{protocol_version: {0, _minor}} = state
+      ) do
     case legacy_execute_query(query, params, opts, state) do
       {:ok, query, result, state} ->
         {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, result, state}
@@ -433,7 +436,7 @@ defmodule EdgeDB.Connection do
         %InternalRequest{request: :execute_script_flow} = request,
         %{statement: statement, headers: headers},
         _opts,
-        %State{protocol_version: 0} = state
+        %State{protocol_version: {0, _minor}} = state
       ) do
     with {:ok, result, state} <- legacy_execute_script_query(statement, headers, state) do
       {:ok, request, result, state}
@@ -631,8 +634,8 @@ defmodule EdgeDB.Connection do
       end
 
     message = %ClientHandshake{
-      major_ver: @major_ver,
-      minor_ver: @minor_ver,
+      major_ver: @major_version,
+      minor_ver: @minor_version,
       params: params,
       extensions: []
     }
@@ -663,39 +666,28 @@ defmodule EdgeDB.Connection do
   end
 
   defp handle_authentication_flow(
-         %ServerHandshake{major_ver: @legacy_major_ver = major_ver, minor_ver: minor_ver},
+         %ServerHandshake{major_ver: major_version, minor_ver: minor_version},
          _password,
          state
        )
-       when minor_ver < @legacy_minor_ver_min or minor_ver > @legacy_minor_ver do
+       when major_version < @min_major_version or @major_version < major_version or
+              (major_version == @min_major_version and minor_version < @min_minor_version) do
     exc =
       EdgeDB.ClientConnectionError.new(
-        "the server requested an unsupported version of the protocol #{major_ver}.#{minor_ver}"
+        "the server requested an unsupported version of the protocol #{major_version}.#{minor_version}"
       )
 
     {:disconnect, exc, state}
   end
 
   defp handle_authentication_flow(
-         %ServerHandshake{major_ver: @major_ver = major_ver, minor_ver: minor_ver},
-         _password,
-         state
-       )
-       when minor_ver < @minor_ver_min or minor_ver > @minor_ver do
-    exc =
-      EdgeDB.ClientConnectionError.new(
-        "the server requested an unsupported version of the protocol #{major_ver}.#{minor_ver}"
-      )
-
-    {:disconnect, exc, state}
-  end
-
-  defp handle_authentication_flow(
-         %ServerHandshake{major_ver: major_ver},
+         %ServerHandshake{} = message,
          password,
          %State{} = state
        ) do
-    with {:ok, {message, state}} <- receive_message(%State{state | protocol_version: major_ver}) do
+    protocol = {message.major_ver, message.minor_ver}
+
+    with {:ok, {message, state}} <- receive_message(%State{state | protocol_version: protocol}) do
       handle_authentication_flow(message, password, state)
     end
   end
@@ -923,7 +915,7 @@ defmodule EdgeDB.Connection do
          %CommandDataDescription{} = message,
          %State{} = state
        ) do
-    parse_description_message(message, state.codec_storage)
+    parse_description_message(message, state.codec_storage, state.protocol_version)
 
     query =
       save_query_with_codecs_in_cache(
@@ -1051,7 +1043,7 @@ defmodule EdgeDB.Connection do
          %CommandDataDescription{} = message,
          %State{} = state
        ) do
-    parse_description_message(message, state.codec_storage)
+    parse_description_message(message, state.codec_storage, state.protocol_version)
 
     query =
       save_query_with_codecs_in_cache(
@@ -1153,7 +1145,7 @@ defmodule EdgeDB.Connection do
          %CommandDataDescription{capabilities: capabilities} = message,
          %State{} = state
        ) do
-    parse_description_message(message, state.codec_storage)
+    parse_description_message(message, state.codec_storage, state.protocol_version)
 
     query =
       save_query_with_codecs_in_cache(
@@ -1201,7 +1193,7 @@ defmodule EdgeDB.Connection do
          %EdgeDB.Result{} = result,
          _opts,
          %CommandComplete{status: status, __headers__: %{capabilities: capabilities}},
-         %State{protocol_version: 0} = state
+         %State{protocol_version: {0, _minor}} = state
        ) do
     with {:ok, state} <- wait_for_server_ready(state) do
       query = %EdgeDB.Query{query | capabilities: capabilities}
@@ -1252,7 +1244,11 @@ defmodule EdgeDB.Connection do
 
   defp describe_state(%StateDataDescription{} = message, %State{} = state) do
     if is_nil(CodecStorage.get(state.codec_storage, message.typedesc_id)) do
-      Protocol.parse_type_description(message.typedesc, state.codec_storage)
+      Protocol.parse_type_description(
+        message.typedesc,
+        state.codec_storage,
+        state.protocol_version
+      )
     end
 
     {:ok, %State{state | edgeql_state_typedesc_id: message.typedesc_id}}
@@ -1306,7 +1302,7 @@ defmodule EdgeDB.Connection do
          %CommandDataDescription{} = message,
          %State{} = state
        ) do
-    parse_description_message(message, state.codec_storage)
+    parse_description_message(message, state.codec_storage, state.protocol_version)
 
     query =
       save_query_with_codecs_in_cache(
@@ -1354,14 +1350,15 @@ defmodule EdgeDB.Connection do
            output_typedesc_id: output_typedesc_id,
            output_typedesc: output_typedesc
          },
-         codec_storage
+         codec_storage,
+         protocol
        ) do
     if is_nil(CodecStorage.get(codec_storage, input_typedesc_id)) do
-      Protocol.parse_type_description(input_typedesc, codec_storage)
+      Protocol.parse_type_description(input_typedesc, codec_storage, protocol)
     end
 
     if is_nil(CodecStorage.get(codec_storage, output_typedesc_id)) do
-      Protocol.parse_type_description(output_typedesc, codec_storage)
+      Protocol.parse_type_description(output_typedesc, codec_storage, protocol)
     end
   end
 
@@ -1370,7 +1367,7 @@ defmodule EdgeDB.Connection do
     {:ok, closed_query_result(), state}
   end
 
-  defp start_transaction(opts, %State{protocol_version: 0} = state) do
+  defp start_transaction(opts, %State{protocol_version: {0, _minor}} = state) do
     opts
     |> Keyword.get(:transaction_options, [])
     |> QueryBuilder.start_transaction_statement()
@@ -1388,7 +1385,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp commit_transaction(_opts, %State{protocol_version: 0} = state) do
+  defp commit_transaction(_opts, %State{protocol_version: {0, _minor}} = state) do
     statement = QueryBuilder.commit_transaction_statement()
     legacy_execute_script_query(statement, %{allow_capabilities: [:transaction]}, state)
   end
@@ -1401,7 +1398,7 @@ defmodule EdgeDB.Connection do
     end
   end
 
-  defp rollback_transaction(_opts, %State{protocol_version: 0} = state) do
+  defp rollback_transaction(_opts, %State{protocol_version: {0, _minor}} = state) do
     statement = QueryBuilder.rollback_transaction_statement()
     legacy_execute_script_query(statement, %{allow_capabilities: [:transaction]}, state)
   end
@@ -1582,7 +1579,7 @@ defmodule EdgeDB.Connection do
 
     {parse_fn, execute_fn} =
       case state do
-        %State{protocol_version: 0} ->
+        %State{protocol_version: {0, _minor}} ->
           {&legacy_prepare_query/3, &legacy_execute_query/4}
 
         _other ->
@@ -1631,7 +1628,13 @@ defmodule EdgeDB.Connection do
     codec =
       case CodecStorage.get(state.codec_storage, typedesc_id) do
         nil ->
-          codec_id = Protocol.parse_type_description(type_descriptor, state.codec_storage)
+          codec_id =
+            Protocol.parse_type_description(
+              type_descriptor,
+              state.codec_storage,
+              state.protocol_version
+            )
+
           CodecStorage.get(state.codec_storage, codec_id)
 
         codec ->
@@ -1739,7 +1742,7 @@ defmodule EdgeDB.Connection do
   end
 
   # default capabilities to execute any common query (select/insert/etc) in legacy protocol
-  defp prepare_capabilities(_query, _opts, %State{protocol_version: 0}) do
+  defp prepare_capabilities(_query, _opts, %State{protocol_version: {0, _minor}}) do
     [:legacy_execute]
   end
 
