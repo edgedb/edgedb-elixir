@@ -72,6 +72,7 @@ defmodule EdgeDB.Protocol do
   @range 9
   @object 10
   @compound 11
+  @multi_range 12
   @type_annotation_text 127
   @type_annotation_min 0x80
   @type_annotatin_max 0xFE
@@ -783,6 +784,24 @@ defmodule EdgeDB.Protocol do
     {_components, rest} = decode_uint16_list(rest)
 
     {Codecs.Null.new(), rest}
+  end
+
+  defp do_codec_parsing(@multi_range, <<data::binary>>, id, codecs, {major, _minor})
+       when major >= 2 do
+    <<name_size::uint32(), name::binary(name_size), rest::binary>> = data
+    <<_schema_defined::bool(), rest::binary>> = rest
+    {_ancestors, rest} = decode_uint16_list(rest)
+
+    <<type::uint16(), rest::binary>> = rest
+    sub_codec = codecs[type]
+
+    {Codecs.MultiRange.new(id, name, sub_codec), rest}
+  end
+
+  defp do_codec_parsing(@multi_range, <<type_pos::uint16(), rest::binary>>, id, codecs, _protocol) do
+    sub_codec = codecs[type_pos]
+
+    {Codecs.Range.new(id, nil, sub_codec), rest}
   end
 
   defp decode_parameter_status_value("system_config", data) do
