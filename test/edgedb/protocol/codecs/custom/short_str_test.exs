@@ -16,24 +16,24 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Custom.ShortStrTest do
     %{client: client}
   end
 
-  test "decoding default::short_str value", %{client: client} do
+  test "decoding v1::short_str value", %{client: client} do
     value = "short"
 
-    assert ^value = EdgeDB.query_single!(client, "select <short_str>\"short\"")
+    assert ^value = EdgeDB.query_single!(client, "select <v1::short_str>\"short\"")
   end
 
-  test "encoding default::short_str value", %{client: client} do
+  test "encoding v1::short_str value", %{client: client} do
     value = "short"
-    assert ^value = EdgeDB.query_single!(client, "select <short_str>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <v1::short_str>$0", [value])
   end
 
-  test "error when passing value that can't be encoded by custom codec as default::short_str argument",
+  test "error when passing value that can't be encoded by custom codec as v1::short_str argument",
        %{client: client} do
     value = "too long string"
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(client, "select <short_str>$0", [value])
+        EdgeDB.query_single!(client, "select <v1::short_str>$0", [value])
       end
 
     assert exc == EdgeDB.InvalidArgumentError.new("string is too long")

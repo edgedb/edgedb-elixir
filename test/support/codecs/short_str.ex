@@ -10,7 +10,7 @@ defmodule Tests.Support.Codecs.ShortStr do
 
   @impl EdgeDB.Protocol.CustomCodec
   def name do
-    "default::short_str"
+    "v1::short_str"
   end
 end
 

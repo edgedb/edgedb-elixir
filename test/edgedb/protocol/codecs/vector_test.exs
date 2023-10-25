@@ -22,7 +22,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.VectorTest do
       |> List.duplicate(1602)
       |> List.flatten()
 
-    assert ^value = EdgeDB.query_single!(client, "select <ExVector>array_fill(1.5, 1602)")
+    assert ^value = EdgeDB.query_single!(client, "select <v3::ExVector>array_fill(1.5, 1602)")
   end
 
   test "encoding custom scalar vector value", %{client: client} do
@@ -31,7 +31,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.VectorTest do
       |> List.duplicate(1602)
       |> List.flatten()
 
-    assert ^value = EdgeDB.query_single!(client, "select <ExVector>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <v3::ExVector>$0", [value])
   end
 
   test "encoding empty vector value results in an error", %{client: client} do

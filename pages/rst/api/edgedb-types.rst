@@ -243,7 +243,7 @@ Check if set is empty.
 .. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
-   iex(2)> set = EdgeDB.query!(client, "select Ticket")
+   iex(2)> set = EdgeDB.query!(client, "select v1::Ticket")
    iex(3)> EdgeDB.Set.empty?(set)
    true
 

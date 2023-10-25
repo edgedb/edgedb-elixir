@@ -2,7 +2,7 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
   use Tests.Support.EdgeDBCase
 
   @involved_types ~w(
-    Ticket
+    v1::Ticket
   )
 
   setup :edgedb_client
@@ -47,19 +47,23 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
 
   describe "EdgeDB.Sandbox" do
     test "doesn't apply transactions from wrapped connections", %{client: client} do
-      EdgeDB.query!(client, "insert Ticket { number := 1 }")
+      EdgeDB.query!(client, "insert v1::Ticket { number := 1 }")
 
-      assert EdgeDB.query_required_single!(client, "select Ticket { number } limit 1")[:number] ==
+      assert EdgeDB.query_required_single!(client, "select v1::Ticket { number } limit 1")[
+               :number
+             ] ==
                1
     end
 
     test "works with EdgeDB.transaction/3", %{client: client} do
       {:ok, _result} =
         EdgeDB.transaction(client, fn client ->
-          EdgeDB.query!(client, "insert Ticket { number := 1 }")
+          EdgeDB.query!(client, "insert v1::Ticket { number := 1 }")
         end)
 
-      assert EdgeDB.query_required_single!(client, "select Ticket { number } limit 1")[:number] ==
+      assert EdgeDB.query_required_single!(client, "select v1::Ticket { number } limit 1")[
+               :number
+             ] ==
                1
     end
   end
@@ -68,15 +72,17 @@ defmodule Tests.EdgeDB.Pools.SandboxTest do
     test "explicitly rollbacks transaction", %{client: client} do
       {:ok, _result} =
         EdgeDB.transaction(client, fn client ->
-          EdgeDB.query!(client, "insert Ticket { number := 1 }")
+          EdgeDB.query!(client, "insert v1::Ticket { number := 1 }")
         end)
 
-      assert EdgeDB.query_required_single!(client, "select Ticket { number } limit 1")[:number] ==
+      assert EdgeDB.query_required_single!(client, "select v1::Ticket { number } limit 1")[
+               :number
+             ] ==
                1
 
       EdgeDB.Sandbox.clean(client)
 
-      refute EdgeDB.query_single!(client, "select Ticket { number } limit 1")
+      refute EdgeDB.query_single!(client, "select v1::Ticket { number } limit 1")
     end
   end
 end

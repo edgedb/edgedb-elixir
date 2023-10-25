@@ -1,78 +1,37 @@
-CREATE MIGRATION m1ud5ykhpyzl7tdyqf6w5nezyy75753dwy2kmeznqedph2ddww6cia
+CREATE MIGRATION m1c65s2cgnjqbm4zvuyv6saeqpi5c446bceydxxr35zmjbf2ndymsq
     ONTO initial
 {
-  CREATE ABSTRACT LINK default::crew {
-      CREATE PROPERTY list_order -> std::int64;
+  CREATE MODULE v1 IF NOT EXISTS;
+  CREATE ABSTRACT LINK v1::crew {
+      CREATE PROPERTY list_order: std::int64;
   };
-  CREATE ABSTRACT TYPE default::HasImage {
-      CREATE REQUIRED PROPERTY image -> std::str;
-      CREATE INDEX ON (.image);
+  CREATE TYPE v1::Person {
+      CREATE REQUIRED PROPERTY first_name: std::str;
+      CREATE REQUIRED PROPERTY last_name: std::str;
+      CREATE REQUIRED PROPERTY middle_name: std::str;
   };
-  CREATE TYPE default::Movie EXTENDING default::HasImage {
-      CREATE PROPERTY description -> std::str;
-      CREATE REQUIRED PROPERTY title -> std::str;
-      CREATE REQUIRED PROPERTY year -> std::int64;
-      CREATE INDEX ON (.year);
-      CREATE INDEX ON ((.title, .year));
-      CREATE INDEX ON (.title);
-  };
-  CREATE TYPE default::User EXTENDING default::HasImage {
-      CREATE REQUIRED PROPERTY name -> std::str;
-  };
-  CREATE TYPE default::Review {
-      CREATE REQUIRED LINK movie -> default::Movie;
-      CREATE REQUIRED PROPERTY rating -> std::int64 {
-          CREATE CONSTRAINT std::max_value(5);
-          CREATE CONSTRAINT std::min_value(0);
+  CREATE TYPE v1::Movie {
+      CREATE MULTI LINK actors: v1::Person {
+          EXTENDING v1::crew;
       };
-      CREATE REQUIRED LINK author -> default::User;
-      CREATE REQUIRED PROPERTY body -> std::str;
-      CREATE REQUIRED PROPERTY creation_time -> std::datetime {
-          SET default := (std::datetime_current());
+      CREATE MULTI LINK directors: v1::Person {
+          EXTENDING v1::crew;
       };
-      CREATE REQUIRED PROPERTY flag -> std::bool {
-          SET default := false;
-      };
+      CREATE PROPERTY description: std::str;
+      CREATE REQUIRED PROPERTY title: std::str;
+      CREATE REQUIRED PROPERTY year: std::int64;
   };
-  ALTER TYPE default::Movie {
-      CREATE PROPERTY avg_rating := (math::mean(.<movie[IS default::Review].rating));
-  };
-  CREATE ALIAS default::MovieAlias := (
-      default::Movie {
-          reviews := .<movie[IS default::Review]
-      }
-  );
-  CREATE ALIAS default::ReviewAlias := (
-      default::Review {
-          author_name := .author.name,
-          movie_title := .movie.title
-      }
-  );
-  CREATE ABSTRACT LINK default::actors EXTENDING default::crew;
-  CREATE TYPE default::Person EXTENDING default::HasImage {
-      CREATE PROPERTY bio -> std::str;
-      CREATE REQUIRED PROPERTY first_name -> std::str {
-          SET default := '';
-      };
-      CREATE REQUIRED PROPERTY last_name -> std::str;
-      CREATE REQUIRED PROPERTY middle_name -> std::str {
-          SET default := '';
-      };
-      CREATE PROPERTY full_name := (((((.first_name ++ ' ') IF (.first_name != '') ELSE '') ++ ((.middle_name ++ ' ') IF (.middle_name != '') ELSE '')) ++ .last_name));
-  };
-  ALTER TYPE default::Movie {
-      CREATE MULTI LINK actors EXTENDING default::crew -> default::Person;
-      CREATE MULTI LINK directors EXTENDING default::crew -> default::Person;
-  };
-  CREATE ABSTRACT LINK default::directors EXTENDING default::crew;
-  CREATE SCALAR TYPE default::TicketNo EXTENDING std::sequence;
-  CREATE TYPE default::Ticket {
-      CREATE PROPERTY number -> default::TicketNo {
+  CREATE SCALAR TYPE v1::TicketNo EXTENDING std::sequence;
+  CREATE TYPE v1::Ticket {
+      CREATE PROPERTY number: v1::TicketNo {
           CREATE CONSTRAINT std::exclusive;
       };
   };
-  CREATE SCALAR TYPE default::Color EXTENDING enum<Red, Green, Blue>;
-  CREATE SCALAR TYPE default::short_str EXTENDING std::str {
+  CREATE TYPE v1::User {
+      CREATE REQUIRED PROPERTY name: std::str;
+  };
+  CREATE SCALAR TYPE v1::Color EXTENDING enum<Red, Green, Blue>;
+  CREATE SCALAR TYPE v1::short_str EXTENDING std::str {
       CREATE CONSTRAINT std::max_len_value(5);
   };
 };

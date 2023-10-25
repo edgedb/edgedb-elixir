@@ -10,7 +10,7 @@ defmodule Tests.Support.Codecs.TicketNo do
 
   @impl EdgeDB.Protocol.CustomCodec
   def name do
-    "default::TicketNo"
+    "v1::TicketNo"
   end
 end
 
@@ -28,7 +28,7 @@ defimpl EdgeDB.Protocol.Codec, for: Tests.Support.Codecs.TicketNo do
   @impl Codec
   def encode(_codec, value, _codec_storage) do
     raise EdgeDB.InvalidArgumentError.new(
-            "value can not be encoded as default::TicketNo: #{inspect(value)}"
+            "value can not be encoded as v1::TicketNo: #{inspect(value)}"
           )
   end
 

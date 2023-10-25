@@ -5,12 +5,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.EnumTest do
 
   test "decoding enum value", %{client: client} do
     value = "Green"
-    assert ^value = EdgeDB.query_single!(client, "select <Color>'Green'")
+    assert ^value = EdgeDB.query_single!(client, "select <v1::Color>'Green'")
   end
 
   test "encoding string to enum value", %{client: client} do
     value = "Green"
-    assert ^value = EdgeDB.query_single!(client, "select <Color>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <v1::Color>$0", [value])
   end
 
   test "error when encoding not member element to enum value", %{client: client} do
@@ -18,7 +18,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.EnumTest do
 
     exc =
       assert_raise EdgeDB.Error, fn ->
-        EdgeDB.query_single!(client, "select <Color>$0", [value])
+        EdgeDB.query_single!(client, "select <v1::Color>$0", [value])
       end
 
     assert exc ==

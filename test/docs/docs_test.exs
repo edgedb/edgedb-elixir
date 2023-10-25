@@ -26,24 +26,23 @@ defmodule Tests.DocsTest do
   doctest EdgeDB.Range
 
   defp drop_tickets(client) do
-    EdgeDB.query!(client, "delete Ticket")
+    EdgeDB.query!(client, "delete v1::Ticket")
 
     client
   end
 
   defp drop_persons(client) do
-    EdgeDB.query!(client, "delete Person")
+    EdgeDB.query!(client, "delete v1::Person")
 
     client
   end
 
   defp add_person(client) do
     EdgeDB.query!(client, """
-    insert Person {
+    insert v1::Person {
       first_name := 'Daniel',
       middle_name := 'Jacob',
       last_name := 'Radcliffe',
-      image := ''
     };
     """)
 

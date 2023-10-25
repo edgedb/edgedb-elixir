@@ -18,12 +18,12 @@ defmodule Tests.EdgeDB.Connection.QueriesTest do
   end
 
   test "result requirement is saved in queries cache", %{client: client} do
-    assert is_nil(EdgeDB.query_single!(client, "select User limit 1"))
+    assert is_nil(EdgeDB.query_single!(client, "select v1::User limit 1"))
 
     assert_raise EdgeDB.Error, ~r/expected result/, fn ->
-      EdgeDB.query_required_single!(client, "select User limit 1")
+      EdgeDB.query_required_single!(client, "select v1::User limit 1")
     end
 
-    assert is_nil(EdgeDB.query_single!(client, "select User limit 1"))
+    assert is_nil(EdgeDB.query_single!(client, "select v1::User limit 1"))
   end
 end

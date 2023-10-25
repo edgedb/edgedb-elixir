@@ -19,13 +19,13 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Custom.TicketNoTest do
     %{client: client}
   end
 
-  test "decoding default::TicketNo value", %{client: client} do
+  test "decoding v1::TicketNo value", %{client: client} do
     value = %TicketNo{number: 42}
-    assert ^value = EdgeDB.query_single!(client, "select <TicketNo>42")
+    assert ^value = EdgeDB.query_single!(client, "select <v1::TicketNo>42")
   end
 
-  test "encoding default::TicketNo value", %{client: client} do
+  test "encoding v1::TicketNo value", %{client: client} do
     value = %TicketNo{number: 42}
-    assert ^value = EdgeDB.query_single!(client, "select <TicketNo>$0", [value])
+    assert ^value = EdgeDB.query_single!(client, "select <v1::TicketNo>$0", [value])
   end
 end
