@@ -6,7 +6,7 @@ defmodule EdgeDB.Object do
 
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> %EdgeDB.Object{} = object =
+  iex(2)> object =
   ...(2)>  EdgeDB.query_required_single!(client, "\"\"
   ...(2)>   select schema::ObjectType{
   ...(2)>     name
@@ -16,8 +16,6 @@ defmodule EdgeDB.Object do
   ...(2)>  \"\"")
   #EdgeDB.Object<name := "std::Object">
   iex(3)> object[:name]
-  "std::Object"
-  iex(4)> object["name"]
   "std::Object"
   ```
 
@@ -30,7 +28,7 @@ defmodule EdgeDB.Object do
 
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> %EdgeDB.Object{} = object =
+  iex(2)> object =
   ...(2)>  EdgeDB.query_required_single!(client, "\"\"
   ...(2)>   select schema::Property {
   ...(2)>       name,
@@ -54,14 +52,10 @@ defmodule EdgeDB.Object do
 
   @behaviour Access
 
-  alias EdgeDB.Object.Field
-
-  defstruct [
-    :__fields__,
-    :__order__,
-    :__tid__,
-    :id
-  ]
+  defstruct id: nil,
+            __tid__: nil,
+            fields: [],
+            order: []
 
   @typedoc """
   UUID value.
@@ -102,27 +96,15 @@ defmodule EdgeDB.Object do
           {:id, boolean()}
           | {:implicit, boolean()}
 
-  @typedoc """
-  An immutable representation of an object instance returned from a query.
-
-  Fields:
-
-    * `:id` - a unique ID of the object instance in the database.
-  """
-  @type t() :: %{
-          __struct__: __MODULE__,
-          id: uuid() | nil
-        }
-
-  @typedoc since: "0.2.0"
+  @typedoc since: "0.7.0"
   @typedoc """
   An immutable representation of an object instance returned from a query.
   """
-  @opaque object() :: %__MODULE__{
+  @opaque t() :: %__MODULE__{
             id: uuid() | nil,
             __tid__: uuid() | nil,
-            __fields__: %{String.t() => Field.t()},
-            __order__: list(String.t())
+            fields: %{String.t() => EdgeDB.Object.Field.t()},
+            order: list(String.t())
           }
 
   defmodule Field do
@@ -145,13 +127,22 @@ defmodule EdgeDB.Object do
           }
   end
 
+  @doc since: "0.7.0"
+  @doc """
+  Get an object ID if it was returned from the query.
+  """
+  @spec id(t()) :: uuid() | nil
+  def id(%__MODULE__{id: id}) do
+    id
+  end
+
   @doc since: "0.2.0"
   @doc """
   Get object fields names (properties, links and link propries) as list of strings.
 
   See `t:EdgeDB.Object.fields_option/0` for supported options.
   """
-  @spec fields(object(), list(fields_option())) :: list(String.t())
+  @spec fields(t(), list(fields_option())) :: list(String.t())
   def fields(%__MODULE__{} = object, opts \\ []) do
     include_properies? = Keyword.get(opts, :properties, true)
     include_links? = Keyword.get(opts, :links, true)
@@ -159,7 +150,7 @@ defmodule EdgeDB.Object do
     include_id? = Keyword.get(opts, :id, false)
     include_implicits? = Keyword.get(opts, :implicit, false)
 
-    object.__fields__
+    object.fields
     |> Enum.filter(fn
       {"id", %Field{is_implicit: true}} ->
         include_id? or include_implicits?
@@ -187,7 +178,7 @@ defmodule EdgeDB.Object do
 
   See `t:EdgeDB.Object.properties_option/0` for supported options.
   """
-  @spec properties(object(), list(properties_option())) :: list(String.t())
+  @spec properties(t(), list(properties_option())) :: list(String.t())
   def properties(%__MODULE__{} = object, opts \\ []) do
     fields(object, Keyword.merge(opts, links: false, link_properties: false))
   end
@@ -196,7 +187,7 @@ defmodule EdgeDB.Object do
   @doc """
   Get object links names as list.
   """
-  @spec links(object()) :: list(String.t())
+  @spec links(t()) :: list(String.t())
   def links(%__MODULE__{} = object) do
     fields(object, properties: false, link_properties: false)
   end
@@ -205,7 +196,7 @@ defmodule EdgeDB.Object do
   @doc """
   Get object link propeties names as list.
   """
-  @spec link_properties(object()) :: list(String.t())
+  @spec link_properties(t()) :: list(String.t())
   def link_properties(%__MODULE__{} = object) do
     fields(object, properties: false, links: false)
   end
@@ -232,8 +223,8 @@ defmodule EdgeDB.Object do
   %{"name" => "listen_port", "annotations" => [%{"name" => "cfg::system", "@value" => "true"}]}
   ```
   """
-  @spec to_map(object()) :: %{String.t() => term()}
-  def to_map(%__MODULE__{__fields__: fields}) do
+  @spec to_map(t()) :: %{String.t() => term()}
+  def to_map(%__MODULE__{fields: fields}) do
     fields
     |> Enum.reject(fn {_name, field} ->
       field.is_implicit
@@ -256,7 +247,7 @@ defmodule EdgeDB.Object do
   end
 
   @impl Access
-  def fetch(%__MODULE__{__fields__: fields}, key) when is_binary(key) do
+  def fetch(%__MODULE__{fields: fields}, key) when is_binary(key) do
     case fields do
       %{^key => %Field{value: value}} ->
         {:ok, value}
@@ -281,7 +272,7 @@ defimpl Inspect, for: EdgeDB.Object do
   import Inspect.Algebra
 
   @impl Inspect
-  def inspect(%EdgeDB.Object{__fields__: fields, __order__: order}, opts) do
+  def inspect(%EdgeDB.Object{fields: fields, order: order}, opts) do
     visible_fields =
       Enum.reject(order, fn name ->
         fields[name].is_implicit

@@ -41,7 +41,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     CodecStorage
   }
 
-  @empty_set %EdgeDB.Set{__items__: []}
+  @empty_set %EdgeDB.Set{}
   @field_is_implicit Bitwise.bsl(1, 0)
   @field_is_link_property Bitwise.bsl(1, 1)
   @field_is_link Bitwise.bsl(1, 2)
@@ -123,8 +123,8 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Object do
     %EdgeDB.Object{
       id: id,
       __tid__: type_id,
-      __fields__: fields,
-      __order__: order
+      fields: fields,
+      order: order
     }
   end
 

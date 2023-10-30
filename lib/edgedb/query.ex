@@ -50,7 +50,7 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
     CodecStorage
   }
 
-  @empty_set %EdgeDB.Set{__items__: []}
+  @empty_set %EdgeDB.Set{}
 
   @impl DBConnection.Query
   def decode(%EdgeDB.Query{}, %EdgeDB.Result{set: %EdgeDB.Set{}} = result, _opts) do
@@ -116,11 +116,11 @@ defimpl DBConnection.Query, for: EdgeDB.Query do
     end)
   end
 
-  defp add_element_into_set(%EdgeDB.Set{__items__: items} = set, element) do
-    %EdgeDB.Set{set | __items__: [element | items]}
+  defp add_element_into_set(%EdgeDB.Set{items: items} = set, element) do
+    %EdgeDB.Set{set | items: [element | items]}
   end
 
-  defp reverse_elements_in_set(%EdgeDB.Set{__items__: items} = set) do
-    %EdgeDB.Set{set | __items__: Enum.reverse(items)}
+  defp reverse_elements_in_set(%EdgeDB.Set{items: items} = set) do
+    %EdgeDB.Set{set | items: Enum.reverse(items)}
   end
 end

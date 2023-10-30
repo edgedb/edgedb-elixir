@@ -13,7 +13,7 @@ An immutable representation of an object instance returned from a query.
 .. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
-   iex(2)> %EdgeDB.Object{} = object =
+   iex(2)> object =
    ...(2)>  EdgeDB.query_required_single!(client, """
    ...(2)>   select schema::ObjectType{
    ...(2)>     name
@@ -23,8 +23,6 @@ An immutable representation of an object instance returned from a query.
    ...(2)>  """)
    #EdgeDB.Object<name := "std::Object">
    iex(3)> object[:name]
-   "std::Object"
-   iex(4)> object["name"]
    "std::Object"
 
 Links and links properties
@@ -37,7 +35,7 @@ in the query to access them from the links.
 .. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
-   iex(2)> %EdgeDB.Object{} = object =
+   iex(2)> object =
    ...(2)>  EdgeDB.query_required_single!(client, """
    ...(2)>   select schema::Property {
    ...(2)>       name,
@@ -82,15 +80,6 @@ Supported options:
 -  ``:id`` - flag to include implicit ``:id`` in returning list. The default is ``false``.
 -  ``:implicit`` - flag to include implicit fields (like ``:id`` or ``:__tid__``) in returning list. The default is ``false``.
 
-*type* ``EdgeDB.Object.object/0``
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. code:: elixir
-
-   @opaque EdgeDB.Object.object()
-
-An immutable representation of an object instance returned from a query.
-
 *type* ``EdgeDB.Object.properties_option/0``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -110,13 +99,9 @@ Supported options:
 
 .. code:: elixir
 
-   @type EdgeDB.Object.t() :: %EdgeDB.Object{id: uuid() | nil}
+   @opaque EdgeDB.Object.t()
 
 An immutable representation of an object instance returned from a query.
-
-Fields:
-
--  ``:id`` - a unique ID of the object instance in the database.
 
 *type* ``EdgeDB.Object.uuid/0``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -135,18 +120,27 @@ Functions
 
 .. code:: elixir
 
-   @spec EdgeDB.Object.fields(object(), [fields_option()]) :: [String.t()]
+   @spec EdgeDB.Object.fields(t(), [fields_option()]) :: [String.t()]
 
 Get object fields names (properties, links and link propries) as list of strings.
 
 See ``EdgeDB.Object.fields_option/0`` for supported options.
+
+*function* ``EdgeDB.Object.id(object)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @spec EdgeDB.Object.id(t()) :: uuid() | nil
+
+Get an object ID if it was returned from the query.
 
 *function* ``EdgeDB.Object.link_properties(object)``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: elixir
 
-   @spec EdgeDB.Object.link_properties(object()) :: [String.t()]
+   @spec EdgeDB.Object.link_properties(t()) :: [String.t()]
 
 Get object link propeties names as list.
 
@@ -155,7 +149,7 @@ Get object link propeties names as list.
 
 .. code:: elixir
 
-   @spec EdgeDB.Object.links(object()) :: [String.t()]
+   @spec EdgeDB.Object.links(t()) :: [String.t()]
 
 Get object links names as list.
 
@@ -164,7 +158,7 @@ Get object links names as list.
 
 .. code:: elixir
 
-   @spec EdgeDB.Object.properties(object(), [properties_option()]) :: [String.t()]
+   @spec EdgeDB.Object.properties(t(), [properties_option()]) :: [String.t()]
 
 Get object properties names as list.
 
@@ -175,7 +169,7 @@ See ``EdgeDB.Object.properties_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.Object.to_map(object()) :: %{required(String.t()) => term()}
+   @spec EdgeDB.Object.to_map(t()) :: %{required(String.t()) => term()}
 
 Convert an object into a regular map.
 
@@ -207,7 +201,7 @@ A representation of an immutable set of values returned by a query. Nested sets 
 .. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
-   iex(2)> %EdgeDB.Set{} =
+   iex(2)> set =
    ...(2)>  EdgeDB.query!(client, """
    ...(2)>   select schema::ObjectType{
    ...(2)>     name
@@ -215,6 +209,7 @@ A representation of an immutable set of values returned by a query. Nested sets 
    ...(2)>   filter .name IN {'std::BaseObject', 'std::Object', 'std::FreeObject'}
    ...(2)>   order by .name
    ...(2)>  """)
+   iex(3)> set
    #EdgeDB.Set<{#EdgeDB.Object<name := "std::BaseObject">, #EdgeDB.Object<name := "std::FreeObject">, #EdgeDB.Object<name := "std::Object">}>
 
 .. _edgedb-elixir-edgedb-types-types-1:
@@ -248,7 +243,7 @@ Check if set is empty.
 .. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
-   iex(2)> %EdgeDB.Set{} = set = EdgeDB.query!(client, "select Ticket")
+   iex(2)> set = EdgeDB.query!(client, "select Ticket")
    iex(3)> EdgeDB.Set.empty?(set)
    true
 
@@ -445,6 +440,15 @@ Functions
 
 Get a quantity of memory storage in bytes.
 
+*function* ``EdgeDB.ConfigMemory.new(bytes)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @spec EdgeDB.ConfigMemory.new(non_neg_integer()) :: t()
+
+Create a new config memory value.
+
 EdgeDB.Range
 ------------
 
@@ -583,13 +587,9 @@ A value of ``EdgeDB.MultiRange.value/0`` type representing a collection of inter
 
 .. code:: elixir
 
-   @type EdgeDB.MultiRange.t(value) :: %EdgeDB.MultiRange{ranges: [EdgeDB.Range.t(value)]}
+   @opaque EdgeDB.MultiRange.t(value)
 
 A value of ``EdgeDB.MultiRange.value/0`` type representing a collection of intervals of values.
-
-Fields:
-
--  ``:ranges`` - collection of ranges.
 
 *type* ``EdgeDB.MultiRange.value/0``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -599,3 +599,26 @@ Fields:
    @type EdgeDB.MultiRange.value() :: EdgeDB.Range.value()
 
 A type that is acceptable by EdgeDB ranges.
+
+.. _edgedb-elixir-edgedb-types-functions-5:
+
+Functions
+~~~~~~~~~
+
+*function* ``EdgeDB.MultiRange.new()``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @spec EdgeDB.MultiRange.new() :: t()
+
+Create a new multirange.
+
+*function* ``EdgeDB.MultiRange.new(enumerable)``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @spec EdgeDB.MultiRange.new(Enumerable.t(EdgeDB.Range.t(v))) :: t(v) when v: value()
+
+Create a new multirange from enumerable.

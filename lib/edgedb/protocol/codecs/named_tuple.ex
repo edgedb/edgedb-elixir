@@ -28,7 +28,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
     CodecStorage
   }
 
-  @empty_set %EdgeDB.Set{__items__: []}
+  @empty_set %EdgeDB.Set{}
 
   @impl Codec
   def encode(%{elements: elements, codecs: codecs}, map, codec_storage)
@@ -98,7 +98,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.NamedTuple do
         {idx, element}
       end)
 
-    %EdgeDB.NamedTuple{__items__: map, __fields_ordering__: ordering}
+    %EdgeDB.NamedTuple{items: map, order: ordering}
   end
 
   defp decode_element_list(<<>>, [], _codec_storage, 0, acc) do

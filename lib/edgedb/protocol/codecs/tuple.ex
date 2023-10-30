@@ -23,7 +23,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Tuple do
     CodecStorage
   }
 
-  @empty_set %EdgeDB.Set{__items__: []}
+  @empty_set %EdgeDB.Set{items: []}
 
   @impl Codec
   def encode(%{codecs: codecs}, tuple, codec_storage) when is_tuple(tuple) do

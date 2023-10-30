@@ -64,8 +64,8 @@ defmodule Tests.EdgeDB.Protocol.Codecs.NamedTupleTest do
       |> Enum.into(%{})
 
     %EdgeDB.NamedTuple{
-      __items__: Enum.into(items, %{}),
-      __fields_ordering__: fields_ordering
+      items: Enum.into(items, %{}),
+      order: fields_ordering
     }
   end
 end

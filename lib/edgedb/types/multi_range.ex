@@ -13,9 +13,7 @@ defmodule EdgeDB.MultiRange do
   ```
   """
 
-  defstruct [
-    :ranges
-  ]
+  defstruct ranges: []
 
   @typedoc """
   A type that is acceptable by EdgeDB ranges.
@@ -24,19 +22,31 @@ defmodule EdgeDB.MultiRange do
 
   @typedoc """
   A value of `t:EdgeDB.MultiRange.value/0` type representing a collection of intervals of values.
-
-  Fields:
-
-    * `:ranges` - collection of ranges.
   """
-  @type t(value) :: %__MODULE__{
-          ranges: list(EdgeDB.Range.t(value))
-        }
+  @opaque t(value) :: %__MODULE__{
+            ranges: list(EdgeDB.Range.t(value))
+          }
 
   @typedoc """
   A value of `t:EdgeDB.MultiRange.value/0` type representing a collection of intervals of values.
   """
   @type t() :: t(value())
+
+  @doc """
+  Create a new multirange.
+  """
+  @spec new() :: t()
+  def new do
+    %__MODULE__{}
+  end
+
+  @doc """
+  Create a new multirange from enumerable.
+  """
+  @spec new(Enumerable.t(EdgeDB.Range.t(v))) :: t(v) when v: value()
+  def new(enumerable) do
+    %__MODULE__{ranges: Enum.to_list(enumerable)}
+  end
 end
 
 defimpl Enumerable, for: EdgeDB.MultiRange do
