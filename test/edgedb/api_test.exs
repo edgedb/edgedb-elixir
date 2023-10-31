@@ -420,13 +420,7 @@ defmodule Tests.EdgeDB.APITest do
     skip_before(version: 2, scope: :describe)
 
     setup %{client: client} do
-      %{
-        client:
-          EdgeDB.without_module_aliases(client, %{
-            "schema_alias" => "schema",
-            "cfg_alias" => "cfg"
-          })
-      }
+      %{client: EdgeDB.with_module_aliases(client, %{"cfg_alias" => "cfg"})}
     end
 
     test "removes aliases from passed to EdgeDB", %{client: client} do
@@ -446,7 +440,7 @@ defmodule Tests.EdgeDB.APITest do
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
       %{
-        client: EdgeDB.with_config(client, %{query_execution_timeout: duration}),
+        client: EdgeDB.with_config(client, query_execution_timeout: duration),
         duration: duration
       }
     end
@@ -471,7 +465,7 @@ defmodule Tests.EdgeDB.APITest do
       # 48:45:07:6
       duration = Timex.Duration.from_microseconds(175_507_600_000)
 
-      %{client: EdgeDB.with_config(client, %{query_execution_timeout: duration})}
+      %{client: EdgeDB.with_config(client, query_execution_timeout: duration)}
     end
 
     test "removes config keys from passed to EdgeDB", %{client: client} do
@@ -529,7 +523,7 @@ defmodule Tests.EdgeDB.APITest do
         |> EdgeDB.Client.State.with_default_module("schema")
         |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
         |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
+        |> EdgeDB.Client.State.with_config(query_execution_timeout: duration)
 
       %{
         client: EdgeDB.with_client_state(client, state),
