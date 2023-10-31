@@ -15,7 +15,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
         |> EdgeDB.Client.State.with_default_module("schema")
         |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
         |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
+        |> EdgeDB.Client.State.with_config(query_execution_timeout: duration)
 
       %{state: state, current_user: current_user, duration: duration}
     end
@@ -67,7 +67,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
         |> EdgeDB.Client.State.with_default_module("schema")
         |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
         |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
+        |> EdgeDB.Client.State.with_config(query_execution_timeout: duration)
 
       Application.put_env(:edgedb, :client_state, state)
       on_exit(fn -> Application.delete_env(:edgedb, :client_state) end)

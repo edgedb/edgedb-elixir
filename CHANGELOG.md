@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - support for EdgeDB binary protocol `2.0`.
 - new `EdgeDB.MultiRange` type to represent multiranges from `EdgeDB 4.0`.
 
+### Fixed
+- client state handling in `EdgeDB.with_config/2`/`EdgeDB.without_config/2`,
+    `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2` and
+    `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`.
+
 ## [0.6.1] - 2023-07-07
 
 [Compare with 0.6.0](https://github.com/edgedb/edgedb-elixir/compare/v0.6.0...v0.6.1)
