@@ -139,14 +139,14 @@ defmodule EdgeDB.Client do
   end
 
   @doc false
-  @spec with_config(t(), %{atom() => term()}) :: t()
+  @spec with_config(t(), State.config()) :: t()
   def with_config(client, config \\ %{}) do
     client = to_client(client)
     %__MODULE__{client | state: State.with_config(client.state, config)}
   end
 
   @doc false
-  @spec without_config(t(), list(atom())) :: t()
+  @spec without_config(t(), list(State.config_key())) :: t()
   def without_config(client, config_keys \\ []) do
     client = to_client(client)
     %__MODULE__{client | state: State.without_config(client.state, config_keys)}

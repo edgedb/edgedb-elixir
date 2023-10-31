@@ -697,7 +697,7 @@ defmodule EdgeDB do
 
   This is equivalent to using the `configure session set` command.
   """
-  @spec with_config(client(), %{atom() => term()}) :: client()
+  @spec with_config(client(), EdgeDB.Client.State.config()) :: client()
   def with_config(client, config \\ %{}) do
     client
     |> to_client()
@@ -709,7 +709,7 @@ defmodule EdgeDB do
 
   This is equivalent to using the `configure session reset` command.
   """
-  @spec without_config(client(), list(atom())) :: client()
+  @spec without_config(client(), list(EdgeDB.Client.State.config_key())) :: client()
   def without_config(client, config_keys \\ []) do
     client
     |> to_client()

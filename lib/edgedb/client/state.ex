@@ -23,13 +23,34 @@ defmodule EdgeDB.Client.State do
             config: %{},
             globals: %{}
 
+  @typedoc since: "0.7.0"
+  @typedoc """
+  Keys that EdgeDB accepts for changing client behaviour configuration.
+
+  The meaning and acceptable values can be found in the
+    [docs](https://www.edgedb.com/docs/stdlib/cfg#client-connections).
+  """
+  @type config_key() ::
+          :allow_user_specified_id
+          | :session_idle_timeout
+          | :session_idle_transaction_timeout
+          | :query_execution_timeout
+
+  @typedoc since: "0.7.0"
+  @typedoc """
+  Config to be passed to `EdgeDB.with_config/2`.
+  """
+  @type config() ::
+          %{config_key() => term()}
+          | list({config_key(), term()})
+
   @typedoc """
   State for the client is an execution context that affects the execution of EdgeQL commands.
   """
   @opaque t() :: %__MODULE__{
             module: String.t() | nil,
             aliases: %{String.t() => String.t()},
-            config: %{String.t() => term()},
+            config: %{config_key() => term()},
             globals: %{String.t() => term()}
           }
 
@@ -61,16 +82,7 @@ defmodule EdgeDB.Client.State do
   """
   @spec without_module_aliases(t(), list(String.t())) :: t()
   def without_module_aliases(%__MODULE__{} = state, aliases \\ []) do
-    new_aliases =
-      case aliases do
-        [] ->
-          %{}
-
-        aliases ->
-          Enum.reduce(aliases, state.aliases, &Map.delete(&2, &1))
-      end
-
-    %__MODULE__{state | aliases: new_aliases}
+    %__MODULE__{state | aliases: Map.drop(state.aliases, aliases)}
   end
 
   @doc """
@@ -78,8 +90,9 @@ defmodule EdgeDB.Client.State do
 
   This is equivalent to using the `configure session set` command.
   """
-  @spec with_config(t(), %{atom() => term()}) :: t()
+  @spec with_config(t(), config()) :: t()
   def with_config(%__MODULE__{} = state, config \\ %{}) do
+    config = Enum.into(config, %{})
     %__MODULE__{state | config: Map.merge(state.config, config)}
   end
 
@@ -88,18 +101,9 @@ defmodule EdgeDB.Client.State do
 
   This is equivalent to using the `configure session reset` command.
   """
-  @spec without_config(t(), list(atom())) :: t()
+  @spec without_config(t(), list(config_key())) :: t()
   def without_config(%__MODULE__{} = state, config_keys \\ []) do
-    new_config =
-      case config_keys do
-        [] ->
-          %{}
-
-        config_keys ->
-          Enum.reduce(config_keys, state.config, &Map.delete(&2, &1))
-      end
-
-    %__MODULE__{state | config: new_config}
+    %__MODULE__{state | config: Map.drop(state.config, config_keys)}
   end
 
   @doc """
@@ -133,12 +137,12 @@ defmodule EdgeDB.Client.State do
     new_globals =
       case global_names do
         [] ->
-          %{}
+          state.globals
 
         global_names ->
           Enum.reduce(
             global_names,
-            state.config,
+            state.globals,
             &Map.delete(&2, resolve_name(state.aliases, module, &1))
           )
       end

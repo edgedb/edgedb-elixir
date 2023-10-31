@@ -580,7 +580,7 @@ See ``EdgeDB.with_default_module/2``, ``EdgeDB.with_module_aliases/2``/``EdgeDB.
 
 .. code:: elixir
 
-   @spec EdgeDB.with_config(client(), %{required(atom()) => term()}) :: client()
+   @spec EdgeDB.with_config(client(), EdgeDB.Client.State.config()) :: client()
 
 Returns client with adjusted session config.
 
@@ -646,7 +646,7 @@ See ``EdgeDB.transaction_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.without_config(client(), [atom()]) :: client()
+   @spec EdgeDB.without_config(client(), [EdgeDB.Client.State.config_key()]) :: client()
 
 Returns client without specified session config.
 
@@ -786,6 +786,30 @@ See ``EdgeDB.with_client_state/2``, ``EdgeDB.with_default_module/2``, ``EdgeDB.w
 Types
 ~~~~~
 
+*type* ``EdgeDB.Client.State.config/0``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @type EdgeDB.Client.State.config() :: %{required(config_key()) => term()} | [{config_key(), term()}]
+
+Config to be passed to ``EdgeDB.with_config/2``.
+
+*type* ``EdgeDB.Client.State.config_key/0``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @type EdgeDB.Client.State.config_key() ::
+     :allow_user_specified_id
+     | :session_idle_timeout
+     | :session_idle_transaction_timeout
+     | :query_execution_timeout
+
+Keys that EdgeDB accepts for changing client behaviour configuration.
+
+The meaning and acceptable values can be found in the `docs`_.
+
 *type* ``EdgeDB.Client.State.t/0``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -805,7 +829,7 @@ Functions
 
 .. code:: elixir
 
-   @spec EdgeDB.Client.State.with_config(t(), %{required(atom()) => term()}) :: t()
+   @spec EdgeDB.Client.State.with_config(t(), config()) :: t()
 
 Returns an ``EdgeDB.Client.State`` with adjusted session config.
 
@@ -849,7 +873,7 @@ This is equivalent to using the ``set alias`` command.
 
 .. code:: elixir
 
-   @spec EdgeDB.Client.State.without_config(t(), [atom()]) :: t()
+   @spec EdgeDB.Client.State.without_config(t(), [config_key()]) :: t()
 
 Returns an ``EdgeDB.Client.State`` without specified session config.
 
@@ -939,3 +963,4 @@ Wrap a connection in a transaction.
 .. _the EdgeQL transaction statement: https://www.edgedb.com/docs/reference/edgeql/tx_start#statement::start-transaction
 .. _retrying transactions: %60EdgeDB.transaction/3%60
 .. _RFC: https://github.com/edgedb/rfcs/blob/master/text/1004-transactions-api.rst
+.. _docs: https://www.edgedb.com/docs/stdlib/cfg#client-connections
