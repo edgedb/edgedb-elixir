@@ -7,19 +7,18 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns list of object properties names", %{client: client} do
       rollback(client, fn client ->
         EdgeDB.query!(client, """
-        insert User {
+        insert v1::User {
           name := "username",
-          image := "http://example.com/some/url"
         }
         """)
 
         user_properties =
           client
-          |> EdgeDB.query_required_single!("select User { name, image } limit 1")
+          |> EdgeDB.query_required_single!("select v1::User { name } limit 1")
           |> EdgeDB.Object.properties()
           |> MapSet.new()
 
-        expected_properties = MapSet.new(["name", "image"])
+        expected_properties = MapSet.new(["name"])
         assert MapSet.equal?(user_properties, expected_properties)
       end)
     end
@@ -27,19 +26,18 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     test "returns list of object properties names + id with `:id` option ", %{client: client} do
       rollback(client, fn client ->
         EdgeDB.query!(client, """
-        insert User {
+        insert v1::User {
           name := "username",
-          image := "http://example.com/some/url"
         }
         """)
 
         user_properties =
           client
-          |> EdgeDB.query_required_single!("select User { name, image } limit 1")
+          |> EdgeDB.query_required_single!("select v1::User { name } limit 1")
           |> EdgeDB.Object.properties(id: true)
           |> MapSet.new()
 
-        expected_properties = MapSet.new(["id", "name", "image"])
+        expected_properties = MapSet.new(["id", "name"])
         assert MapSet.equal?(user_properties, expected_properties)
       end)
     end
@@ -49,19 +47,18 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
     } do
       rollback(client, fn client ->
         EdgeDB.query!(client, """
-        insert User {
+        insert v1::User {
           name := "username",
-          image := "http://example.com/some/url"
         }
         """)
 
         user_properties =
           client
-          |> EdgeDB.query_required_single!("select User { name, image } limit 1")
+          |> EdgeDB.query_required_single!("select v1::User { name } limit 1")
           |> EdgeDB.Object.properties(implicit: true)
           |> MapSet.new()
 
-        expected_properties = MapSet.new(["id", "name", "image"])
+        expected_properties = MapSet.new(["id", "name"])
         assert MapSet.equal?(user_properties, expected_properties)
       end)
     end
@@ -73,29 +70,25 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         EdgeDB.query!(client, """
         with
           director := (
-            insert Person {
+            insert v1::Person {
               first_name := "Chris",
               middle_name := "Joseph",
               last_name := "Columbus",
-              image := "",
             }
           ),
           actor1 := (
             first_name := "Daniel",
             middle_name := "Jacob",
             last_name := "Radcliffe",
-            image := "",
           ),
           actor2 := (
             first_name := "Emma",
             middle_name := "Charlotte Duerre",
             last_name := "Watson",
-            image := "",
           )
-        insert Movie {
+        insert v1::Movie {
           title := "Harry Potter and the Philosopher's Stone",
           year := 2001,
-          image := "",
           description := $$
             Late one night, Albus Dumbledore and Minerva McGonagall, professors at Hogwarts School of Witchcraft and Wizardry, along with the school's groundskeeper Rubeus Hagrid, deliver a recently orphaned infant named Harry Potter to his only remaining relatives, the Dursleys....
           $$,
@@ -103,11 +96,10 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
           actors := (
             for a in {(1, actor1), (2, actor2)}
             union (
-              insert Person {
+              insert v1::Person {
                 first_name := a.1.first_name,
                 middle_name := a.1.middle_name,
                 last_name := a.1.last_name,
-                image := a.1.image,
                 @list_order := a.0
               }
             )
@@ -118,7 +110,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         movie_links =
           client
           |> EdgeDB.query_required_single!("""
-          select Movie {
+          select v1::Movie {
             title,
             directors,
             actors: {
@@ -141,29 +133,25 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         EdgeDB.query!(client, """
         with
           director := (
-            insert Person {
+            insert v1::Person {
               first_name := "Chris",
               middle_name := "Joseph",
               last_name := "Columbus",
-              image := "",
             }
           ),
           actor1 := (
             first_name := "Daniel",
             middle_name := "Jacob",
             last_name := "Radcliffe",
-            image := "",
           ),
           actor2 := (
             first_name := "Emma",
             middle_name := "Charlotte Duerre",
             last_name := "Watson",
-            image := "",
           )
-        insert Movie {
+        insert v1::Movie {
           title := "Harry Potter and the Philosopher's Stone",
           year := 2001,
-          image := "",
           description := $$
             Late one night, Albus Dumbledore and Minerva McGonagall, professors at Hogwarts School of Witchcraft and Wizardry, along with the school's groundskeeper Rubeus Hagrid, deliver a recently orphaned infant named Harry Potter to his only remaining relatives, the Dursleys....
           $$,
@@ -171,11 +159,10 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
           actors := (
             for a in {(1, actor1), (2, actor2)}
             union (
-              insert Person {
+              insert v1::Person {
                 first_name := a.1.first_name,
                 middle_name := a.1.middle_name,
                 last_name := a.1.last_name,
-                image := a.1.image,
                 @list_order := a.0
               }
             )
@@ -185,7 +172,7 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
 
         movie =
           EdgeDB.query_required_single!(client, """
-          select Movie {
+          select v1::Movie {
             title,
             directors,
             actors: {

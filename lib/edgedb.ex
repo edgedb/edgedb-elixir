@@ -10,7 +10,7 @@ defmodule EdgeDB do
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> EdgeDB.query!(client, "\"\"
-  ...(2)>   select Person{
+  ...(2)>   select v1::Person{
   ...(2)>     first_name,
   ...(2)>     middle_name,
   ...(2)>     last_name
@@ -545,8 +545,8 @@ defmodule EdgeDB do
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
   iex(2)> {:ok, tickets} = EdgeDB.transaction(client, fn client ->
-  ...(2)>  EdgeDB.query!(client, "insert Ticket{ number := 2}")
-  ...(2)>  EdgeDB.query!(client, "select Ticket")
+  ...(2)>  EdgeDB.query!(client, "insert v1::Ticket{ number := 2}")
+  ...(2)>  EdgeDB.query!(client, "select v1::Ticket")
   ...(2)> end)
   iex(3)> tickets
   #EdgeDB.Set<{#EdgeDB.Object<>}>

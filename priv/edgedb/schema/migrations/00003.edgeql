@@ -1,6 +1,7 @@
-CREATE MIGRATION m16wualxmsuqqryhwrn6kgd6upwxge3cwruitgz63wbe5mynxxieva
-    ONTO m1ryrngpym75cc5zcmkrfebkg6dcmyflzu7727vnjhmy2zl4q3tjda
+CREATE MIGRATION m17xqasqccfam62oqoyltgemn7mrdws33vik4bodj67kcmwfa3mq6q
+    ONTO m1s4rwuphzakukj3i6wqbwi534ctcmaulpn4a4wfclpejyowtxkloq
 {
   CREATE EXTENSION pgvector VERSION '0.4';
-  CREATE SCALAR TYPE default::ExVector EXTENDING ext::pgvector::vector<1602>;
+  CREATE MODULE v3 IF NOT EXISTS;
+  CREATE SCALAR TYPE v3::ExVector EXTENDING ext::pgvector::vector<1602>;
 };

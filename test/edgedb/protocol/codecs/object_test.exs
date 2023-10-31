@@ -13,12 +13,11 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
         EdgeDB.query_required_single!(client, """
         select {
           name := "username",
-          image := "http://example.com/some/url"
         }
         """)
 
       assert_raise EdgeDB.Error, ~r/objects encoding is not supported/, fn ->
-        EdgeDB.query!(client, "select {<str>$name, <str>$image}", anonymous_user)
+        EdgeDB.query!(client, "select {<str>$name}", anonymous_user)
       end
     end
 
@@ -98,15 +97,13 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
   test "decoding single object", %{client: client} do
     rollback(client, fn client ->
       EdgeDB.query!(client, """
-        insert User {
+        insert v1::User {
           name := "username",
-          image := "http://example.com/some/url"
         }
       """)
 
-      user = EdgeDB.query_required_single!(client, "select User { name, image } limit 1")
+      user = EdgeDB.query_required_single!(client, "select v1::User { name } limit 1")
       assert user[:name] == "username"
-      assert user[:image] == "http://example.com/some/url"
     end)
   end
 
@@ -116,12 +113,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
         EdgeDB.query_required_single!(client, """
         select {
           name := "username",
-          image := "http://example.com/some/url"
         }
         """)
 
       assert anonymous_user[:name] == "username"
-      assert anonymous_user[:image] == "http://example.com/some/url"
     end)
   end
 
@@ -130,24 +125,22 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
       EdgeDB.query!(client, """
       with
         director := (
-          insert Person {
+          insert v1::Person {
             first_name := "Chris",
             middle_name := "Joseph",
             last_name := "Columbus",
-            image := "",
           }
         )
-      insert Movie {
+      insert v1::Movie {
         title := "Harry Potter and the Philosopher's Stone",
         year := 2001,
-        image := "",
         directors := director
       }
       """)
 
       movie =
         EdgeDB.query_required_single!(client, """
-        select Movie {
+        select v1::Movie {
           title,
           year,
           directors: {
@@ -175,29 +168,25 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
       EdgeDB.query!(client, """
       with
         director := (
-          insert Person {
+          insert v1::Person {
             first_name := "Chris",
             middle_name := "Joseph",
             last_name := "Columbus",
-            image := "",
           }
         ),
         actor1 := (
           first_name := "Daniel",
           middle_name := "Jacob",
           last_name := "Radcliffe",
-          image := "",
         ),
         actor2 := (
           first_name := "Emma",
           middle_name := "Charlotte Duerre",
           last_name := "Watson",
-          image := "",
         )
-      insert Movie {
+      insert v1::Movie {
         title := "Harry Potter and the Philosopher's Stone",
         year := 2001,
-        image := "",
         description := $$
           Late one night, Albus Dumbledore and Minerva McGonagall, professors at Hogwarts School of Witchcraft and Wizardry, along with the school's groundskeeper Rubeus Hagrid, deliver a recently orphaned infant named Harry Potter to his only remaining relatives, the Dursleys....
         $$,
@@ -205,11 +194,10 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
         actors := (
           for a in {(1, actor1), (2, actor2)}
           union (
-            insert Person {
+            insert v1::Person {
               first_name := a.1.first_name,
               middle_name := a.1.middle_name,
               last_name := a.1.last_name,
-              image := a.1.image,
               @list_order := a.0
             }
           )
@@ -219,7 +207,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.ObjectTest do
 
       movie =
         EdgeDB.query_required_single!(client, """
-        select Movie {
+        select v1::Movie {
           title,
           actors: {
             @list_order

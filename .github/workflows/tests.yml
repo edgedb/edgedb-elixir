@@ -54,18 +54,21 @@ jobs:
         with:
           submodules: true
 
-      - name: Remove migrations for EdgeDB versions greater then current major version (${{ matrix.edgedb-version }})
+      - name: Remove non ${{ matrix.edgedb-version }} EdgeDB version modules and migrations
         env:
           EDGEDB_VERSION: ${{ matrix.edgedb-version }}
         run: |
           EDGEDB_VERSION=${EDGEDB_VERSION%%.*}
 
-          for migration_file in `ls priv/edgedb/schema/migrations/`
+          rm -r "priv/edgedb/schema/migrations/"
+
+          for module_file in `ls priv/edgedb/schema/`
           do
-              migration_number=${migration_file%.*}
-              if test ${migration_number} -gt ${EDGEDB_VERSION}
+              module_version=${module_file%.esdl}
+              module_version=${module_version#v}
+              if test ${module_version} -gt ${EDGEDB_VERSION}
               then
-                  rm "priv/edgedb/schema/migrations/${migration_file}"
+                  rm "priv/edgedb/schema/${module_file}"
               fi
           done
 
@@ -75,6 +78,11 @@ jobs:
         with:
           server-version: ${{ matrix.edgedb-version }}
           instance-name: edgedb_elixir
+
+      - name: Generate EdgeDB migrations
+        run: |
+          edgedb migration create --non-interactive
+          edgedb migrate
 
       - uses: erlef/setup-beam@v1
         with:

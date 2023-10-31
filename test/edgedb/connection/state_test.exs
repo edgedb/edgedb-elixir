@@ -14,8 +14,8 @@ defmodule Tests.EdgeDB.Connection.StateTest do
         %EdgeDB.Client.State{}
         |> EdgeDB.Client.State.with_default_module("schema")
         |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
-        |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
-        |> EdgeDB.Client.State.with_config(query_execution_timeout: duration)
+        |> EdgeDB.Client.State.with_globals(%{"v2::current_user" => current_user})
+        |> EdgeDB.Client.State.with_config(%{query_execution_timeout: duration})
 
       %{state: state, current_user: current_user, duration: duration}
     end
@@ -39,9 +39,9 @@ defmodule Tests.EdgeDB.Connection.StateTest do
           with
             config := (select cfg_alias::Config limit 1),
             abs_value := math_alias::abs(-1),
-            user_object_type := (select ObjectType filter .name = 'default::User' limit 1)
+            user_object_type := (select ObjectType filter .name = 'v1::User' limit 1)
           select {
-            current_user := global default::current_user,
+            current_user := global v2::current_user,
             config_query_execution_timeout := config.query_execution_timeout,
             math_abs_value := abs_value,
             user_type := user_object_type { name }
@@ -51,7 +51,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
       assert object[:current_user] == current_user
       assert object[:config_query_execution_timeout] == duration
       assert object[:math_abs_value] == 1
-      assert object[:user_type][:name] == "default::User"
+      assert object[:user_type][:name] == "v1::User"
     end
   end
 
@@ -66,7 +66,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
         %EdgeDB.Client.State{}
         |> EdgeDB.Client.State.with_default_module("schema")
         |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
-        |> EdgeDB.Client.State.with_globals(%{"default::current_user" => current_user})
+        |> EdgeDB.Client.State.with_globals(%{"v2::current_user" => current_user})
         |> EdgeDB.Client.State.with_config(query_execution_timeout: duration)
 
       Application.put_env(:edgedb, :client_state, state)
@@ -92,9 +92,9 @@ defmodule Tests.EdgeDB.Connection.StateTest do
           with
             config := (select cfg_alias::Config limit 1),
             abs_value := math_alias::abs(-1),
-            user_object_type := (select ObjectType filter .name = 'default::User' limit 1)
+            user_object_type := (select ObjectType filter .name = 'v1::User' limit 1)
           select {
-            current_user := global default::current_user,
+            current_user := global v2::current_user,
             config_query_execution_timeout := config.query_execution_timeout,
             math_abs_value := abs_value,
             user_type := user_object_type { name }
@@ -104,7 +104,7 @@ defmodule Tests.EdgeDB.Connection.StateTest do
       assert object[:current_user] == current_user
       assert object[:config_query_execution_timeout] == duration
       assert object[:math_abs_value] == 1
-      assert object[:user_type][:name] == "default::User"
+      assert object[:user_type][:name] == "v1::User"
     end
   end
 end
