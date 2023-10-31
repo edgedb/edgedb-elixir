@@ -10,7 +10,8 @@ defmodule EdgeDB.DateDuration do
   ```
   """
 
-  defstruct days: 0, months: 0
+  defstruct days: 0,
+            months: 0
 
   @typedoc """
   An immutable value represeting an EdgeDB `cal::date_duration` value.

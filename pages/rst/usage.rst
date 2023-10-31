@@ -120,7 +120,7 @@ We can iterate over ``EdgeDB.Set`` and inspect each object separately:
 
 .. code:: iex
 
-   iex(3)> Enum.each(posts, fn %EdgeDB.Object{} = post ->
+   iex(3)> Enum.each(posts, fn post ->
    ...(3)>   IO.inspect(post[:body], label: "post (#{inspect(post.id)})")
    ...(3)> end)
    post ("3c5c8cf2-860f-11ec-a22a-2b0ab4e21d4b"): "EdgeDB is awesome! Try the Elixir client for it"
@@ -140,8 +140,8 @@ Let’s query a post with a link to the Elixir client for EdgeDB:
 .. code:: iex
 
    iex(1)> {:ok, client} = EdgeDB.start_link()
-   iex(2)> %EdgeDB.Object{} = post = EdgeDB.query_single!(client, "select Post filter contains(.body, 'https://hex.pm/packages/edgedb') limit 1")
-   iex(3)> post.id
+   iex(2)> post = EdgeDB.query_single!(client, "select Post filter contains(.body, 'https://hex.pm/packages/edgedb') limit 1")
+   iex(3)> post[:id]
    "3c5c9378-860f-11ec-a22a-0713dfca8baa"
 
 If we try to select a ``Post`` that does not exist, ``nil`` will be returned:
@@ -186,7 +186,7 @@ Transactions can be rollbacked using the ``EdgeDB.rollback/2`` function or autom
 
    iex(3)> {:error, :rollback} =
    ...(3)>  EdgeDB.transaction(client, fn conn ->
-   ...(3)>    %EdgeDB.Object{} = EdgeDB.query_required_single!(conn, "insert User { name := <str>$username }", username: "wrong_username")
+   ...(3)>    EdgeDB.query_required_single!(conn, "insert User { name := <str>$username }", username: "wrong_username")
    ...(3)>    EdgeDB.rollback(conn)
    ...(3)>  end)
    iex(4)> EdgeDB.query_single!(client, "select User { name } filter .name = <str>$username", username: "wrong_username")

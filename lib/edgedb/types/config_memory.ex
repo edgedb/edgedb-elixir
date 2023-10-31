@@ -11,16 +11,23 @@ defmodule EdgeDB.ConfigMemory do
   ```
   """
 
-  defstruct [
-    :bytes
-  ]
+  defstruct bytes: 0
 
   @typedoc """
   An immutable value represeting an EdgeDB `cfg::memory` value as a quantity of memory storage.
   """
   @opaque t() :: %__MODULE__{
-            bytes: pos_integer()
+            bytes: non_neg_integer()
           }
+
+  @doc since: "0.7.0"
+  @doc """
+  Create a new config memory value.
+  """
+  @spec new(non_neg_integer()) :: t()
+  def new(bytes) do
+    %__MODULE__{bytes: bytes}
+  end
 
   @doc """
   Get a quantity of memory storage in bytes.

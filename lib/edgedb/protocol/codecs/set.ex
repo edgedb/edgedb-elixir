@@ -24,7 +24,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Set do
     Codecs
   }
 
-  @empty_set %EdgeDB.Set{__items__: []}
+  @empty_set %EdgeDB.Set{}
 
   @impl Codec
   def encode(_codec, %EdgeDB.Set{}, _codec_storage) do
@@ -69,7 +69,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Set do
           elements
       end
 
-    %EdgeDB.Set{__items__: elements}
+    %EdgeDB.Set{items: elements}
   end
 
   defp decode_dimension_list(<<data::binary>>, 0, acc) do

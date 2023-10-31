@@ -20,15 +20,16 @@ defmodule EdgeDB.NamedTuple do
 
   @behaviour Access
 
-  defstruct [
-    :__fields_ordering__,
-    :__items__
-  ]
+  defstruct items: %{},
+            order: %{}
 
   @typedoc """
   An immutable value representing an EdgeDB named tuple value.
   """
-  @opaque t() :: %__MODULE__{}
+  @opaque t() :: %__MODULE__{
+            order: %{non_neg_integer() => String.t()},
+            items: %{String.t() => term()}
+          }
 
   @doc """
   Convert a named tuple to a regular erlang tuple.
@@ -59,7 +60,7 @@ defmodule EdgeDB.NamedTuple do
   ```
   """
   @spec to_map(t()) :: %{String.t() => term()}
-  def to_map(%__MODULE__{__items__: items}) do
+  def to_map(%__MODULE__{items: items}) do
     items
   end
 
@@ -74,7 +75,7 @@ defmodule EdgeDB.NamedTuple do
   ```
   """
   @spec keys(t()) :: list(String.t())
-  def keys(%__MODULE__{__fields_ordering__: fields_order}) do
+  def keys(%__MODULE__{order: fields_order}) do
     fields_order
     |> Enum.sort()
     |> Enum.map(fn {_index, name} ->
@@ -83,7 +84,7 @@ defmodule EdgeDB.NamedTuple do
   end
 
   @impl Access
-  def fetch(%__MODULE__{__items__: items, __fields_ordering__: fields_order}, index)
+  def fetch(%__MODULE__{items: items, order: fields_order}, index)
       when is_integer(index) do
     with {:ok, name} <- Map.fetch(fields_order, index) do
       Map.fetch(items, name)
@@ -99,7 +100,7 @@ defmodule EdgeDB.NamedTuple do
   end
 
   @impl Access
-  def fetch(%__MODULE__{__items__: items}, key) when is_binary(key) do
+  def fetch(%__MODULE__{items: items}, key) when is_binary(key) do
     Map.fetch(items, key)
   end
 
@@ -116,19 +117,19 @@ end
 
 defimpl Enumerable, for: EdgeDB.NamedTuple do
   @impl Enumerable
-  def count(%EdgeDB.NamedTuple{__items__: items}) do
+  def count(%EdgeDB.NamedTuple{items: items}) do
     Enumerable.count(items)
   end
 
   @impl Enumerable
-  def member?(%EdgeDB.NamedTuple{__items__: items}, element) do
+  def member?(%EdgeDB.NamedTuple{items: items}, element) do
     items
     |> Map.values()
     |> Enumerable.member?(element)
   end
 
   @impl Enumerable
-  def reduce(%EdgeDB.NamedTuple{__items__: items, __fields_ordering__: fields_order}, acc, fun) do
+  def reduce(%EdgeDB.NamedTuple{items: items, order: fields_order}, acc, fun) do
     fields_order
     |> Enum.sort()
     |> Enum.map(fn {_index, name} ->
@@ -138,7 +139,7 @@ defimpl Enumerable, for: EdgeDB.NamedTuple do
   end
 
   @impl Enumerable
-  def slice(%EdgeDB.NamedTuple{__items__: items, __fields_ordering__: fields_order}) do
+  def slice(%EdgeDB.NamedTuple{items: items, order: fields_order}) do
     fields_order
     |> Enum.sort()
     |> Enum.map(fn {_index, name} ->
@@ -152,7 +153,7 @@ defimpl Inspect, for: EdgeDB.NamedTuple do
   import Inspect.Algebra
 
   @impl Inspect
-  def inspect(%EdgeDB.NamedTuple{__items__: items, __fields_ordering__: fields_order}, _opts) do
+  def inspect(%EdgeDB.NamedTuple{items: items, order: fields_order}, _opts) do
     {max_index, _name} =
       Enum.max(fields_order, fn ->
         {nil, nil}

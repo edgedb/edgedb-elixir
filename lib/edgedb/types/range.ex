@@ -10,13 +10,11 @@ defmodule EdgeDB.Range do
   ```
   """
 
-  defstruct [
-    :lower,
-    :upper,
-    inc_lower: true,
-    inc_upper: false,
-    is_empty: false
-  ]
+  defstruct lower: nil,
+            upper: nil,
+            inc_lower: true,
+            inc_upper: false,
+            is_empty: false
 
   @typedoc since: "0.6.1"
   @typedoc """

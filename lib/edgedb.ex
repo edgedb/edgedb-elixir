@@ -262,7 +262,7 @@ defmodule EdgeDB do
 
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select 42")
+  iex(2)> {:ok, set} = EdgeDB.query(client, "select 42")
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
@@ -286,14 +286,14 @@ defmodule EdgeDB do
 
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$0", [42])
+  iex(2)> {:ok, set} = EdgeDB.query(client, "select <int64>$0", [42])
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```
 
   ```iex
   iex(1)> {:ok, client} = EdgeDB.start_link()
-  iex(2)> {:ok, %EdgeDB.Set{} = set} = EdgeDB.query(client, "select <int64>$arg", arg: 42)
+  iex(2)> {:ok, set} = EdgeDB.query(client, "select <int64>$arg", arg: 42)
   iex(3)> set
   #EdgeDB.Set<{42}>
   ```

@@ -5,9 +5,9 @@ defmodule Tests.EdgeDB.Protocol.Codecs.MultiRangeTest do
 
   @input_ranges %{
     "multirange<int32>" => [
-      %EdgeDB.MultiRange{ranges: [EdgeDB.Range.new(1, 2)]},
-      %EdgeDB.MultiRange{ranges: [EdgeDB.Range.new(1, 2), EdgeDB.Range.new(3, 4)]},
-      {%EdgeDB.MultiRange{ranges: [EdgeDB.Range.empty()]}, %EdgeDB.MultiRange{ranges: []}}
+      EdgeDB.MultiRange.new([EdgeDB.Range.new(1, 2)]),
+      EdgeDB.MultiRange.new([EdgeDB.Range.new(1, 2), EdgeDB.Range.new(3, 4)]),
+      {EdgeDB.MultiRange.new([EdgeDB.Range.empty()]), EdgeDB.MultiRange.new()}
     ]
   }
 
