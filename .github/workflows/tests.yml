@@ -74,7 +74,7 @@ jobs:
 
           echo "EDGEDB_VERSION=${EDGEDB_VERSION}" >> ${GITHUB_ENV}
 
-      - uses: edgedb/setup-edgedb@v1.2.2
+      - uses: edgedb/setup-edgedb@v1.3.0
         with:
           server-version: ${{ matrix.edgedb-version }}
           instance-name: edgedb_elixir
