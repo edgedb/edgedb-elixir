@@ -303,7 +303,7 @@ defmodule EdgeDB do
   If the client is able to recognize the query as a read-only query
     (i.e. the query does not change the data in the database using `delete`, `insert` or other statements),
     then the client will try to repeat the query automatically (as long as the query is not executed in a transaction,
-    because then [retrying transactions](`EdgeDB.transaction/3`) are used).
+    because then retrying transactions via `EdgeDB.transaction/3` are used).
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
