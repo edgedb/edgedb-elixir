@@ -304,7 +304,7 @@ Automatic retries of read-only queries
 
 If the client is able to recognize the query as a read-only query (i.e. the query does not change the data in the database using ``delete``,
 ``insert`` or other statements), then the client will try to repeat the query automatically (as long as the query is not executed in a
-transaction, because then `retrying transactions`_ are used).
+transaction, because then retrying transactions via ``EdgeDB.transaction/3`` are used).
 
 See ``EdgeDB.query_option/0`` for supported options.
 
@@ -961,6 +961,5 @@ Wrap a connection in a transaction.
 
 .. _the EdgeDB documentation on connection parameters: https://www.edgedb.com/docs/reference/connection#ref-reference-connection-granular
 .. _the EdgeQL transaction statement: https://www.edgedb.com/docs/reference/edgeql/tx_start#statement::start-transaction
-.. _retrying transactions: %60EdgeDB.transaction/3%60
 .. _RFC: https://github.com/edgedb/rfcs/blob/master/text/1004-transactions-api.rst
 .. _docs: https://www.edgedb.com/docs/stdlib/cfg#client-connections
