@@ -91,7 +91,7 @@ jobs:
           elixir-version: ${{ matrix.elixir-version }}
 
       - name: Set up cache
-        uses: actions/cache@v3.3.2
+        uses: actions/cache@v4.0.0
         id: cache
         with:
           path: |
