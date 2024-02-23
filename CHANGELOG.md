@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - new `EdgeDB.MultiRange` type to represent multiranges from `EdgeDB 4.0`.
 - `EdgeDB.Object.id/1` to fetch ID from an `EdgeDB.Object` if it was returned from the query.
 - `EdgeDB.ConfigMemory.new/1` to create a new instance of `t:EdgeDB.ConfigMemory.t/0`.
+- support for `Elixir v1.16`.
 
 ### Changed
 
