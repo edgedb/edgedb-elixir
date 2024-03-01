@@ -1,0 +1,1 @@
+select <multirange<decimal>>$arg

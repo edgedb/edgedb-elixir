@@ -1,0 +1,5 @@
+%{
+    <%= for element <- @named_tuple.elements do %>
+    <%= element.name %>: <%= EdgeDB.EdgeQL.Generator.Render.render(element, :typespec, @opts) %>,
+    <% end %>
+}

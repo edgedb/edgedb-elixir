@@ -1,0 +1,1 @@
+select <optional decimal>$arg

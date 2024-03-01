@@ -17,12 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `EdgeDB.Object.id/1` to fetch ID from an `EdgeDB.Object` if it was returned from the query.
 - `EdgeDB.ConfigMemory.new/1` to create a new instance of `t:EdgeDB.ConfigMemory.t/0`.
 - support for `Elixir v1.16`.
+- support for generating Elixir modules from EdgeQL queries via `mix edgedb.generate`.
+- abitility to pass atoms as valid arguments for enums.
 
 ### Changed
 
 - `t:EdgeDB.Object.t/0` to be `opaque`.
+- `jason` to be required library, but still configurable.
+- `EdgeDB.NamedTuple.to_map/2` to include indexes as keys into result map.
 
 ### Fixed
+
 - client state handling in `EdgeDB.with_config/2`/`EdgeDB.without_config/2`,
     `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2` and
     `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`.

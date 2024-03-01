@@ -45,9 +45,7 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.Duration do
 
   @impl EdgeDB.Protocol.Codec
   def encode(_codec, value, _codec_storage) do
-    raise EdgeDB.InvalidArgumentError.new(
-            "value can not be encoded as std::duration: #{inspect(value)}"
-          )
+    raise EdgeDB.InvalidArgumentError.new("value can not be encoded as std::duration: #{inspect(value)}")
   end
 
   if @use_timex and Code.ensure_loaded?(Timex) do

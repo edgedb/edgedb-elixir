@@ -1,0 +1,9 @@
+<%= if @link.is_multi do %>
+<%= EdgeDB.EdgeQL.Generator.Render.render(@link.type, :typespec, @opts) %>
+<% else %>
+<%= EdgeDB.EdgeQL.Generator.Render.render(@link.type, :typespec, @opts) %>
+<% end %>
+
+<%= if @link.is_optional do %>
+| nil
+<% end %>

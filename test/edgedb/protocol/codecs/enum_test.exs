@@ -22,8 +22,6 @@ defmodule Tests.EdgeDB.Protocol.Codecs.EnumTest do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as enum: not enum member: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as enum: not enum member: #{inspect(value)}")
   end
 end

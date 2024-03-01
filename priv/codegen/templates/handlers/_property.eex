@@ -1,0 +1,14 @@
+<%= if EdgeDB.EdgeQL.Generator.Handler.handle?(@property) do %>
+    <%= if @property.is_optional do %>
+with property when not is_nil(property) <- <%= @opts[:variable] %>["<%= @property.name %>"] do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@property.type, Keyword.merge(@opts, variable: "property")) %>
+end
+    <% else %>
+<% variable = EdgeDB.EdgeQL.Generator.Handler.Utils.variable(@property.type, "property") %>
+with <%= variable %> <- <%= @opts[:variable] %>["<%= @property.name %>"] do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@property.type, Keyword.merge(@opts, variable: variable)) %>
+end
+    <% end %>
+<% else %>
+<%= @opts[:variable] %>["<%= @property.name %>"]
+<% end %>

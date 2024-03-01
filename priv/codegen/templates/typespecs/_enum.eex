@@ -1,0 +1,5 @@
+<%= if not is_nil(@enum.module) and not @opts[:root] do %>
+<%= @enum.module %>.<%= @enum.typespec %>
+<% else %>
+<%= @enum.typespec %>
+<% end %>

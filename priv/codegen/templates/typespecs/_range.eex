@@ -1,0 +1,5 @@
+<%= if @range.is_multirange do %>
+EdgeDB.MultiRange.t(<%= EdgeDB.EdgeQL.Generator.Render.render(@range.type, :typespec, @opts) %>)
+<% else %>
+EdgeDB.Range.t(<%= EdgeDB.EdgeQL.Generator.Render.render(@range.type, :typespec, @opts) %>)
+<% end %>

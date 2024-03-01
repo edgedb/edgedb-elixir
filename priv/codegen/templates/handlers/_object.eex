@@ -1,0 +1,13 @@
+%<%= @opts[:module] %>{
+    <%= for property <- @object.properties do %>
+        <%= if property.is_link_property do %>
+    "@<%= property.name %>": <%= EdgeDB.EdgeQL.Generator.Handler.handle(property, @opts) %>,
+        <% else %>
+    <%= property.name %>: <%= EdgeDB.EdgeQL.Generator.Handler.handle(property, @opts) %>,
+        <% end %>
+    <% end %>
+
+    <%= for link <- @object.links do %>
+    <%= link.name %>: <%= EdgeDB.EdgeQL.Generator.Handler.handle(link, @opts) %>,
+    <% end %>
+}

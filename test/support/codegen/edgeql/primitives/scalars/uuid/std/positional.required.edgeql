@@ -1,0 +1,1 @@
+select <uuid>$0

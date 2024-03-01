@@ -34,9 +34,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.DecimalTest do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as std::decimal: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as std::decimal: #{inspect(value)}")
   end
 
   test "error when passing non-number Decimal as std::decimal argument", %{client: client} do

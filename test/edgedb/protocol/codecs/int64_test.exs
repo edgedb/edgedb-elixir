@@ -22,9 +22,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as std::int64: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as std::int64: #{inspect(value)}")
   end
 
   test "error when passing too large number as std::int64 argument", %{client: client} do
@@ -36,9 +34,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as std::int64: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as std::int64: #{inspect(value)}")
   end
 
   test "error when passing too small number as std::int64 argument", %{client: client} do
@@ -50,8 +46,6 @@ defmodule Tests.EdgeDB.Protocol.Codecs.Int64Test do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as std::int64: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as std::int64: #{inspect(value)}")
   end
 end

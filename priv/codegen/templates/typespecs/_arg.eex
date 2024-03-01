@@ -1,0 +1,5 @@
+<%= EdgeDB.EdgeQL.Generator.Render.render(@arg.type, :typespec, @opts) %>
+
+<%= if @arg.is_optional do %>
+| nil
+<% end %>

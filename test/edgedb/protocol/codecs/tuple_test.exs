@@ -20,16 +20,12 @@ defmodule Tests.EdgeDB.Protocol.Codecs.TupleTest do
       value = {1, "string", true, 1.0}
 
       assert ^value =
-               EdgeDB.query_single!(client, "select <tuple<int32, str, bool, float32>>$arg",
-                 arg: value
-               )
+               EdgeDB.query_single!(client, "select <tuple<int32, str, bool, float32>>$arg", arg: value)
     end
 
     test "as optional named query argument", %{client: client} do
       result =
-        EdgeDB.query_single!(client, "select <optional tuple<int32, str, bool, float32>>$arg",
-          arg: nil
-        )
+        EdgeDB.query_single!(client, "select <optional tuple<int32, str, bool, float32>>$arg", arg: nil)
 
       assert is_nil(result)
     end

@@ -100,6 +100,15 @@ Supported options:
 -  ``:max_concurrency`` - maximum number of pool connections, despite what EdgeDB recommends.
 -  ``:client_state`` - an ``EdgeDB.Client.State`` struct that will be used in queries by default.
 
+*type* ``EdgeDB.params/0``
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: elixir
+
+   @type EdgeDB.params() :: map() | list() | Keyword.t()
+
+Parameter types acceptable by ``EdgeDB.query*/4`` functions.
+
 *type* ``EdgeDB.query_option/0``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -232,7 +241,7 @@ See ``EdgeDB.start_option/0`` for supported connection options.
 
 .. code:: elixir
 
-   @spec EdgeDB.execute(client(), String.t(), list(), [query_option()]) :: :ok | {:error, Exception.t()}
+   @spec EdgeDB.execute(client(), String.t(), params(), [query_option()]) :: :ok | {:error, Exception.t()}
 
 Execute an EdgeQL command or commands on the client without returning anything.
 
@@ -245,7 +254,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.execute!(client(), String.t(), list(), [query_option()]) :: :ok
+   @spec EdgeDB.execute!(client(), String.t(), params(), [query_option()]) :: :ok
 
 Execute an EdgeQL command or commands on the client without returning anything. If an error occurs while executing the query, it will be raised
 as an ``EdgeDB.Error`` exception.
@@ -257,7 +266,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query(client(), String.t(), list() | Keyword.t(), [query_option()]) ::
+   @spec EdgeDB.query(client(), String.t(), params(), [query_option()]) ::
      {:ok, result()} | {:error, Exception.t()}
 
 Execute the query on the client and return the results as a ``{:ok, set}`` tuple if successful, where ``set`` is ``EdgeDB.Set``.
@@ -315,7 +324,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query!(client(), String.t(), list(), [query_option()]) :: result()
+   @spec EdgeDB.query!(client(), String.t(), params(), [query_option()]) :: result()
 
 Execute the query on the client and return the results as ``EdgeDB.Set``. If an error occurs while executing the query, it will be raised as as
 an ``EdgeDB.Error`` exception.
@@ -329,7 +338,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_json(client(), String.t(), list(), [query_option()]) ::
+   @spec EdgeDB.query_json(client(), String.t(), params(), [query_option()]) ::
      {:ok, result()} | {:error, Exception.t()}
 
 Execute the query on the client and return the results as a ``{:ok, json}`` tuple if successful, where ``json`` is JSON encoded string.
@@ -345,7 +354,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_json!(client(), String.t(), list(), [query_option()]) :: result()
+   @spec EdgeDB.query_json!(client(), String.t(), params(), [query_option()]) :: result()
 
 Execute the query on the client and return the results as JSON encoded string. If an error occurs while executing the query, it will be raised as
 as an ``EdgeDB.Error`` exception.
@@ -359,7 +368,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_required_single(client(), String.t(), list(), [query_option()]) ::
+   @spec EdgeDB.query_required_single(client(), String.t(), params(), [query_option()]) ::
      {:ok, result()} | {:error, Exception.t()}
 
 Execute the query on the client and return a singleton-returning result as a ``{:ok, result}`` tuple.
@@ -375,7 +384,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_required_single!(client(), String.t(), list(), [query_option()]) :: result()
+   @spec EdgeDB.query_required_single!(client(), String.t(), params(), [query_option()]) :: result()
 
 Execute the query on the client and return a singleton-returning result. If an error occurs while executing the query, it will be raised as an
 ``EdgeDB.Error`` exception.
@@ -389,7 +398,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_required_single_json(client(), String.t(), list(), [query_option()]) ::
+   @spec EdgeDB.query_required_single_json(client(), String.t(), params(), [query_option()]) ::
      {:ok, result()} | {:error, Exception.t()}
 
 Execute the query on the client and return a singleton-returning result as a ``{:ok, json}`` tuple.
@@ -405,7 +414,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_required_single_json!(client(), String.t(), list(), [query_option()]) :: result()
+   @spec EdgeDB.query_required_single_json!(client(), String.t(), params(), [query_option()]) :: result()
 
 Execute the query on the client and return a singleton-returning result as JSON string. If an error occurs while executing the query, it will be
 raised as an ``EdgeDB.Error`` exception.
@@ -419,7 +428,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_single(client(), String.t(), list(), [query_option()]) ::
+   @spec EdgeDB.query_single(client(), String.t(), params(), [query_option()]) ::
      {:ok, result()} | {:error, Exception.t()}
 
 Execute the query on the client and return an optional singleton-returning result as a ``{:ok, result}`` tuple.
@@ -435,7 +444,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_single!(client(), String.t(), list(), [query_option()]) :: result()
+   @spec EdgeDB.query_single!(client(), String.t(), params(), [query_option()]) :: result()
 
 Execute the query on the client and return an optional singleton-returning result. If an error occurs while executing the query, it will be
 raised as an ``EdgeDB.Error`` exception.
@@ -449,7 +458,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_single_json(client(), String.t(), list(), [query_option()]) ::
+   @spec EdgeDB.query_single_json(client(), String.t(), params(), [query_option()]) ::
      {:ok, result()} | {:error, Exception.t()}
 
 Execute the query on the client and return an optional singleton-returning result as a ``{:ok, json}`` tuple.
@@ -465,7 +474,7 @@ See ``EdgeDB.query_option/0`` for supported options.
 
 .. code:: elixir
 
-   @spec EdgeDB.query_single_json!(client(), String.t(), list(), [query_option()]) :: result()
+   @spec EdgeDB.query_single_json!(client(), String.t(), params(), [query_option()]) :: result()
 
 Execute the query on the client and return an optional singleton-returning result as JSON encoded string. If an error occurs while executing the
 query, it will be raised as an ``EdgeDB.Error`` exception.
