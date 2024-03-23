@@ -50,6 +50,7 @@ See ``EdgeDB.as_readonly/1``, ``EdgeDB.with_retry_options/2``, ``EdgeDB.with_tra
      | {:host, String.t()}
      | {:port, :inet.port_number()}
      | {:database, String.t()}
+     | {:branch, String.t()}
      | {:user, String.t()}
      | {:password, String.t()}
      | {:tls_ca, String.t()}
@@ -80,6 +81,7 @@ Supported options:
 -  ``:host`` - the host name of the instance to connect to.
 -  ``:port`` - the port number of the instance to connect to.
 -  ``:database`` - the name of the database to connect to.
+-  ``:branch`` - the name of the branch to connect to.
 -  ``:user`` - the user name to connect to.
 -  ``:password`` - the user password to connect.
 -  ``:secret_key`` - the secret key to be used for authentication.

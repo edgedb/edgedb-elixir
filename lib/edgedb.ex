@@ -62,6 +62,7 @@ defmodule EdgeDB do
     * `:host` - the host name of the instance to connect to.
     * `:port` - the port number of the instance to connect to.
     * `:database` - the name of the database to connect to.
+    * `:branch` - the name of the branch to connect to.
     * `:user` - the user name to connect to.
     * `:password` - the user password to connect.
     * `:secret_key` - the secret key to be used for authentication.
@@ -90,6 +91,7 @@ defmodule EdgeDB do
           | {:host, String.t()}
           | {:port, :inet.port_number()}
           | {:database, String.t()}
+          | {:branch, String.t()}
           | {:user, String.t()}
           | {:password, String.t()}
           | {:tls_ca, String.t()}
@@ -248,8 +250,6 @@ defmodule EdgeDB do
   """
   @spec child_spec(list(start_option())) :: Supervisor.child_spec()
   def child_spec(opts \\ []) do
-    opts = prepare_opts(opts)
-
     %{
       id: EdgeDB,
       start: {EdgeDB, :start_link, [opts]}

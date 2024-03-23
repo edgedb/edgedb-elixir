@@ -36,7 +36,7 @@ defmodule EdgeDB.Connection.Config.DSN do
   defp parse(
          %URI{
            scheme: "edgedb",
-           path: database,
+           path: uri_database,
            query: query
          } = dsn,
          opts
@@ -62,20 +62,21 @@ defmodule EdgeDB.Connection.Config.DSN do
         %{}
       end
 
-    database =
-      if database do
-        String.replace_prefix(database, "/", "")
+    uri_database =
+      if uri_database do
+        String.replace_prefix(uri_database, "/", "")
       else
-        database
+        uri_database
       end
 
-    {database, query} = handle_dsn_part(:database, opts[:database], database, query)
+    {database_or_branch_key, {database_or_branch, query}} =
+      handle_dsn_database_or_branch(opts, uri_database, query)
 
-    database =
-      if database do
-        String.replace_prefix(database, "/", "")
+    database_or_branch =
+      if database_or_branch do
+        String.replace_prefix(database_or_branch, "/", "")
       else
-        database
+        database_or_branch
       end
 
     {host, query} = handle_dsn_part(:host, opts[:host], host, query)
@@ -90,10 +91,20 @@ defmodule EdgeDB.Connection.Config.DSN do
 
     server_settings = Validation.validate_server_settings(query)
 
-    Keyword.merge(opts,
+    database_or_branch =
+      case database_or_branch_key do
+        :branch ->
+          Validation.validate_branch(database_or_branch)
+
+        :database ->
+          Validation.validate_database(database_or_branch)
+      end
+
+    opts
+    |> Keyword.put(database_or_branch_key, database_or_branch)
+    |> Keyword.merge(
       host: Validation.validate_host(host),
       port: Validation.validate_port(port),
-      database: Validation.validate_database(database),
       user: Validation.validate_user(user),
       password: password,
       secret_key: secret_key,
@@ -137,6 +148,43 @@ defmodule EdgeDB.Connection.Config.DSN do
       end
 
     %URI{dsn | host: host, port: port}
+  end
+
+  defp handle_dsn_database_or_branch(opts, uri_database, query) do
+    defines_branch? =
+      Enum.any?([query["branch"], query["branch_env"], query["branch_file"]], &(not is_nil(&1)))
+
+    defines_database? =
+      Enum.any?(
+        [query["database"], query["database_env"], query["database_file"]],
+        &(not is_nil(&1))
+      )
+
+    cond do
+      defines_branch? and defines_database? ->
+        raise RuntimeError,
+          message:
+            ~s(invalid DSN or instance name: "database" and "branch" parameters in DSN can not be present at the same time)
+
+      defines_branch? and not is_nil(opts[:database]) ->
+        raise EdgeDB.ClientConnectionError.new(
+                ~s("branch" parameter in DNS and :database option are mutually exclusive)
+              )
+
+      defines_database? and not is_nil(opts[:branch]) ->
+        raise EdgeDB.ClientConnectionError.new(
+                ~s("database" parameter in DNS and :branch option are mutually exclusive)
+              )
+
+      defines_branch? ->
+        {:branch, handle_dsn_part(:branch, opts[:branch], uri_database, query)}
+
+      not is_nil(opts[:branch]) ->
+        {:branch, handle_dsn_part(:branch, opts[:branch], uri_database, query)}
+
+      true ->
+        {:database, handle_dsn_part(:database, opts[:database], uri_database, query)}
+    end
   end
 
   defp handle_dsn_part(option, value, uri_value, query) when is_atom(option) do

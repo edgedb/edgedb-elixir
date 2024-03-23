@@ -11,6 +11,7 @@ defmodule EdgeDB.Connection.Config do
   @default_host "localhost"
   @default_port 5656
   @default_database "edgedb"
+  @default_branch "__default__"
   @default_user "edgedb"
   @default_timeout 15_000
 
@@ -89,8 +90,11 @@ defmodule EdgeDB.Connection.Config do
     |> Keyword.put_new_lazy(:address, fn ->
       {opts[:host] || @default_host, opts[:port] || @default_port}
     end)
-    |> Keyword.update(:database, @default_database, fn database ->
-      database || @default_database
+    |> Keyword.update(:database, opts[:branch] || @default_database, fn database ->
+      database || opts[:branch] || @default_database
+    end)
+    |> Keyword.update(:branch, opts[:database] || @default_branch, fn branch ->
+      branch || opts[:database] || @default_branch
     end)
     |> Keyword.update(:user, @default_user, fn user ->
       user || @default_user
@@ -210,9 +214,6 @@ defmodule EdgeDB.Connection.Config do
   defp resolve_opts(resolved_opts, opts) do
     resolved_opts =
       resolved_opts
-      |> Keyword.put_new_lazy(:database, fn ->
-        Validation.validate_database(opts[:database])
-      end)
       |> Keyword.put_new_lazy(:user, fn ->
         Validation.validate_user(opts[:user])
       end)
@@ -229,6 +230,27 @@ defmodule EdgeDB.Connection.Config do
       |> Enum.reject(fn {_key, value} ->
         is_nil(value)
       end)
+
+    resolved_opts =
+      cond do
+        not is_nil(opts[:branch]) and not is_nil(opts[:database]) ->
+          raise EdgeDB.ClientConnectionError.new(
+                  ":database and :branch keys are mutually exclusive"
+                )
+
+        not is_nil(opts[:branch]) ->
+          Keyword.put_new_lazy(resolved_opts, :branch, fn ->
+            Validation.validate_branch(opts[:branch])
+          end)
+
+        not is_nil(opts[:database]) ->
+          Keyword.put_new_lazy(resolved_opts, :database, fn ->
+            Validation.validate_database(opts[:database])
+          end)
+
+        true ->
+          resolved_opts
+      end
 
     compound_params_count =
       [
@@ -269,6 +291,14 @@ defmodule EdgeDB.Connection.Config do
       end
 
     resolved_opts = Keyword.merge(opts, resolved_opts)
+
+    if not is_nil(resolved_opts[:database]) and not is_nil(resolved_opts[:branch]) and
+         resolved_opts[:database] != resolved_opts[:branch] do
+      raise EdgeDB.ClientConnectionError.new(
+              ~s(invalid DSN or instance name: :database and :branch keys are mutually exclusive)
+            )
+    end
+
     {resolved_opts, compound_params_count}
   end
 
@@ -288,7 +318,10 @@ defmodule EdgeDB.Connection.Config do
       Regex.match?(@cloud_instance_name_regex, opts[:instance_name] || "") ->
         [org_slug, instance_name] = String.split(opts[:instance_name], "/")
         secret_key = opts[:secret_key] || resolved_opts[:secret_key]
-        cloud_profile = opts[:cloud_profile] || resolved_opts[:cloud_profile]
+
+        cloud_profile =
+          opts[:cloud_profile] || resolved_opts[:cloud_profile] ||
+            from_env("EDGEDB_CLOUD_PROFILE")
 
         Cloud.parse_cloud_credentials(org_slug, instance_name, secret_key, cloud_profile)
 
@@ -309,6 +342,7 @@ defmodule EdgeDB.Connection.Config do
       host: from_config(:host),
       port: from_config(:port),
       database: from_config(:database),
+      branch: from_config(:branch),
       user: from_config(:user),
       password: from_config(:password),
       secret_key: from_config(:secret_key),
@@ -352,6 +386,7 @@ defmodule EdgeDB.Connection.Config do
       host: from_env("EDGEDB_HOST"),
       port: port,
       database: from_env("EDGEDB_DATABASE"),
+      branch: from_env("EDGEDB_BRANCH"),
       user: from_env("EDGEDB_USER"),
       password: from_env("EDGEDB_PASSWORD"),
       secret_key: from_env("EDGEDB_SECRET_KEY"),
