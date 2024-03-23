@@ -122,6 +122,7 @@ if File.exists?(testcases_file) do
             host: opts["host"],
             port: opts["port"],
             database: opts["database"],
+            branch: opts["branch"],
             user: opts["user"],
             password: opts["password"],
             secret_key: opts["secretKey"],
@@ -205,6 +206,7 @@ if File.exists?(testcases_file) do
           [
             address: List.to_tuple(result["address"]),
             database: result["database"],
+            branch: result["branch"],
             user: result["user"],
             password: result["password"],
             secret_key: result["secretKey"],

@@ -14,6 +14,7 @@ defmodule Tests.Support.EdgeDBCase do
       import unquote(__MODULE__)
 
       setup [
+        :set_mox_from_context,
         :setup_stubs_fallbacks,
         :verify_on_exit!
       ]

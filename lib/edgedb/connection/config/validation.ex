@@ -13,11 +13,20 @@ defmodule EdgeDB.Connection.Config.Validation do
   @security_string_options Enum.map(@security_options, &to_string/1)
 
   @spec validate_database(term()) :: String.t() | nil
-
   def validate_database(option) do
     if option == "" do
       raise RuntimeError,
         message: "invalid database: database name couldn't be an empty string"
+    end
+
+    option
+  end
+
+  @spec validate_branch(term()) :: String.t() | nil
+  def validate_branch(option) do
+    if option == "" do
+      raise RuntimeError,
+        message: "invalid branch: branch name couldn't be an empty string"
     end
 
     option
