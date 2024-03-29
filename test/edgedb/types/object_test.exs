@@ -22,46 +22,6 @@ defmodule Tests.EdgeDB.Types.ObjectTest do
         assert MapSet.equal?(user_properties, expected_properties)
       end)
     end
-
-    test "returns list of object properties names + id with `:id` option ", %{client: client} do
-      rollback(client, fn client ->
-        EdgeDB.query!(client, """
-        insert v1::User {
-          name := "username",
-        }
-        """)
-
-        user_properties =
-          client
-          |> EdgeDB.query_required_single!("select v1::User { name } limit 1")
-          |> EdgeDB.Object.properties(id: true)
-          |> MapSet.new()
-
-        expected_properties = MapSet.new(["id", "name"])
-        assert MapSet.equal?(user_properties, expected_properties)
-      end)
-    end
-
-    test "returns list of object properties names + id with `:implicit` option ", %{
-      client: client
-    } do
-      rollback(client, fn client ->
-        EdgeDB.query!(client, """
-        insert v1::User {
-          name := "username",
-        }
-        """)
-
-        user_properties =
-          client
-          |> EdgeDB.query_required_single!("select v1::User { name } limit 1")
-          |> EdgeDB.Object.properties(implicit: true)
-          |> MapSet.new()
-
-        expected_properties = MapSet.new(["id", "name"])
-        assert MapSet.equal?(user_properties, expected_properties)
-      end)
-    end
   end
 
   describe "EdgeDB.Object.links/1" do

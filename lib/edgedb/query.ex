@@ -13,7 +13,7 @@ defmodule EdgeDB.Query do
     implicit_limit: 0,
     inline_type_names: false,
     inline_type_ids: false,
-    inline_object_ids: true,
+    inline_object_ids: false,
     cardinality: :many,
     required: false,
     is_script: false,
