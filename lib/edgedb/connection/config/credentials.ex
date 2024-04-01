@@ -46,6 +46,9 @@ defmodule EdgeDB.Connection.Config.Credentials do
       {"database", value}, opts ->
         Keyword.put(opts, :database, Validation.validate_database(value))
 
+      {"branch", value}, opts ->
+        Keyword.put(opts, :branch, Validation.validate_branch(value))
+
       {"user", value}, opts ->
         Keyword.put(opts, :user, Validation.validate_user(value))
 
@@ -128,6 +131,11 @@ defmodule EdgeDB.Connection.Config.Credentials do
     if is_nil(credentials[:user]) do
       raise RuntimeError,
         message: ~s("user" key is required)
+    end
+
+    if not is_nil(credentials[:database]) and not is_nil(credentials[:branch]) do
+      raise RuntimeError,
+        message: ~s("database" and "branch" keys can not be present at the same time)
     end
 
     Validation.validate_tls_verify_hostname_with_tls_security(
