@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `t:EdgeDB.Object.t/0` to be `opaque`.
+- the behavior of injecting an implicit `:id` field into objects so that this no longer happens.
 
 ### Fixed
 - client state handling in `EdgeDB.with_config/2`/`EdgeDB.without_config/2`,
