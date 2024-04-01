@@ -133,9 +133,10 @@ defmodule EdgeDB.Connection.Config.Credentials do
         message: ~s("user" key is required)
     end
 
-    if not is_nil(credentials[:database]) and not is_nil(credentials[:branch]) do
+    if not is_nil(credentials[:branch]) and not is_nil(credentials[:database]) and
+         credentials[:branch] != credentials[:database] do
       raise RuntimeError,
-        message: ~s("database" and "branch" keys can not be present at the same time)
+        message: ~s("database" and "branch" keys can not be different)
     end
 
     Validation.validate_tls_verify_hostname_with_tls_security(

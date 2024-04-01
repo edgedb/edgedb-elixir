@@ -82,6 +82,7 @@ defmodule EdgeDB.Connection do
       :socket,
       :user,
       :database,
+      :branch,
       :queries_cache,
       :codec_storage,
       :timeout,
@@ -101,6 +102,7 @@ defmodule EdgeDB.Connection do
             socket: :ssl.sslsocket(),
             user: String.t(),
             database: String.t(),
+            branch: String.t(),
             timeout: timeout(),
             pool_pid: pid() | nil,
             server_key_data: list(byte()) | nil,
@@ -124,6 +126,7 @@ defmodule EdgeDB.Connection do
     password = opts[:password]
     secret_key = opts[:secret_key]
     database = opts[:database]
+    branch = opts[:branch]
     codec_modules = Keyword.get(opts, :codecs, [])
 
     tcp_opts = Keyword.get(opts, :tcp, []) ++ @tcp_socket_opts
@@ -142,6 +145,7 @@ defmodule EdgeDB.Connection do
     state = %State{
       user: user,
       database: database,
+      branch: branch,
       timeout: timeout,
       pool_pid: pool_pid,
       queries_cache: qc,
@@ -611,6 +615,13 @@ defmodule EdgeDB.Connection do
           Keyword.put(socket_opts, :verify, :verify_none)
       end
 
+    socket_opts =
+      if connect_opts[:tls_server_name] do
+        Keyword.put(socket_opts, :server_name_indication, connect_opts[:tls_server_name])
+      else
+        socket_opts
+      end
+
     Keyword.put(socket_opts, :alpn_advertised_protocols, [@edgedb_alpn_protocol])
   end
 
@@ -623,6 +634,10 @@ defmodule EdgeDB.Connection do
       %ConnectionParam{
         name: "database",
         value: state.database
+      },
+      %ConnectionParam{
+        name: "branch",
+        value: state.branch
       }
     ]
 

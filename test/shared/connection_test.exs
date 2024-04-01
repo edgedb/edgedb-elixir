@@ -1,5 +1,8 @@
 testcases_file = "test/support/shared-client-testcases/connection_testcases.json"
 
+# required to ensure the existence of atoms during test setup
+_tls_security_values = ~w(insecure no_host_verification strict default)a
+
 if File.exists?(testcases_file) do
   defmodule Tests.Shared.ConnectionTest do
     use Tests.Support.SharedCase, async: false
@@ -129,6 +132,7 @@ if File.exists?(testcases_file) do
             tls_ca: opts["tlsCA"],
             tls_ca_file: opts["tlsCAFile"],
             tls_security: opts["tlsSecurity"],
+            tls_server_name: opts["tlsServerName"],
             timeout: opts["timeout"],
             server_settings: opts["serverSettings"]
           ],
@@ -211,7 +215,8 @@ if File.exists?(testcases_file) do
             password: result["password"],
             secret_key: result["secretKey"],
             tls_ca: result["tlsCAData"],
-            tls_verify_hostname: result["tlsVerifyHostname"],
+            tls_server_name: result["tlsServerName"],
+            tls_security: String.to_existing_atom(result["tlsSecurity"]),
             server_settings: result["serverSettings"]
           ],
           fn {_key, value} ->

@@ -139,6 +139,21 @@ defmodule EdgeDB.Connection.Config.Validation do
       message: "invalid tls_verify_hostname: #{inspect(option)}, must be a boolean"
   end
 
+  @spec validate_tls_server_name(term()) :: String.t() | nil
+
+  def validate_tls_server_name(nil) do
+    nil
+  end
+
+  def validate_tls_server_name(option) when is_binary(option) do
+    option
+  end
+
+  def validate_tls_server_name(option) do
+    raise RuntimeError,
+      message: "invalid tls_server_name: #{inspect(option)}, must be a string"
+  end
+
   @spec validate_tls_security(term()) ::
           :insecure | :no_host_verification | :strict | :default | nil
 

@@ -88,6 +88,7 @@ Supported options:
 -  ``:tls_ca`` - TLS certificate to be used when connecting to the instance.
 -  ``:tls_ca_path`` - the path to the TLS certificate to be used when connecting to the instance.
 -  ``:tls_security`` - security mode for the TLS connection. See ``EdgeDB.tls_security/0``.
+-  ``:tls_server_name`` - server name (SNI) to be passed to the TLS connection.
 -  ``:timeout`` - timeout for TCP operations with the database, such as connecting to it, sending or receiving data.
 -  ``:command_timeout`` - *not in use right now and added for compatibility with other clients*.
 -  ``:server_settings`` - *not in use right now and added for compatibility with other clients*.

@@ -89,6 +89,9 @@ defmodule EdgeDB.Connection.Config.DSN do
 
     {tls_security, query} = handle_dsn_part(:tls_security, opts[:tls_security], nil, query)
 
+    {tls_server_name, query} =
+      handle_dsn_part(:tls_server_name, opts[:tls_server_name], nil, query)
+
     server_settings = Validation.validate_server_settings(query)
 
     database_or_branch =
@@ -110,6 +113,7 @@ defmodule EdgeDB.Connection.Config.DSN do
       secret_key: secret_key,
       tls_ca_file: Validation.validate_tls_ca_file(tls_ca_file),
       tls_security: Validation.validate_tls_security(tls_security),
+      tls_server_name: Validation.validate_tls_server_name(tls_server_name),
       server_settings: Map.merge(server_settings, opts[:server_settings])
     )
   end
@@ -166,24 +170,17 @@ defmodule EdgeDB.Connection.Config.DSN do
           message:
             ~s(invalid DSN or instance name: "database" and "branch" parameters in DSN can not be present at the same time)
 
+      defines_branch? and is_nil(opts[:database]) ->
+        {:branch, handle_dsn_part(:branch, opts[:branch], uri_database, query)}
+
       defines_branch? and not is_nil(opts[:database]) ->
-        raise EdgeDB.ClientConnectionError.new(
-                ~s("branch" parameter in DNS and :database option are mutually exclusive)
-              )
+        {:database, {opts[:database], Map.drop(query, ["branch", "branch_env", "branch_file"])}}
 
-      defines_database? and not is_nil(opts[:branch]) ->
-        raise EdgeDB.ClientConnectionError.new(
-                ~s("database" parameter in DNS and :branch option are mutually exclusive)
-              )
-
-      defines_branch? ->
-        {:branch, handle_dsn_part(:branch, opts[:branch], uri_database, query)}
-
-      not is_nil(opts[:branch]) ->
-        {:branch, handle_dsn_part(:branch, opts[:branch], uri_database, query)}
+      is_nil(opts[:branch]) ->
+        {:database, handle_dsn_part(:database, opts[:database], uri_database, query)}
 
       true ->
-        {:database, handle_dsn_part(:database, opts[:database], uri_database, query)}
+        {:branch, {opts[:branch], Map.drop(query, ["database", "database_env", "database_file"])}}
     end
   end
 
