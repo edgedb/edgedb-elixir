@@ -57,13 +57,14 @@ defmodule EdgeDB.Connection.Config do
     tls_security = opts[:tls_security] || :default
     security = opts[:security] || :default
 
+    if opts[:tls_ca] && opts[:tls_ca_file] do
+      raise EdgeDB.ClientConnectionError.new("tls_ca and tls_ca_file are mutually exclusive")
+    end
+
     tls_security =
       cond do
         security == :default and tls_security != :default ->
           tls_security
-
-        security == :default and opts[:tls_ca] ->
-          :no_host_verification
 
         security == :insecure_dev_mode and tls_security == :default ->
           :insecure
@@ -71,20 +72,21 @@ defmodule EdgeDB.Connection.Config do
         security == :strict and tls_security == :default ->
           :strict
 
-        security == :strict and
-            (tls_security == :no_host_verification or tls_security == :insecure) ->
+        security == :strict and tls_security in [:no_host_verification, :insecure] ->
           raise RuntimeError,
             message:
               "EDGEDB_CLIENT_SECURITY=#{security} but tls_security=#{tls_security}, " <>
                 "tls_security must be set to strict when EDGEDB_CLIENT_SECURITY is strict"
 
+        tls_security != :default ->
+          tls_security
+
+        not is_nil(opts[:tls_ca]) or not is_nil(opts[:tls_ca_file]) ->
+          :no_host_verification
+
         true ->
           :strict
       end
-
-    if opts[:tls_ca] && opts[:tls_ca_file] do
-      raise EdgeDB.ClientConnectionError.new("tls_ca and tls_ca_file are mutually exclusive")
-    end
 
     opts
     |> Keyword.put_new_lazy(:address, fn ->
@@ -206,6 +208,16 @@ defmodule EdgeDB.Connection.Config do
         project_opts
       end
 
+    branch_path = @path_module.join(stash_dir, "branch")
+
+    project_opts =
+      if @file_module.exists?(branch_path) do
+        branch = @file_module.read!(branch_path)
+        Keyword.merge(project_opts, branch: branch)
+      else
+        project_opts
+      end
+
     {resolved_opts, _compounds} = resolve_opts(resolved_opts, project_opts)
 
     resolved_opts
@@ -224,6 +236,9 @@ defmodule EdgeDB.Connection.Config do
       |> Keyword.put_new_lazy(:tls_security, fn ->
         Validation.validate_tls_security(opts[:tls_security])
       end)
+      |> Keyword.put_new_lazy(:tls_server_name, fn ->
+        Validation.validate_tls_server_name(opts[:tls_server_name])
+      end)
       |> Keyword.put_new_lazy(:server_settings, fn ->
         Validation.validate_server_settings(opts[:server_settings])
       end)
@@ -231,26 +246,29 @@ defmodule EdgeDB.Connection.Config do
         is_nil(value)
       end)
 
+    if not is_nil(opts[:database]) and not is_nil(opts[:branch]) do
+      raise EdgeDB.ClientConnectionError.new(":database and :branch keys are mutually exclusive")
+    end
+
     resolved_opts =
-      cond do
-        not is_nil(opts[:branch]) and not is_nil(opts[:database]) ->
-          raise EdgeDB.ClientConnectionError.new(
-                  ":database and :branch keys are mutually exclusive"
-                )
-
-        not is_nil(opts[:branch]) ->
-          Keyword.put_new_lazy(resolved_opts, :branch, fn ->
-            Validation.validate_branch(opts[:branch])
-          end)
-
-        not is_nil(opts[:database]) ->
-          Keyword.put_new_lazy(resolved_opts, :database, fn ->
-            Validation.validate_database(opts[:database])
-          end)
-
-        true ->
-          resolved_opts
+      if not is_nil(opts[:database]) and is_nil(resolved_opts[:branch]) do
+        Keyword.put_new_lazy(resolved_opts, :database, fn ->
+          Validation.validate_database(opts[:database])
+        end)
+      else
+        resolved_opts
       end
+
+    resolved_opts =
+      if not is_nil(opts[:branch]) and is_nil(resolved_opts[:database]) do
+        Keyword.put_new_lazy(resolved_opts, :branch, fn ->
+          Validation.validate_database(opts[:branch])
+        end)
+      else
+        resolved_opts
+      end
+
+    opts = Keyword.drop(opts, [:database, :branch])
 
     compound_params_count =
       [
@@ -284,21 +302,35 @@ defmodule EdgeDB.Connection.Config do
 
         compound_params_count == 1 ->
           credentials = parse_credentials(opts, resolved_opts)
-          Keyword.merge(credentials, resolved_opts)
+          safe_credentials = Keyword.drop(credentials, [:database, :branch])
+          resolved_opts = Keyword.merge(safe_credentials, resolved_opts)
+
+          resolved_opts =
+            if not is_nil(credentials[:database]) and is_nil(resolved_opts[:branch]) do
+              Keyword.put_new(
+                resolved_opts,
+                :database,
+                Validation.validate_database(credentials[:database])
+              )
+            else
+              resolved_opts
+            end
+
+          if not is_nil(credentials[:branch]) and is_nil(resolved_opts[:database]) do
+            Keyword.put_new(
+              resolved_opts,
+              :branch,
+              Validation.validate_branch(credentials[:branch])
+            )
+          else
+            resolved_opts
+          end
 
         true ->
           resolved_opts
       end
 
     resolved_opts = Keyword.merge(opts, resolved_opts)
-
-    if not is_nil(resolved_opts[:database]) and not is_nil(resolved_opts[:branch]) and
-         resolved_opts[:database] != resolved_opts[:branch] do
-      raise EdgeDB.ClientConnectionError.new(
-              ~s(invalid DSN or instance name: :database and :branch keys are mutually exclusive)
-            )
-    end
-
     {resolved_opts, compound_params_count}
   end
 
@@ -350,6 +382,7 @@ defmodule EdgeDB.Connection.Config do
       tls_ca: from_config(:tls_ca),
       tls_ca_file: from_config(:tls_ca_file),
       tls_security: from_config(:tls_security),
+      tls_server_name: from_config(:tls_server_name),
       timeout: from_config(:timeout),
       command_timeout: from_config(:command_timeout),
       wait_for_available: from_config(:wait_for_available),
@@ -394,6 +427,7 @@ defmodule EdgeDB.Connection.Config do
       tls_ca: from_env("EDGEDB_TLS_CA"),
       tls_ca_file: from_env("EDGEDB_TLS_CA_FILE"),
       tls_security: from_env("EDGEDB_CLIENT_TLS_SECURITY"),
+      tls_server_name: from_env("EDGEDB_TLS_SERVER_NAME"),
       security: security
     )
   end

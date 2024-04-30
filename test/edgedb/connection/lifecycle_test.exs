@@ -36,7 +36,8 @@ defmodule Tests.EdgeDB.Connection.LifecycleTest do
       assert capture_log(fn ->
                assert {:error, %DBConnection.ConnectionError{}} = EdgeDB.query(client, "select 1")
                assert EdgeDB.Pool.concurrency(client) == 0
-             end) =~ "UnknownDatabaseError: database 'wrong_db' does not exist"
+             end) =~
+               ~r/UnknownDatabaseError: (database|database branch) 'wrong_db' does not exist/
     end
   end
 end
