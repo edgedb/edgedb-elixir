@@ -483,9 +483,7 @@ defmodule EdgeDB.Connection do
   @impl DBConnection
   def handle_execute(%InternalRequest{request: request}, _params, _opts, state) do
     exc =
-      EdgeDB.InternalClientError.new(
-        "unknown internal request to connection: #{inspect(request)}"
-      )
+      EdgeDB.InternalClientError.new("unknown internal request to connection: #{inspect(request)}")
 
     {:error, exc, state}
   end
@@ -574,8 +572,7 @@ defmodule EdgeDB.Connection do
                 false
             end)
 
-          {Keyword.put(socket_opts, :cacerts, [der_cert_data]),
-           :public_key.pkix_is_self_signed(der_cert_data)}
+          {Keyword.put(socket_opts, :cacerts, [der_cert_data]), :public_key.pkix_is_self_signed(der_cert_data)}
       end
 
     socket_opts =
@@ -713,9 +710,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_authentication_flow(%AuthenticationSASL{}, nil, %State{} = state) do
     exc =
-      EdgeDB.AuthenticationError.new(
-        "password should be provided for #{inspect(state.user)} authentication"
-      )
+      EdgeDB.AuthenticationError.new("password should be provided for #{inspect(state.user)} authentication")
 
     {:disconnect, exc, state}
   end
@@ -724,9 +719,7 @@ defmodule EdgeDB.Connection do
     case Enum.find(methods, &(&1 in @supported_authentication_methods)) do
       nil ->
         exc =
-          EdgeDB.AuthenticationError.new(
-            "EdgeDB requested unsupported authentication methods: #{inspect(methods)}"
-          )
+          EdgeDB.AuthenticationError.new("EdgeDB requested unsupported authentication methods: #{inspect(methods)}")
 
         {:disconnect, exc, state}
 
@@ -753,9 +746,7 @@ defmodule EdgeDB.Connection do
     else
       {:error, reason} ->
         exc =
-          EdgeDB.AuthenticationError.new(
-            "unable to continue SASL authentication: #{inspect(reason)}"
-          )
+          EdgeDB.AuthenticationError.new("unable to continue SASL authentication: #{inspect(reason)}")
 
         {:disconnect, exc, state}
 
@@ -775,9 +766,7 @@ defmodule EdgeDB.Connection do
     else
       {:error, reason} ->
         exc =
-          EdgeDB.AuthenticationError.new(
-            "unable to complete SASL authentication: #{inspect(reason)}"
-          )
+          EdgeDB.AuthenticationError.new("unable to complete SASL authentication: #{inspect(reason)}")
 
         {:disconnect, exc, state}
 
@@ -941,7 +930,13 @@ defmodule EdgeDB.Connection do
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, state}
+      query = %EdgeDB.Query{
+        query
+        | codec_storage: state.codec_storage,
+          result_cardinality: message.result_cardinality
+      }
+
+      {:ok, query, state}
     end
   end
 
@@ -990,17 +985,19 @@ defmodule EdgeDB.Connection do
          %Server.V0.PrepareComplete{
            input_typedesc_id: in_id,
            output_typedesc_id: out_id,
-           headers: %{capabilities: capabilities}
+           headers: %{capabilities: capabilities},
+           cardinality: result_cardinality
          },
          state
        ) do
     with {:ok, state} <- wait_for_server_ready(state) do
-      maybe_legacy_describe_codecs(
-        %EdgeDB.Query{query | capabilities: capabilities},
-        in_id,
-        out_id,
-        state
-      )
+      query = %EdgeDB.Query{
+        query
+        | capabilities: capabilities,
+          result_cardinality: result_cardinality
+      }
+
+      maybe_legacy_describe_codecs(query, in_id, out_id, state)
     end
   end
 
@@ -1069,7 +1066,13 @@ defmodule EdgeDB.Connection do
       )
 
     with {:ok, state} <- wait_for_server_ready(state) do
-      {:ok, %EdgeDB.Query{query | codec_storage: state.codec_storage}, state}
+      query = %EdgeDB.Query{
+        query
+        | codec_storage: state.codec_storage,
+          result_cardinality: message.result_cardinality
+      }
+
+      {:ok, query, state}
     end
   end
 
@@ -1165,7 +1168,11 @@ defmodule EdgeDB.Connection do
     query =
       save_query_with_codecs_in_cache(
         state.queries_cache,
-        %EdgeDB.Query{query | capabilities: capabilities},
+        %EdgeDB.Query{
+          query
+          | capabilities: capabilities,
+            result_cardinality: message.result_cardinality
+        },
         message.input_typedesc_id,
         message.output_typedesc_id
       )
@@ -1322,7 +1329,11 @@ defmodule EdgeDB.Connection do
     query =
       save_query_with_codecs_in_cache(
         state.queries_cache,
-        query,
+        %EdgeDB.Query{
+          query
+          | capabilities: message.capabilities,
+            result_cardinality: message.result_cardinality
+        },
         message.input_typedesc_id,
         message.output_typedesc_id
       )
@@ -1519,9 +1530,7 @@ defmodule EdgeDB.Connection do
 
   defp handle_ping_message(message, state) do
     exc =
-      EdgeDB.InternalClientError.new(
-        "unexpected EdgeDB message received during ping: #{inspect(message)}"
-      )
+      EdgeDB.InternalClientError.new("unexpected EdgeDB message received during ping: #{inspect(message)}")
 
     {:disconect, exc, state}
   end
@@ -1707,9 +1716,7 @@ defmodule EdgeDB.Connection do
 
       {:error, reason} ->
         exc =
-          EdgeDB.ClientConnectionError.new(
-            "unexpected error while receiving data from socket: #{inspect(reason)}"
-          )
+          EdgeDB.ClientConnectionError.new("unexpected error while receiving data from socket: #{inspect(reason)}")
 
         {:disconnect, exc, state}
     end
@@ -1730,9 +1737,7 @@ defmodule EdgeDB.Connection do
 
       {:error, reason} ->
         exc =
-          EdgeDB.ClientConnectionError.new(
-            "unexpected error while receiving data from socket: #{inspect(reason)}"
-          )
+          EdgeDB.ClientConnectionError.new("unexpected error while receiving data from socket: #{inspect(reason)}")
 
         {:disconnect, exc, state}
     end

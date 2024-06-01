@@ -28,9 +28,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.BigIntTest do
       end
 
     assert exc ==
-             EdgeDB.InvalidArgumentError.new(
-               "value can not be encoded as std::bigint: #{inspect(value)}"
-             )
+             EdgeDB.InvalidArgumentError.new("value can not be encoded as std::bigint: #{inspect(value)}")
   end
 
   test "error when passing float as std::bigint argument", %{client: client} do

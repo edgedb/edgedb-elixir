@@ -15,6 +15,7 @@ defmodule EdgeDB.Query do
     inline_type_ids: false,
     inline_object_ids: false,
     cardinality: :many,
+    result_cardinality: :many,
     required: false,
     is_script: false,
     capabilities: [],
@@ -22,7 +23,8 @@ defmodule EdgeDB.Query do
     output_codec: nil,
     codec_storage: nil,
     cached: false,
-    params: []
+    params: [],
+    __file__: nil
   ]
 
   @type t() :: %__MODULE__{
@@ -33,6 +35,7 @@ defmodule EdgeDB.Query do
           inline_type_ids: boolean(),
           inline_object_ids: boolean(),
           cardinality: Enums.cardinality(),
+          result_cardinality: Enums.cardinality(),
           required: boolean(),
           is_script: boolean(),
           capabilities: Enums.capabilities(),
@@ -40,7 +43,8 @@ defmodule EdgeDB.Query do
           output_codec: Codec.id() | nil,
           codec_storage: CodecStorage.t(),
           cached: boolean(),
-          params: list(any())
+          params: map() | list() | Keyword.t(),
+          __file__: Path.t() | nil
         }
 end
 

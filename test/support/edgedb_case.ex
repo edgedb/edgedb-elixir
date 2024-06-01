@@ -52,10 +52,7 @@ defmodule Tests.Support.EdgeDBCase do
   def edgedb_client(_context) do
     {:ok, client} =
       start_supervised(
-        {EdgeDB,
-         tls_security: :insecure,
-         max_concurrency: 1,
-         show_sensitive_data_on_connection_error: true}
+        {EdgeDB, tls_security: :insecure, max_concurrency: 1, show_sensitive_data_on_connection_error: true}
       )
 
     %{client: client}

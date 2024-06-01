@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.7.0](https://github.com/edgedb/edgedb-elixir/compare/v0.7.0...HEAD)
 
+### Added
+
+- support for generating Elixir modules from EdgeQL queries via `mix edgedb.generate`.
+- abitility to pass atoms as valid arguments for enums.
+
+### Changed
+
+- `jason` to be required library, but still configurable.
+- `EdgeDB.NamedTuple.to_map/2` to include indexes as keys into result map.
+
 ## [0.7.0] - 2024-05-05
 
 [Compare with 0.6.1](https://github.com/edgedb/edgedb-elixir/compare/v0.6.1...v0.7.0)
@@ -30,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - the behavior of injecting an implicit `:id` field into objects so that this no longer happens.
 
 ### Fixed
+
 - client state handling in `EdgeDB.with_config/2`/`EdgeDB.without_config/2`,
     `EdgeDB.with_globals/2`/`EdgeDB.without_globals/2` and
     `EdgeDB.with_module_aliases/2`/`EdgeDB.without_module_aliases/2`.

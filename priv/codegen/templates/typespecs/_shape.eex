@@ -1,0 +1,11 @@
+<%= if @shape.is_multi do %>
+[
+<%= EdgeDB.EdgeQL.Generator.Render.render(@shape.type, :typespec, @opts) %>
+]
+<% else %>
+<%= EdgeDB.EdgeQL.Generator.Render.render(@shape.type, :typespec, @opts) %>
+<% end %>
+
+<%= if @shape.is_optional do %>
+| nil
+<% end %>

@@ -1,0 +1,1 @@
+select <bigint>$arg

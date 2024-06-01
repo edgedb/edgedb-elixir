@@ -178,6 +178,11 @@ defmodule EdgeDB do
   """
   @type result() :: EdgeDB.Set.t() | term()
 
+  @typedoc """
+  Parameter types acceptable by `EdgeDB.query*/4` functions.
+  """
+  @type params() :: map() | list() | Keyword.t()
+
   @doc """
   Creates a pool of EdgeDB connections linked to the current process.
 
@@ -308,7 +313,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query(client(), String.t(), list() | Keyword.t(), list(query_option())) ::
+  @spec query(client(), String.t(), params(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query(client, statement, params \\ [], opts \\ []) do
@@ -318,7 +323,8 @@ defmodule EdgeDB do
       output_format: Keyword.get(opts, :output_format, :binary),
       required: Keyword.get(opts, :required, false),
       is_script: Keyword.get(opts, :script, false),
-      params: params
+      params: params,
+      __file__: opts[:__file__]
     }
 
     parse_execute_query(client, q, q.params, opts)
@@ -333,7 +339,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query!(client(), String.t(), list(), list(query_option())) :: result()
+  @spec query!(client(), String.t(), params(), list(query_option())) :: result()
   def query!(client, statement, params \\ [], opts \\ []) do
     client
     |> query(statement, params, opts)
@@ -348,7 +354,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_single(client(), String.t(), list(), list(query_option())) ::
+  @spec query_single(client(), String.t(), params(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_single(client, statement, params \\ [], opts \\ []) do
@@ -364,7 +370,8 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_single!(client(), String.t(), list(), list(query_option())) :: result()
+  @spec query_single!(client(), String.t(), params(), list(query_option())) ::
+          result()
   def query_single!(client, statement, params \\ [], opts \\ []) do
     client
     |> query_single(statement, params, opts)
@@ -379,7 +386,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_required_single(client(), String.t(), list(), list(query_option())) ::
+  @spec query_required_single(client(), String.t(), params(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_required_single(client, statement, params \\ [], opts \\ []) do
@@ -395,7 +402,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_required_single!(client(), String.t(), list(), list(query_option())) :: result()
+  @spec query_required_single!(client(), String.t(), params(), list(query_option())) :: result()
   def query_required_single!(client, statement, params \\ [], opts \\ []) do
     client
     |> query_required_single(statement, params, opts)
@@ -410,7 +417,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_json(client(), String.t(), list(), list(query_option())) ::
+  @spec query_json(client(), String.t(), params(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_json(client, statement, params \\ [], opts \\ []) do
@@ -426,7 +433,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_json!(client(), String.t(), list(), list(query_option())) :: result()
+  @spec query_json!(client(), String.t(), params(), list(query_option())) :: result()
   def query_json!(client, statement, params \\ [], opts \\ []) do
     client
     |> query_json(statement, params, opts)
@@ -441,7 +448,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_single_json(client(), String.t(), list(), list(query_option())) ::
+  @spec query_single_json(client(), String.t(), params(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_single_json(client, statement, params \\ [], opts \\ []) do
@@ -457,7 +464,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_single_json!(client(), String.t(), list(), list(query_option())) :: result()
+  @spec query_single_json!(client(), String.t(), params(), list(query_option())) :: result()
   def query_single_json!(client, statement, params \\ [], opts \\ []) do
     client
     |> query_single_json(statement, params, opts)
@@ -472,7 +479,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_required_single_json(client(), String.t(), list(), list(query_option())) ::
+  @spec query_required_single_json(client(), String.t(), params(), list(query_option())) ::
           {:ok, result()}
           | {:error, Exception.t()}
   def query_required_single_json(client, statement, params \\ [], opts \\ []) do
@@ -488,7 +495,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec query_required_single_json!(client(), String.t(), list(), list(query_option())) ::
+  @spec query_required_single_json!(client(), String.t(), params(), list(query_option())) ::
           result()
   def query_required_single_json!(client, statement, params \\ [], opts \\ []) do
     client
@@ -501,7 +508,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec execute(client(), String.t(), list(), list(query_option())) ::
+  @spec execute(client(), String.t(), params(), list(query_option())) ::
           :ok | {:error, Exception.t()}
   def execute(client, statement, params \\ [], opts \\ []) do
     opts = Keyword.merge(opts, output_format: :none, script: true, raw: true)
@@ -522,7 +529,7 @@ defmodule EdgeDB do
 
   See `t:EdgeDB.query_option/0` for supported options.
   """
-  @spec execute!(client(), String.t(), list(), list(query_option())) :: :ok
+  @spec execute!(client(), String.t(), params(), list(query_option())) :: :ok
   def execute!(client, statement, params \\ [], opts \\ []) do
     opts = Keyword.merge(opts, output_format: :none, script: true, raw: true)
     query!(client, statement, params, opts)

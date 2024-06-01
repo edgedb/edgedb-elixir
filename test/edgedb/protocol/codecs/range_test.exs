@@ -45,8 +45,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.RangeTest do
       {EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-12-01 00:00:00Z], inc_upper: true),
        EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-12-01 00:00:00Z], inc_upper: true)},
       EdgeDB.Range.empty(),
-      {EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-07-01 00:00:00Z]),
-       EdgeDB.Range.empty()},
+      {EdgeDB.Range.new(~U[2022-07-01 00:00:00Z], ~U[2022-07-01 00:00:00Z]), EdgeDB.Range.empty()},
       EdgeDB.Range.new(nil, nil)
     ],
     "range<cal::local_datetime>" => [
@@ -54,8 +53,7 @@ defmodule Tests.EdgeDB.Protocol.Codecs.RangeTest do
       {EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-12-01 00:00:00Z], inc_upper: true),
        EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-12-01 00:00:00Z], inc_upper: true)},
       EdgeDB.Range.empty(),
-      {EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-07-01 00:00:00Z]),
-       EdgeDB.Range.empty()},
+      {EdgeDB.Range.new(~N[2022-07-01 00:00:00Z], ~N[2022-07-01 00:00:00Z]), EdgeDB.Range.empty()},
       EdgeDB.Range.new(nil, nil)
     ],
     "range<cal::local_date>" => [

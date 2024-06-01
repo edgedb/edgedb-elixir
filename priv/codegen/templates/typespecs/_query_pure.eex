@@ -1,0 +1,6 @@
+<%= if EdgeDB.EdgeQL.Generator.Shape.complex?(@query.shape) do %>
+{:ok, <%= EdgeDB.EdgeQL.Generator.Render.render(@query.shape, :typespec, @opts) %>}
+<% else %>
+:ok
+<% end %>
+| {:error, reason} when reason: any()

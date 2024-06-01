@@ -1,0 +1,3 @@
+for element <- <%= @opts[:variable] %> do
+    <%= EdgeDB.EdgeQL.Generator.Handler.handle(@array.type, Keyword.merge(@opts, variable: "element")) %>
+end

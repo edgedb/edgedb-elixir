@@ -465,9 +465,7 @@ defmodule EdgeDB.Connection.Config do
       parent = @path_module.dirname(dir)
 
       if parent == dir do
-        raise EdgeDB.ClientConnectionError.new(
-                ~s(no "edgedb.toml" found and no connection options specified)
-              )
+        raise EdgeDB.ClientConnectionError.new(~s(no "edgedb.toml" found and no connection options specified))
       end
 
       parent_dev = @file_module.stat!(parent).major_device
