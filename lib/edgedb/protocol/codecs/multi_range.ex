@@ -27,11 +27,10 @@ defimpl EdgeDB.Protocol.Codec, for: EdgeDB.Protocol.Codecs.MultiRange do
   def encode(%{codec: codec}, %EdgeDB.MultiRange{ranges: ranges}, codec_storage) do
     range_codec = %Codecs.Range{codec: codec}
 
-    data =
-      [
-        <<length(ranges)::uint32()>>,
-        Enum.map(ranges, &Codec.encode(range_codec, &1, codec_storage))
-      ]
+    data = [
+      <<length(ranges)::uint32()>>,
+      Enum.map(ranges, &Codec.encode(range_codec, &1, codec_storage))
+    ]
 
     [<<IO.iodata_length(data)::uint32()>> | data]
   end

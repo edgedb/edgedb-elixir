@@ -288,8 +288,7 @@ defmodule EdgeDB.Error do
   end
 
   defp render_line(line, line_size, line_num, config, lines) do
-    {line, line_size, config, lines} =
-      render_border(line, line_size, line_num, config, lines)
+    {line, line_size, config, lines} = render_border(line, line_size, line_num, config, lines)
 
     render_error(line, line_size, config, lines)
   end
@@ -351,16 +350,15 @@ defmodule EdgeDB.Error do
     error_width = unicode_width(first_half)
     padding_string = String.pad_leading("", config.padding)
 
-    lines =
+    lines = [
       [
-        [
-          [:red, first_half],
-          [:reset, line, "\n"],
-          [:blue, "#{padding_string} │   #{String.duplicate(" ", config.start)}"],
-          [:red, "#{String.duplicate("^", error_width)} #{config.hint}"]
-        ]
-        | lines
+        [:red, first_half],
+        [:reset, line, "\n"],
+        [:blue, "#{padding_string} │   #{String.duplicate(" ", config.start)}"],
+        [:red, "#{String.duplicate("^", error_width)} #{config.hint}"]
       ]
+      | lines
+    ]
 
     {:finished, {config, lines}}
   end
@@ -369,16 +367,15 @@ defmodule EdgeDB.Error do
     {first_half, line} = split_string_at(line, config.offset)
     error_width = unicode_width(first_half)
 
-    lines =
+    lines = [
       [
-        [
-          [:red, first_half],
-          [:reset, line, "\n"],
-          [:blue, "#{String.duplicate(" ", config.padding)} │ "],
-          [:red, "╰─#{String.duplicate("─", error_width - 1)}^ #{config.hint}"]
-        ]
-        | lines
+        [:red, first_half],
+        [:reset, line, "\n"],
+        [:blue, "#{String.duplicate(" ", config.padding)} │ "],
+        [:red, "╰─#{String.duplicate("─", error_width - 1)}^ #{config.hint}"]
       ]
+      | lines
+    ]
 
     {:finished, {config, lines}}
   end
