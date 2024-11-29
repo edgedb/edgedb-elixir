@@ -295,7 +295,7 @@ defmodule EdgeDB.Connection.Config do
             if dsn = opts[:dsn] do
               dsn
             else
-              "edgedb://#{parse_host(opts[:host])}"
+              "gel://#{parse_host(opts[:host])}"
             end
 
           DSN.parse_dsn_into_opts(dsn, resolved_opts)

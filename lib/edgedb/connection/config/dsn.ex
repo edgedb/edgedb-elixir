@@ -35,7 +35,30 @@ defmodule EdgeDB.Connection.Config.DSN do
 
   defp parse(
          %URI{
-           scheme: "edgedb",
+           scheme: "edgedb"
+         } = dsn,
+         opts
+       ) do
+    parse_inner(dsn, opts)
+  end
+
+  defp parse(
+         %URI{
+           scheme: "gel"
+         } = dsn,
+         opts
+       ) do
+    parse_inner(dsn, opts)
+  end
+
+  defp parse(%URI{} = dsn, _opts) do
+    raise RuntimeError,
+      message:
+        ~s(invalid DSN or instance name: scheme is expected to be "gel", got #{inspect(dsn.scheme)})
+  end
+
+  defp parse_inner(
+         %URI{
            path: uri_database,
            query: query
          } = dsn,
@@ -116,12 +139,6 @@ defmodule EdgeDB.Connection.Config.DSN do
       tls_server_name: Validation.validate_tls_server_name(tls_server_name),
       server_settings: Map.merge(server_settings, opts[:server_settings])
     )
-  end
-
-  defp parse(%URI{} = dsn, _opts) do
-    raise RuntimeError,
-      message:
-        ~s(invalid DSN or instance name: scheme is expected to be "edgedb", got #{inspect(dsn.scheme)})
   end
 
   # URI module doesn't handle this, so should do that manually
