@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [Compare with 0.7.0](https://github.com/edgedb/edgedb-elixir/compare/v0.7.0...HEAD)
 
+### Added
+
+- support for Gel connection options.
+- support for `Elixir v1.17`.
+
 ## [0.7.0] - 2024-05-05
 
 [Compare with 0.6.1](https://github.com/edgedb/edgedb-elixir/compare/v0.6.1...v0.7.0)

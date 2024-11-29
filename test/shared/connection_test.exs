@@ -20,12 +20,12 @@ if File.exists?(testcases_file) do
         {EdgeDB.Error,
          type: EdgeDB.ClientConnectionError,
          name: "ClientConnectionError",
-         message: ~r/found "edgedb.toml" but the project is not initialized/},
+         message: ~r/found "(gel|edgedb).toml" but the project is not initialized/},
       "no_options_or_toml" =>
         {EdgeDB.Error,
          type: EdgeDB.ClientConnectionError,
          name: "ClientConnectionError",
-         message: ~r/no "edgedb.toml" found and no connection options specified/},
+         message: ~r/no "gel.toml" or "edgedb.toml" found and no connection options specified/},
       "invalid_credentials_file" => {RuntimeError, message: ~r/invalid credentials/},
       "invalid_dsn_or_instance_name" => {RuntimeError, message: ~r/invalid DSN or instance name/},
       "invalid_instance_name" => {RuntimeError, message: ~r/invalid instance name/},
@@ -73,30 +73,30 @@ if File.exists?(testcases_file) do
     }
     @known_case_errors Map.keys(@case_to_client_errors)
 
-    for {testcase, index} <- Enum.with_index(@cases, 1) do
-      @tag String.to_atom("shared_connection_testcase_#{index}")
+    for testcase <- @cases do
+      describe "shared testcase for connection options parsing: #{testcase["name"]}" do
+        @tag String.to_atom("shared_connection_testcase_#{testcase["name"]}")
 
-      with %{"fs" => fs_mapping} when map_size(fs_mapping) != 0 <- testcase do
-        platform = testcase["platform"]
-
-        cond do
-          platform == "windows" or :os.type() == {:nt, :win32} ->
-            @tag :skip
-
-          platform == "macos" and :os.type() != {:unix, :darwin} ->
-            @tag :skip
-
-          is_nil(platform) and :os.type() == {:unix, :darwin} ->
-            @tag :skip
-
-          true ->
-            :ok
-        end
-      end
-
-      describe "shared testcase for connection options parsing ##{index}" do
         @tag testcase: testcase
         @tag debug: @debug_shared
+
+        with %{"fs" => fs_mapping} when map_size(fs_mapping) != 0 <- testcase do
+          platform = testcase["platform"]
+
+          cond do
+            platform == "windows" or :os.type() == {:nt, :win32} ->
+              @tag :skip
+
+            platform == "macos" and :os.type() != {:unix, :darwin} ->
+              @tag :skip
+
+            is_nil(platform) and :os.type() == {:unix, :darwin} ->
+              @tag :skip
+
+            true ->
+              :ok
+          end
+        end
 
         setup [
           :setup_debug,
