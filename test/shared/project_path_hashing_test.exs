@@ -10,9 +10,9 @@ if File.exists?(testcases_file) do
     @moduletag :project_path_hashing
 
     for {testcase, index} <- Enum.with_index(@cases, 1) do
-      @tag String.to_atom("shared_project_path_hasing_testcase_#{index}")
-
       describe "shared testcase for project path hashing ##{index}" do
+        @tag String.to_atom("shared_project_path_hasing_testcase_#{index}")
+
         @tag testcase: testcase
         @tag debug: @debug_shared
 

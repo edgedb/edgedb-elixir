@@ -8,6 +8,8 @@ defmodule EdgeDB.Connection.Config do
     Validation
   }
 
+  require Logger
+
   @default_host "localhost"
   @default_port 5656
   @default_database "edgedb"
@@ -17,7 +19,7 @@ defmodule EdgeDB.Connection.Config do
 
   @dsn_regex ~r"^[a-z]+://"
   @instance_name_regex ~r/^(\w(?:-?\w)*)$/
-  @cloud_instance_name_regex ~r|^([A-Za-z0-9](?:-?[A-Za-z0-9])*)/([A-Za-z0-9](?:-?[A-Za-z0-9])*)$|
+  @cloud_instance_name_regex ~r|^([A-Za-z0-9_-](?:-?[A-Za-z0-9_])*)/([A-Za-z0-9](?:-?[A-Za-z0-9])*)$|
 
   @file_module Application.compile_env(:edgedb, :file_module, File)
   @path_module Application.compile_env(:edgedb, :path_module, Path)
@@ -113,7 +115,7 @@ defmodule EdgeDB.Connection.Config do
   end
 
   defp resolve_explicit_opts(opts) do
-    case resolve_opts([], opts) do
+    case resolve_opts([], [], opts) do
       {resolved_opts, 0} ->
         {:cont, resolved_opts}
 
@@ -129,7 +131,7 @@ defmodule EdgeDB.Connection.Config do
   end
 
   defp resolve_config_opts(resolved_opts) do
-    case resolve_opts(resolved_opts, config_opts()) do
+    case resolve_opts(resolved_opts, [], config_opts(:edgedb)) do
       {resolved_opts, 0} ->
         {:cont, resolved_opts}
 
@@ -145,7 +147,7 @@ defmodule EdgeDB.Connection.Config do
   end
 
   defp resolve_environment_opts(resolved_opts) do
-    case resolve_opts(resolved_opts, environment_opts()) do
+    case resolve_opts(resolved_opts, environment_opts("GEL"), environment_opts("EDGEDB")) do
       {resolved_opts, 0} ->
         {:cont, resolved_opts}
 
@@ -155,19 +157,20 @@ defmodule EdgeDB.Connection.Config do
       _other ->
         raise EdgeDB.ClientConnectionError.new(
                 "can not have more than one of the following connection environment variables:" <>
-                  ~s("EDGEDB_DSN", "EDGEDB_INSTANCE", ) <>
-                  ~s("EDGEDB_CREDENTIALS_FILE" or "EDGEDB_HOST"/"EDGEDB_PORT")
+                  ~s("GEL_DSN"/"EDGEDB_DSN", "GEL_INSTANCE"/"EDGEDB_INSTANCE", ) <>
+                  ~s("GEL_CREDENTIALS_FILE"/"EDGEDB_CREDENTIALS_FILE" or ) <>
+                  ~s("GEL_HOST"/"GEL_PORT"/"EDGEDB_HOST"/"EDGEDB_PORT")
               )
     end
   end
 
   defp resolve_project_opts(resolved_opts) do
-    project_dir = find_edgedb_project_dir()
+    {project, project_dir} = find_project_dir()
     stash_dir = Credentials.stash_dir(project_dir)
 
     if not @file_module.exists?(stash_dir) do
       raise EdgeDB.ClientConnectionError.new(
-              ~s(found "edgedb.toml" but the project is not initialized, run "edgedb project init")
+              ~s(found "#{project}.toml" but the project is not initialized, run "#{project} project init")
             )
     end
 
@@ -218,90 +221,119 @@ defmodule EdgeDB.Connection.Config do
         project_opts
       end
 
-    {resolved_opts, _compounds} = resolve_opts(resolved_opts, project_opts)
+    {resolved_opts, _compounds} = resolve_opts(resolved_opts, [], project_opts)
 
     resolved_opts
   end
 
-  defp resolve_opts(resolved_opts, opts) do
+  defp resolve_opts(resolved_opts, gel_opts, edgedb_opts) do
     resolved_opts =
       resolved_opts
       |> Keyword.put_new_lazy(:user, fn ->
-        Validation.validate_user(opts[:user])
+        :user
+        |> fetch_option(gel_opts, edgedb_opts)
+        |> Validation.validate_user()
       end)
-      |> Keyword.put_new(:password, opts[:password])
+      |> Keyword.put_new(:password, fetch_option(:password, gel_opts, edgedb_opts))
       |> Keyword.put_new_lazy(:tls_ca_file, fn ->
-        Validation.validate_tls_ca_file(opts[:tls_ca_file])
+        :tls_ca_file
+        |> fetch_option(gel_opts, edgedb_opts)
+        |> Validation.validate_tls_ca_file()
       end)
       |> Keyword.put_new_lazy(:tls_security, fn ->
-        Validation.validate_tls_security(opts[:tls_security])
+        :tls_security
+        |> fetch_option(gel_opts, edgedb_opts)
+        |> Validation.validate_tls_security()
       end)
       |> Keyword.put_new_lazy(:tls_server_name, fn ->
-        Validation.validate_tls_server_name(opts[:tls_server_name])
+        :tls_server_name
+        |> fetch_option(gel_opts, edgedb_opts)
+        |> Validation.validate_tls_server_name()
       end)
       |> Keyword.put_new_lazy(:server_settings, fn ->
-        Validation.validate_server_settings(opts[:server_settings])
+        :server_settings
+        |> fetch_option(gel_opts, edgedb_opts)
+        |> Validation.validate_server_settings()
       end)
       |> Enum.reject(fn {_key, value} ->
         is_nil(value)
       end)
 
-    if not is_nil(opts[:database]) and not is_nil(opts[:branch]) do
+    database = fetch_option(:database, gel_opts, edgedb_opts)
+    branch = fetch_option(:branch, gel_opts, edgedb_opts)
+
+    if not is_nil(database) and not is_nil(branch) do
       raise EdgeDB.ClientConnectionError.new(":database and :branch keys are mutually exclusive")
     end
 
     resolved_opts =
-      if not is_nil(opts[:database]) and is_nil(resolved_opts[:branch]) do
+      if not is_nil(database) and is_nil(resolved_opts[:branch]) do
         Keyword.put_new_lazy(resolved_opts, :database, fn ->
-          Validation.validate_database(opts[:database])
+          Validation.validate_database(database)
         end)
       else
         resolved_opts
       end
 
     resolved_opts =
-      if not is_nil(opts[:branch]) and is_nil(resolved_opts[:database]) do
+      if not is_nil(branch) and is_nil(resolved_opts[:database]) do
         Keyword.put_new_lazy(resolved_opts, :branch, fn ->
-          Validation.validate_database(opts[:branch])
+          Validation.validate_database(branch)
         end)
       else
         resolved_opts
       end
 
-    opts = Keyword.drop(opts, [:database, :branch])
+    gel_opts = Keyword.drop(gel_opts, [:database, :branch])
+    edgedb_opts = Keyword.drop(edgedb_opts, [:database, :branch])
+
+    dsn = fetch_option(:dsn, gel_opts, edgedb_opts)
+    instance_name = fetch_option(:instance_name, gel_opts, edgedb_opts)
+    credentials = fetch_option(:credentials, gel_opts, edgedb_opts)
+    credentials_file = fetch_option(:credentials_file, gel_opts, edgedb_opts)
+    host = fetch_option(:host, gel_opts, edgedb_opts)
+    port = fetch_option(:port, gel_opts, edgedb_opts)
 
     compound_params_count =
       [
-        opts[:dsn],
-        opts[:instance_name],
-        opts[:credentials],
-        opts[:credentials_file],
-        opts[:host] || opts[:port]
+        dsn,
+        instance_name,
+        credentials,
+        credentials_file,
+        host || port
       ]
       |> Enum.reject(&is_nil/1)
       |> Enum.count()
 
     resolved_opts =
       cond do
-        compound_params_count == 1 and not is_nil(opts[:dsn] || opts[:host] || opts[:port]) ->
+        compound_params_count == 1 and not is_nil(dsn || host || port) ->
           resolved_opts =
-            if port = opts[:port] do
+            if port do
               Keyword.put_new(resolved_opts, :port, Validation.validate_port(port))
             else
               resolved_opts
             end
 
           dsn =
-            if dsn = opts[:dsn] do
+            if dsn do
               dsn
             else
-              "gel://#{parse_host(opts[:host])}"
+              "gel://#{parse_host(host)}"
             end
 
           DSN.parse_dsn_into_opts(dsn, resolved_opts)
 
         compound_params_count == 1 ->
-          credentials = parse_credentials(opts, resolved_opts)
+          credentials_opts = [
+            credentials_file: credentials_file,
+            credentials: credentials,
+            instance_name: instance_name,
+            secret_key: fetch_option(:secret_key, gel_opts, edgedb_opts),
+            cloud_profile: fetch_option(:cloud_profile, gel_opts, edgedb_opts)
+          ]
+
+          credentials = parse_credentials(credentials_opts, resolved_opts)
           safe_credentials = Keyword.drop(credentials, [:database, :branch])
           resolved_opts = Keyword.merge(safe_credentials, resolved_opts)
 
@@ -330,8 +362,33 @@ defmodule EdgeDB.Connection.Config do
           resolved_opts
       end
 
-    resolved_opts = Keyword.merge(opts, resolved_opts)
+    resolved_opts =
+      edgedb_opts
+      |> Keyword.merge(gel_opts)
+      |> Keyword.merge(resolved_opts)
+
     {resolved_opts, compound_params_count}
+  end
+
+  defp fetch_option(option, gel_opts, edgedb_opts) do
+    case {gel_opts[option], edgedb_opts[option]} do
+      {nil, nil} ->
+        nil
+
+      {gel_value, nil} ->
+        gel_value
+
+      {nil, edgedb_value} ->
+        edgedb_value
+
+      {gel_value, _edgedb_value} ->
+        Logger.warning(
+          "#{option} key is set for Gel and EdgeDB configurations at the same time, " <>
+            "value from EdgeDB configuration will be ignored"
+        )
+
+        gel_value
+    end
   end
 
   defp parse_credentials(opts, resolved_opts) do
@@ -353,7 +410,8 @@ defmodule EdgeDB.Connection.Config do
 
         cloud_profile =
           opts[:cloud_profile] || resolved_opts[:cloud_profile] ||
-            from_env("EDGEDB_CLOUD_PROFILE")
+            from_env("GEL", "CLOUD_PROFILE") ||
+            from_env("EDGEDB", "CLOUD_PROFILE")
 
         Cloud.parse_cloud_credentials(org_slug, instance_name, secret_key, cloud_profile)
 
@@ -365,41 +423,41 @@ defmodule EdgeDB.Connection.Config do
     end
   end
 
-  defp config_opts do
+  defp config_opts(app) do
     clear_opts(
-      dsn: from_config(:dsn),
-      instance_name: from_config(:instance_name),
-      credentials: from_config(:credentials),
-      credentials_file: from_config(:credentials_file),
-      host: from_config(:host),
-      port: from_config(:port),
-      database: from_config(:database),
-      branch: from_config(:branch),
-      user: from_config(:user),
-      password: from_config(:password),
-      secret_key: from_config(:secret_key),
-      cloud_profile: from_config(:cloud_profile),
-      tls_ca: from_config(:tls_ca),
-      tls_ca_file: from_config(:tls_ca_file),
-      tls_security: from_config(:tls_security),
-      tls_server_name: from_config(:tls_server_name),
-      timeout: from_config(:timeout),
-      command_timeout: from_config(:command_timeout),
-      wait_for_available: from_config(:wait_for_available),
-      server_settings: from_config(:server_settings),
-      tcp: from_config(:tcp),
-      ssl: from_config(:ssl),
-      transaction: from_config(:transaction),
-      retry: from_config(:retry),
-      connection: from_config(:connection),
-      pool: from_config(:pool),
-      client_state: from_config(:client_state)
+      dsn: from_config(app, :dsn),
+      instance_name: from_config(app, :instance_name),
+      credentials: from_config(app, :credentials),
+      credentials_file: from_config(app, :credentials_file),
+      host: from_config(app, :host),
+      port: from_config(app, :port),
+      database: from_config(app, :database),
+      branch: from_config(app, :branch),
+      user: from_config(app, :user),
+      password: from_config(app, :password),
+      secret_key: from_config(app, :secret_key),
+      cloud_profile: from_config(app, :cloud_profile),
+      tls_ca: from_config(app, :tls_ca),
+      tls_ca_file: from_config(app, :tls_ca_file),
+      tls_security: from_config(app, :tls_security),
+      tls_server_name: from_config(app, :tls_server_name),
+      timeout: from_config(app, :timeout),
+      command_timeout: from_config(app, :command_timeout),
+      wait_for_available: from_config(app, :wait_for_available),
+      server_settings: from_config(app, :server_settings),
+      tcp: from_config(app, :tcp),
+      ssl: from_config(app, :ssl),
+      transaction: from_config(app, :transaction),
+      retry: from_config(app, :retry),
+      connection: from_config(app, :connection),
+      pool: from_config(app, :pool),
+      client_state: from_config(app, :client_state)
     )
   end
 
-  defp environment_opts do
+  defp environment_opts(prefix) do
     port =
-      case from_env("EDGEDB_PORT") do
+      case from_env(prefix, "PORT") do
         "tcp" <> _term ->
           nil
 
@@ -408,26 +466,26 @@ defmodule EdgeDB.Connection.Config do
       end
 
     security =
-      "EDGEDB_CLIENT_SECURITY"
-      |> from_env()
+      prefix
+      |> from_env("CLIENT_SECURITY")
       |> Validation.validate_security()
 
     clear_opts(
-      dsn: from_env("EDGEDB_DSN"),
-      instance_name: from_env("EDGEDB_INSTANCE"),
-      credentials_file: from_env("EDGEDB_CREDENTIALS_FILE"),
-      host: from_env("EDGEDB_HOST"),
+      dsn: from_env(prefix, "DSN"),
+      instance_name: from_env(prefix, "INSTANCE"),
+      credentials_file: from_env(prefix, "CREDENTIALS_FILE"),
+      host: from_env(prefix, "HOST"),
       port: port,
-      database: from_env("EDGEDB_DATABASE"),
-      branch: from_env("EDGEDB_BRANCH"),
-      user: from_env("EDGEDB_USER"),
-      password: from_env("EDGEDB_PASSWORD"),
-      secret_key: from_env("EDGEDB_SECRET_KEY"),
-      cloud_profile: from_env("EDGEDB_CLOUD_PROFILE"),
-      tls_ca: from_env("EDGEDB_TLS_CA"),
-      tls_ca_file: from_env("EDGEDB_TLS_CA_FILE"),
-      tls_security: from_env("EDGEDB_CLIENT_TLS_SECURITY"),
-      tls_server_name: from_env("EDGEDB_TLS_SERVER_NAME"),
+      database: from_env(prefix, "DATABASE"),
+      branch: from_env(prefix, "BRANCH"),
+      user: from_env(prefix, "USER"),
+      password: from_env(prefix, "PASSWORD"),
+      secret_key: from_env(prefix, "SECRET_KEY"),
+      cloud_profile: from_env(prefix, "CLOUD_PROFILE"),
+      tls_ca: from_env(prefix, "TLS_CA"),
+      tls_ca_file: from_env(prefix, "TLS_CA_FILE"),
+      tls_security: from_env(prefix, "CLIENT_TLS_SECURITY"),
+      tls_server_name: from_env(prefix, "TLS_SERVER_NAME"),
       security: security
     )
   end
@@ -442,44 +500,51 @@ defmodule EdgeDB.Connection.Config do
     end)
   end
 
-  defp from_config(name) do
-    Application.get_env(:edgedb, name)
+  defp from_config(app, name) do
+    Application.get_env(app, name)
   end
 
-  defp from_env(name) do
-    @system_module.get_env(name)
+  defp from_env(prefix, name) do
+    @system_module.get_env("#{prefix}_#{name}")
   end
 
-  defp find_edgedb_project_dir do
+  defp find_project_dir do
     dir = @file_module.cwd!()
-    find_edgedb_project_dir(dir)
+    find_project_dir(dir)
   end
 
-  defp find_edgedb_project_dir(dir) do
+  defp find_project_dir(dir) do
     dev = @file_module.stat!(dir).major_device
-    project_file = @path_module.join(dir, "edgedb.toml")
 
-    if @file_module.exists?(project_file) do
-      dir
-    else
-      parent = @path_module.dirname(dir)
+    gel_project_file = @path_module.join(dir, "gel.toml")
+    edgedb_project_file = @path_module.join(dir, "edgedb.toml")
 
-      if parent == dir do
-        raise EdgeDB.ClientConnectionError.new(
-                ~s(no "edgedb.toml" found and no connection options specified)
-              )
-      end
+    cond do
+      @file_module.exists?(gel_project_file) ->
+        {"gel", dir}
 
-      parent_dev = @file_module.stat!(parent).major_device
+      @file_module.exists?(edgedb_project_file) ->
+        {"edgedb", dir}
 
-      if parent_dev != dev do
-        raise EdgeDB.ClientConnectionError.new(
-                ~s(no "edgedb.toml" found and no connection options specified) <>
-                  ~s(stopped searching for "edgedb.toml" at file system boundary #{inspect(dir)})
-              )
-      end
+      true ->
+        parent = @path_module.dirname(dir)
 
-      find_edgedb_project_dir(parent)
+        if parent == dir do
+          raise EdgeDB.ClientConnectionError.new(
+                  ~s(no "gel.toml" or "edgedb.toml" found and no connection options specified)
+                )
+        end
+
+        parent_dev = @file_module.stat!(parent).major_device
+
+        if parent_dev != dev do
+          raise EdgeDB.ClientConnectionError.new(
+                  ~s(no "gel.toml" or "edgedb.toml" found and no connection options specified) <>
+                    ~s(stopped searching for "gel.toml"/"edgedb.toml" at file system boundary #{inspect(dir)})
+                )
+        end
+
+        find_project_dir(parent)
     end
   end
 
