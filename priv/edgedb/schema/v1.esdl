@@ -34,4 +34,10 @@ module v1 {
             constraint exclusive;
         }
     }
+
+    type Internal {
+        property value -> int64 {
+            constraint exclusive;
+        }
+    }
 }

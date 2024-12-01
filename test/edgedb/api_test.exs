@@ -18,14 +18,14 @@ defmodule Tests.EdgeDB.APITest do
     setup :reconnectable_edgedb_client
 
     test "retries failed query", %{client: client, socket: socket} do
-      EdgeDB.query!(client, "select v1::Ticket")
+      EdgeDB.query!(client, "select v1::Internal")
 
       :ssl.close(socket)
 
       test_pid = self()
 
       assert %EdgeDB.Set{} =
-               EdgeDB.query!(client, "select v1::Ticket", [],
+               EdgeDB.query!(client, "select v1::Internal", [],
                  retry: [
                    network_error: [
                      attempts: 1,
@@ -199,12 +199,12 @@ defmodule Tests.EdgeDB.APITest do
     test "automaticly rollbacks if error in EdgeDB occured", %{client: client} do
       assert_raise EdgeDB.Error, ~r/violates exclusivity constraint/, fn ->
         EdgeDB.transaction(client, fn conn ->
-          EdgeDB.query!(conn, "insert v1::Ticket { number := 1 }")
-          EdgeDB.query!(conn, "insert v1::Ticket { number := 1 }")
+          EdgeDB.query!(conn, "insert v1::Internal { value := 1 }")
+          EdgeDB.query!(conn, "insert v1::Internal { value := 1 }")
         end)
       end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select v1::Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select v1::Internal"))
     end
 
     test "raises borrow error in case of nested transactions", %{client: client} do
@@ -251,7 +251,7 @@ defmodule Tests.EdgeDB.APITest do
     test "configures connection that will fail for non-readonly requests", %{client: client} do
       exc =
         assert_raise EdgeDB.Error, fn ->
-          EdgeDB.query!(client, "insert v1::Ticket")
+          EdgeDB.query!(client, "insert v1::Internal")
         end
 
       assert exc.type == EdgeDB.DisabledCapabilityError
@@ -263,7 +263,7 @@ defmodule Tests.EdgeDB.APITest do
       exc =
         assert_raise EdgeDB.Error, fn ->
           EdgeDB.transaction(client, fn client ->
-            EdgeDB.query!(client, "insert v1::Ticket")
+            EdgeDB.query!(client, "insert v1::Internal")
           end)
         end
 
@@ -291,7 +291,7 @@ defmodule Tests.EdgeDB.APITest do
           client
           |> EdgeDB.with_transaction_options(readonly: true)
           |> EdgeDB.transaction(fn client ->
-            EdgeDB.query!(client, "insert v1::Ticket { number := 1 }")
+            EdgeDB.query!(client, "insert v1::Internal { value := 1 }")
           end)
         end
 
@@ -318,12 +318,12 @@ defmodule Tests.EdgeDB.APITest do
             ]
           )
           |> EdgeDB.transaction(fn client ->
-            EdgeDB.query!(client, "insert v1::Ticket{ number := 1 }")
+            EdgeDB.query!(client, "insert v1::Internal{ value := 1 }")
             raise EdgeDB.TransactionConflictError.new("test error")
           end)
         end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select v1::Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select v1::Internal"))
 
       assert exc.type == EdgeDB.TransactionConflictError
 
@@ -349,12 +349,12 @@ defmodule Tests.EdgeDB.APITest do
             ]
           )
           |> EdgeDB.transaction(fn client ->
-            EdgeDB.query!(client, "insert v1::Ticket{ number := 1 }")
+            EdgeDB.query!(client, "insert v1::Internal{ value := 1 }")
             raise EdgeDB.ClientConnectionFailedTemporarilyError.new("test error")
           end)
         end
 
-      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select v1::Ticket"))
+      assert EdgeDB.Set.empty?(EdgeDB.query!(client, "select v1::Internal"))
 
       assert exc.type == EdgeDB.ClientConnectionFailedTemporarilyError
 
