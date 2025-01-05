@@ -69,7 +69,7 @@ defmodule Tests.EdgeDB.Pool.EdgeDBPoolTest do
 
       run_concurrent_queries(client, 3)
 
-      for _ <- 1..5 do
+      for _i <- 1..5 do
         EdgeDB.query_required_single!(client, "select 1")
       end
 
