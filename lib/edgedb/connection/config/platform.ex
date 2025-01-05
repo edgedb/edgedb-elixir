@@ -24,7 +24,7 @@ defmodule EdgeDB.Connection.Config.Platform do
         ])
       end
 
-    {:unix, _} ->
+    {:unix, _os_name} ->
       def config_dir do
         xdg_conf_dir = @system_module.get_env("XDG_CONFIG_HOME", ".")
 
