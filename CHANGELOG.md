@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - support for Gel connection options.
 - support for `Elixir v1.17`.
+- support for `Elixir v1.18`.
 
 ## [0.7.0] - 2024-05-05
 
