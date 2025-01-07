@@ -73,12 +73,13 @@ if File.exists?(testcases_file) do
     }
     @known_case_errors Map.keys(@case_to_client_errors)
 
-    for testcase <- @cases do
-      describe "shared testcase for connection options parsing: #{testcase["name"]}" do
+    for {testcase, index} <- Enum.with_index(@cases, 1) do
+      describe "shared testcase for connection options parsing: #{testcase["name"]} (#{index})" do
         @tag String.to_atom("shared_connection_testcase_#{testcase["name"]}")
 
         @tag testcase: testcase
         @tag debug: @debug_shared
+        @tag String.to_atom("shared_connection_testcase_#{index}")
 
         with %{"fs" => fs_mapping} when map_size(fs_mapping) != 0 <- testcase do
           platform = testcase["platform"]
