@@ -33,37 +33,21 @@ defmodule EdgeDB.Connection.Config.DSN do
     parse(%URI{dsn | path: nil}, opts)
   end
 
-  defp parse(
-         %URI{
-           scheme: "edgedb"
-         } = dsn,
-         opts
-       ) do
-    parse_inner(dsn, opts)
+  defp parse(%URI{scheme: "gel"} = dsn, opts) do
+    parse_dsn(dsn, opts)
   end
 
-  defp parse(
-         %URI{
-           scheme: "gel"
-         } = dsn,
-         opts
-       ) do
-    parse_inner(dsn, opts)
+  defp parse(%URI{scheme: "edgedb"} = dsn, opts) do
+    parse_dsn(dsn, opts)
   end
 
   defp parse(%URI{} = dsn, _opts) do
     raise RuntimeError,
       message:
-        ~s(invalid DSN or instance name: scheme is expected to be "gel", got #{inspect(dsn.scheme)})
+        ~s(invalid DSN or instance name: scheme is expected to be "gel" or "edgedb", got #{inspect(dsn.scheme)})
   end
 
-  defp parse_inner(
-         %URI{
-           path: uri_database,
-           query: query
-         } = dsn,
-         opts
-       ) do
+  defp parse_dsn(%URI{path: uri_database, query: query} = dsn, opts) do
     %URI{host: host, port: port} = maybe_handle_ipv6_zone(dsn)
 
     {user, password} =

@@ -522,7 +522,10 @@ defmodule Tests.EdgeDB.APITest do
       state =
         %EdgeDB.Client.State{}
         |> EdgeDB.Client.State.with_default_module("schema")
-        |> EdgeDB.Client.State.with_module_aliases(%{"math_alias" => "math", "cfg_alias" => "cfg"})
+        |> EdgeDB.Client.State.with_module_aliases(%{
+          "math_alias" => "math",
+          "cfg_alias" => "cfg"
+        })
         |> EdgeDB.Client.State.with_globals(%{"v2::current_user" => current_user})
         |> EdgeDB.Client.State.with_config(query_execution_timeout: duration)
 

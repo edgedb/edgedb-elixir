@@ -16,7 +16,8 @@ defmodule Tests.Support.SharedCase do
 
       import unquote(__MODULE__)
 
-      @debug_shared System.get_env("EDGEDB_SHARED_TESTS_DEBUG", "") != ""
+      @debug_shared System.get_env("EDGEDB_SHARED_TESTS_DEBUG", "") != "" ||
+                      System.get_env("GEL_SHARED_TESTS_DEBUG", "") != ""
 
       @moduletag :shared
       @moduletag capture_log: !@debug_shared
@@ -166,21 +167,31 @@ defmodule Tests.Support.SharedCase do
   end
 
   def setup_fs(_context) do
-    Logger.debug("configure files so that `edgedb.toml` won't exist")
+    Logger.debug("configure files so that `gel.toml` and `edgedb.toml` won't exist")
 
     stub(Mocks.FileMock, :exists?, fn path ->
-      if path == Path.join(File.cwd!(), "edgedb.toml") do
-        false
-      else
-        File.exists?(path)
+      cond do
+        path == Path.join(File.cwd!(), "gel.toml") ->
+          false
+
+        path == Path.join(File.cwd!(), "edgedb.toml") ->
+          false
+
+        true ->
+          File.exists?(path)
       end
     end)
 
     stub(Mocks.FileMock, :exists?, fn path, _opts ->
-      if path == Path.join(File.cwd!(), "edgedb.toml") do
-        false
-      else
-        File.exists?(path)
+      cond do
+        path == Path.join(File.cwd!(), "gel.toml") ->
+          false
+
+        path == Path.join(File.cwd!(), "edgedb.toml") ->
+          false
+
+        true ->
+          File.exists?(path)
       end
     end)
 
